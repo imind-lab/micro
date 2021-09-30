@@ -1,0 +1,17 @@
+apiVersion: datasource.sentinel.io/v1alpha1
+kind: FlowRules
+metadata:
+  name: sentinel-flow-rules
+spec:
+  rules:
+    - resource: abcde
+      threshold: 10
+      relationStrategy: CurrentResource
+      controlBehavior: Throttling
+      maxQueueingTimeMs: 500
+    - resource: abcd
+      threshold: 10
+      tokenCalculateStrategy: Direct
+      controlBehavior: Reject
+      statIntervalInMs: 1000
+
