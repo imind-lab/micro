@@ -125,6 +125,13 @@ var serverCmd = &cobra.Command{
 			fmt.Println("生成Server出错", err)
 		}
 
+		err = tpl.CreateDeploy(data)
+		if err == nil {
+			fmt.Println("生成Deploy成功")
+		} else {
+			fmt.Println("生成Deploy出错", err)
+		}
+
 		// api
 		if gateway {
 			err = api.CreateBuild(data)

@@ -48,55 +48,55 @@ func NewRepository(dbName string, realTime bool) Dao {
 	return rep
 }
 
-func (rep *dao) WriteDB(ctx context.Context) *gorm.DB {
-	if rep.dbMock != nil {
-		return rep.dbMock
+func (d *dao) WriteDB(ctx context.Context) *gorm.DB {
+	if d.dbMock != nil {
+		return d.dbMock
 	}
-	return rep.MySQL.WriteDB(rep.dbName).WithContext(ctx)
+	return d.MySQL.WriteDB(d.dbName).WithContext(ctx)
 }
 
-func (rep *dao) ReadDB(ctx context.Context) *gorm.DB {
-	if rep.dbMock != nil {
-		return rep.dbMock
+func (d *dao) ReadDB(ctx context.Context) *gorm.DB {
+	if d.dbMock != nil {
+		return d.dbMock
 	}
-	if rep.realTime {
-		return rep.MySQL.WriteDB(rep.dbName).WithContext(ctx)
+	if d.realTime {
+		return d.MySQL.WriteDB(d.dbName).WithContext(ctx)
 	}
-	return rep.MySQL.ReadDB(rep.dbName).WithContext(ctx)
+	return d.MySQL.ReadDB(d.dbName).WithContext(ctx)
 }
 
-func (rep *dao) ExtraWriteDB(ctx context.Context, name string) *gorm.DB {
-	if rep.dbMock != nil {
-		return rep.dbMock
+func (d *dao) ExtraWriteDB(ctx context.Context, name string) *gorm.DB {
+	if d.dbMock != nil {
+		return d.dbMock
 	}
-	return rep.MySQL.WriteDB(name).WithContext(ctx)
+	return d.MySQL.WriteDB(name).WithContext(ctx)
 }
 
-func (rep *dao) ExtraReadDB(ctx context.Context, name string) *gorm.DB {
-	if rep.dbMock != nil {
-		return rep.dbMock
+func (d *dao) ExtraReadDB(ctx context.Context, name string) *gorm.DB {
+	if d.dbMock != nil {
+		return d.dbMock
 	}
-	if rep.realTime {
-		return rep.MySQL.WriteDB(name).WithContext(ctx)
+	if d.realTime {
+		return d.MySQL.WriteDB(name).WithContext(ctx)
 	}
-	return rep.MySQL.ReadDB(name).WithContext(ctx)
+	return d.MySQL.ReadDB(name).WithContext(ctx)
 }
 
-func (rep *dao) SetDBMock(db *gorm.DB) {
-	rep.dbMock = db
+func (d *dao) SetDBMock(db *gorm.DB) {
+	d.dbMock = db
 }
 
-func (repo *dao) SetRealTime(realTime bool) {
-	repo.realTime = realTime
+func (d *dao) SetRealTime(realTime bool) {
+	d.realTime = realTime
 }
 
-func (rep *dao) SetRedisMock(rdb *redis.Client) {
-	rep.redisMock = rdb
+func (d *dao) SetRedisMock(rdb *redis.Client) {
+	d.redisMock = rdb
 }
 
-func (rep *dao) Redis() *redis.Client {
-	if rep.redisMock != nil {
-		return rep.redisMock
+func (d *dao) Redis() *redis.Client {
+	if d.redisMock != nil {
+		return d.redisMock
 	}
-	return rep.Cache.Redis()
+	return d.Cache.Redis()
 }

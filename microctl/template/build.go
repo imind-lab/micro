@@ -24,10 +24,6 @@ gengo:
  --grpc-gateway_out ../server/proto --grpc-gateway_opt logtostderr=true --grpc-gateway_opt paths=source_relative --grpc-gateway_opt generate_unbound_methods=false {{.Service}}/{{.Service}}.proto
 	protoc-go-inject-tag -input=../server/proto/{{.Service}}/{{.Service}}.pb.go
 
-genphp:
-	protoc -I. --proto_path ../server/proto \
- --php_out ../server/proto/{{.Service}} --grpc_out ../server/proto/{{.Service}} --plugin=protoc-gen-grpc=${GOPATH}/bin/grpc_php_plugin {{.Service}}/{{.Service}}.proto
-
 depend:
 	go get ../...
 
@@ -45,12 +41,8 @@ docker: build health
 health:
 	CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -a -installsuffix cgo -o grpc-health-probe ../pkg/grpc-health-probe/main.go
 
-deploy: docker
-	kubectl apply -f ns-rbac.yaml
-	kubectl apply -f {{.Service}}.yaml
-
 helm:
-	helm install {{.Service}} ./helm --set image.tag=$(VERSION)
+	helm install {{.Service}} ./helm/{{.Service}} --set image.tag=$(VERSION)
 
 clean:
 	docker rmi registry.cn-beijing.aliyuncs.com/imind/{{.Service}}:$(VERSION)
@@ -58,7 +50,7 @@ clean:
 k8s: docker
 	kubectl set image deployment/{{.Service}} {{.Service}}=registry.cn-beijing.aliyuncs.com/imind/{{.Service}}:$(VERSION)
 
-.PHONY: gengo genphp depend build test docker health deploy helm clean k8s
+.PHONY: gengo depend build test docker health deploy helm clean k8s
 `
 
 	t, err := template.New("makefile").Parse(tpl)

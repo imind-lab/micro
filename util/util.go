@@ -748,33 +748,3 @@ func AppendString(keys ...string) string {
 	}
 	return string(result)
 }
-
-func CallPHPService(url string, args ...interface{}) ([]byte, error) {
-	client := &http.Client{}
-
-	data, err := json.Marshal(args)
-	if err != nil {
-		return nil, err
-	}
-
-	fmt.Println(string((data)))
-
-	req, err := http.NewRequest("POST", url, bytes.NewReader(data))
-	if err != nil {
-		fmt.Println("NewRequest error", err)
-		return nil, err
-	}
-
-	req.Header.Set("service-protocol", "grpc")
-
-	resp, err := client.Do(req)
-
-	defer resp.Body.Close()
-
-	body, err := ioutil.ReadAll(resp.Body)
-	if err != nil {
-		fmt.Println("ReadAll error", err)
-		return nil, err
-	}
-	return body, nil
-}

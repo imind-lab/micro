@@ -28,7 +28,7 @@ var (
 
 const dsnFormat = "%s:%s@tcp(%s:%d)/%s?charset=utf8mb4&multiStatements=true&interpolateParams=true&parseTime=True&loc=Local"
 
-// 定义MySQL接口方法
+// MySQL 定义MySQL接口方法
 type MySQL interface {
 	WriteDB(name string) *gorm.DB
 	ReadDB(name string) *gorm.DB
@@ -41,7 +41,7 @@ type RWDB struct {
 	Read  []*gorm.DB
 }
 
-// 创建MySQL接口实例
+// NewMySQL 创建MySQL接口实例
 func NewMySQL() MySQL {
 	dbOnce.Do(func() {
 		dbClient = &database{

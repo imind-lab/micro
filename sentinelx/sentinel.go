@@ -6,7 +6,7 @@ import (
 	"github.com/alibaba/sentinel-golang/pkg/datasource/k8s"
 )
 
-var opts = Options{0}
+var opts = Options{0, "micro"}
 
 type Sentinel struct {
 	ds     *k8s.DataSource
@@ -17,7 +17,7 @@ func NewSentinel(logger *zap.Logger, opt ...Option) (*Sentinel, error) {
 	for _, o := range opt {
 		o(&opts)
 	}
-	ds, err := k8s.NewDataSource("micro")
+	ds, err := k8s.NewDataSource(opts.Namespace)
 	if err != nil {
 		logger.Warn("k8s.NewDataSource error", zap.Error(err))
 		return nil, err
@@ -92,7 +92,8 @@ func (sent *Sentinel) Close() {
 }
 
 type Options struct {
-	Type int
+	Type      int
+	Namespace string
 }
 
 type Option func(*Options)
@@ -100,5 +101,11 @@ type Option func(*Options)
 func Type(typ int) Option {
 	return func(o *Options) {
 		o.Type = typ
+	}
+}
+
+func Namespace(ns string) Option {
+	return func(o *Options) {
+		o.Namespace = ns
 	}
 }

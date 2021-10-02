@@ -48,12 +48,8 @@ docker: build health
 health:
 	CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -a -installsuffix cgo -o grpc-health-probe ../pkg/grpc-health-probe/main.go
 
-deploy: docker
-	kubectl apply -f ns-rbac.yaml
-	kubectl apply -f {{.Service}}-api.yaml
-
 helm:
-	helm install {{.Service}} ./helm --set image.tag=$(VERSION)
+	helm install {{.Service}} ./helm/{{.Service}} --set image.tag=$(VERSION)
 
 clean:
 	docker rmi registry.cn-beijing.aliyuncs.com/{{.Project}}/{{.Service}}-api:$(VERSION)
@@ -61,7 +57,7 @@ clean:
 k8s:
 	kubectl set image deployment/{{.Service}}-api {{.Service}}=registry.cn-beijing.aliyuncs.com/{{.Project}}/{{.Service}}-api:$(VERSION) -n imind-lab
 
-.PHONY: gengo genphp depend build test docker clean deploy k8s
+.PHONY: gengo depend build test docker clean deploy k8s
 `
 
 	t, err := template.New("makefile").Parse(tpl)
