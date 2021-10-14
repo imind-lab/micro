@@ -68,4 +68,4 @@ cd github.com/imind-lab/greet/build
 make deploy
 ```
 
-3、具体示例代码详见：https://github.com/imind-lab/greet
+3、具体示例代码详见：https://github.com/imind-lab/greeter
