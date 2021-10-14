@@ -26,7 +26,7 @@ package subscriber
 import (
 	"context"
 
-	"{{.Domain}}/imind-lab/micro/broker"
+	"github.com/imind-lab/micro/broker"
 	"github.com/grpc-ecosystem/go-grpc-middleware/logging/zap/ctxzap"
 	"go.uber.org/zap"
 )

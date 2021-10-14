@@ -27,14 +27,14 @@ import (
 	"context"
 	"math"
 
-	"{{.Domain}}/grpc-ecosystem/go-grpc-middleware/logging/zap/ctxzap"
-	"{{.Domain}}/pkg/errors"
+	"github.com/grpc-ecosystem/go-grpc-middleware/logging/zap/ctxzap"
+	"github.com/pkg/errors"
 	"go.uber.org/zap"
 
-	"{{.Domain}}/imind-lab/{{.Service}}/server/model"
-	"{{.Domain}}/imind-lab/{{.Service}}/server/proto/{{.Service}}"
-	"{{.Domain}}/imind-lab/{{.Service}}/server/repository"
-	"{{.Domain}}/imind-lab/micro/dao"
+	"{{.Domain}}/{{.Project}}/{{.Service}}/server/model"
+	"{{.Domain}}/{{.Project}}/{{.Service}}/server/proto/{{.Service}}"
+	"{{.Domain}}/{{.Project}}/{{.Service}}/server/repository"
+	"github.com/imind-lab/micro/dao"
 )
 
 type {{.Svc}}Domain interface {

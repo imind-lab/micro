@@ -12,16 +12,16 @@ func CreateServer(data *Data) error {
 import (
 	"fmt"
 
-	"{{.Domain}}/spf13/viper"
+	"github.com/spf13/viper"
 	"google.golang.org/grpc"
 
 	"{{.Domain}}/{{.Project}}/{{.Service}}/pkg/constant"
 	"{{.Domain}}/{{.Project}}/{{.Service}}/server/proto/{{.Service}}"
 	"{{.Domain}}/{{.Project}}/{{.Service}}/server/service"
 	"{{.Domain}}/{{.Project}}/{{.Service}}/server/subscriber"
-	"{{.Domain}}/{{.Project}}/micro"
-	"{{.Domain}}/{{.Project}}/micro/broker"
-	"{{.Domain}}/{{.Project}}/micro/grpcx"
+	"github.com/imind-lab/micro"
+	"github.com/imind-lab/micro/broker"
+	grpcx "github.com/imind-lab/micro/grpc"
 )
 
 func Serve() error {

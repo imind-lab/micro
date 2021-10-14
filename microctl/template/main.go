@@ -61,10 +61,6 @@ func main() {
 	tpl = `module {{.Domain}}/{{.Project}}/{{.Service}}
 
 go 1.16
-
-replace (
-	github.com/imind-lab/micro => ../micro
-)
 `
 
 	t, err = template.New("go.mod").Parse(tpl)

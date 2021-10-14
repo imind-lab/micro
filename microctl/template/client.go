@@ -115,8 +115,8 @@ package client
 
 import (
 	"context"
-	"{{.Domain}}/imind-lab/{{.Service}}/server/proto/{{.Service}}"
-	"{{.Domain}}/imind-lab/micro/grpcx"
+	"{{.Domain}}/{{.Project}}/{{.Service}}/server/proto/{{.Service}}"
+	"github.com/imind-lab/micro/grpc"
 	"io"
 )
 
@@ -126,7 +126,7 @@ type {{.Service}}Client struct {
 }
 
 func New{{.Svc}}Client(ctx context.Context, name string, tls bool) (*{{.Service}}Client, error) {
-	conn, closer, err := grpcx.ClientConn(ctx, name, tls)
+	conn, closer, err := grpc.ClientConn(ctx, name, tls)
 	if err != nil {
 		return nil, err
 	}

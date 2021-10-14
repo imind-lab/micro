@@ -9,7 +9,7 @@ import (
 	grpc_ctxtags "github.com/grpc-ecosystem/go-grpc-middleware/tags"
 	grpc_opentracing "github.com/grpc-ecosystem/go-grpc-middleware/tracing/opentracing"
 	"github.com/grpc-ecosystem/grpc-gateway/v2/runtime"
-	"github.com/imind-lab/micro/grpcx"
+	grpcx "github.com/imind-lab/micro/grpc"
 	"github.com/spf13/viper"
 	"go.uber.org/zap"
 	"google.golang.org/grpc"
@@ -62,7 +62,7 @@ type service struct {
 	ctx    context.Context
 	cancel context.CancelFunc
 
-	once   sync.Once
+	once sync.Once
 }
 
 func (s service) Name() string {

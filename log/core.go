@@ -5,7 +5,7 @@
  *  Copyright © 2021 imind.tech All rights reserved.
  */
 
-package logx
+package log
 
 import (
 	"os"

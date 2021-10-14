@@ -115,7 +115,7 @@ const GreetQueueLen = 32
 
 import (
         "{{.Domain}}/{{.Project}}/{{.Service}}/pkg/constant"
-        "{{.Domain}}/{{.Project}}/micro/util"
+        "github.com/imind-lab/micro/util"
 )
 
 func CacheKey(keys ...string) string {

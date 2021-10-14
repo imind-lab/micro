@@ -4,7 +4,7 @@ import (
 	"context"
 	"github.com/grpc-ecosystem/go-grpc-middleware/logging/zap/ctxzap"
 	"github.com/imind-lab/micro/broker"
-	"github.com/imind-lab/micro/logx"
+	"github.com/imind-lab/micro/log"
 	"github.com/imind-lab/micro/tracing"
 	"github.com/opentracing/opentracing-go"
 	"github.com/spf13/viper"
@@ -27,10 +27,10 @@ type Options struct {
 	ClientCred credentials.TransportCredentials
 	ServerCred credentials.TransportCredentials
 
-	BeforeRun []func() error
-	BeforeStop  []func() error
-	AfterRun  []func() error
-	AfterStop   []func() error
+	BeforeRun  []func() error
+	BeforeStop []func() error
+	AfterRun   []func() error
+	AfterStop  []func() error
 
 	Signal bool
 }
@@ -46,7 +46,7 @@ func newOptions(opts ...Option) Options {
 	logCompress := viper.GetBool("log.compress")
 	logFormat := viper.GetString("log.format")
 
-	logger := logx.NewLogger(logPath, zapcore.Level(logLevel), logSize, logBackup, logAge, logCompress, logFormat, zap.Fields(zap.String("project", "imind-lab"), zap.String("service", "user")))
+	logger := log.NewLogger(logPath, zapcore.Level(logLevel), logSize, logBackup, logAge, logCompress, logFormat, zap.Fields(zap.String("project", "imind-lab"), zap.String("service", "user")))
 	ctx := ctxzap.ToContext(context.Background(), logger)
 
 	traceName := viper.GetString("tracing.name.server")
@@ -54,12 +54,12 @@ func newOptions(opts ...Option) Options {
 	tracer, closer, _ := tracing.InitTracer(traceName)
 
 	opt := Options{
-		Name: name,
+		Name:    name,
 		Context: ctx,
 		Logger:  logger,
 		Tracer:  tracer,
-		Closer: closer,
-		Signal: true,
+		Closer:  closer,
+		Signal:  true,
 	}
 
 	for _, o := range opts {

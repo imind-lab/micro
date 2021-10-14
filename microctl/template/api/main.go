@@ -66,7 +66,6 @@ go 1.15
 
 replace (
 	{{.Domain}}/{{.Project}}/{{.Service}} => ../../../{{.Domain}}/{{.Project}}/{{.Service}}
-	{{.Domain}}/{{.Project}}/micro => ../../../{{.Domain}}/{{.Project}}/micro
 )
 
 `

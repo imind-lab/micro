@@ -1,4 +1,4 @@
-package sentinelx
+package sentinel
 
 import (
 	"go.uber.org/zap"

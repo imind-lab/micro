@@ -29,19 +29,19 @@ import (
 	"strconv"
 	"sync"
 
-	"{{.Domain}}/go-redis/redis/v8"
-	"{{.Domain}}/grpc-ecosystem/go-grpc-middleware/logging/zap/ctxzap"
-	errorsx "{{.Domain}}/pkg/errors"
+	"github.com/go-redis/redis/v8"
+	"github.com/grpc-ecosystem/go-grpc-middleware/logging/zap/ctxzap"
+	errorsx "github.com/pkg/errors"
 	"go.uber.org/zap"
 	"gorm.io/gorm"
 
 	"{{.Domain}}/{{.Project}}/{{.Service}}/pkg/constant"
 	utilx "{{.Domain}}/{{.Project}}/{{.Service}}/pkg/util"
 	"{{.Domain}}/{{.Project}}/{{.Service}}/server/model"
-	"{{.Domain}}/{{.Project}}/micro/dao"
-	"{{.Domain}}/{{.Project}}/micro/redisx"
-	"{{.Domain}}/{{.Project}}/micro/tracing"
-	"{{.Domain}}/{{.Project}}/micro/util"
+	"github.com/imind-lab/micro/dao"
+	redisx "github.com/imind-lab/micro/redis"
+	"github.com/imind-lab/micro/tracing"
+	"github.com/imind-lab/micro/util"
 )
 
 type {{.Svc}}Repository interface {

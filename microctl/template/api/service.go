@@ -32,17 +32,17 @@ import (
 	"strconv"
 	"sync"
 
-	sentinel "{{.Domain}}/alibaba/sentinel-golang/api"
-	"{{.Domain}}/alibaba/sentinel-golang/core/base"
-	"{{.Domain}}/go-playground/validator/v10"
-	"{{.Domain}}/grpc-ecosystem/go-grpc-middleware/logging/zap/ctxzap"
+	sentinel "github.com/alibaba/sentinel-golang/api"
+	"github.com/alibaba/sentinel-golang/core/base"
+	"github.com/go-playground/validator/v10"
+	"github.com/grpc-ecosystem/go-grpc-middleware/logging/zap/ctxzap"
 	"go.uber.org/zap"
 	"google.golang.org/grpc/metadata"
 
 	{{.Service}}_api "{{.Domain}}/{{.Project}}/{{.Service}}-api/server/proto/{{.Service}}-api"
 	{{.Service}}Client "{{.Domain}}/{{.Project}}/{{.Service}}/client"
 	"{{.Domain}}/{{.Project}}/{{.Service}}/server/proto/{{.Service}}"
-	"{{.Domain}}/{{.Project}}/micro/sentinelx"
+	sentinelx "github.com/imind-lab/micro/sentinel"
 )
 
 type {{.Svc}}Service struct {

@@ -5,7 +5,7 @@
  *  Copyright © 2021 imind.tech All rights reserved.
  */
 
-package grpcx
+package grpc
 
 import "context"
 

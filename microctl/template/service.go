@@ -36,8 +36,8 @@ import (
 	"{{.Domain}}/{{.Project}}/{{.Service}}/pkg/constant"
 	"{{.Domain}}/{{.Project}}/{{.Service}}/server/domain"
 	"{{.Domain}}/{{.Project}}/{{.Service}}/server/proto/{{.Service}}"
-	"{{.Domain}}/imind-lab/micro/broker"
-	"{{.Domain}}/imind-lab/micro/util"
+	"github.com/imind-lab/micro/broker"
+	"github.com/imind-lab/micro/util"
 )
 
 type {{.Svc}}Service struct {
