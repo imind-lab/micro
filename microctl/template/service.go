@@ -33,10 +33,10 @@ import (
 	"github.com/grpc-ecosystem/go-grpc-middleware/logging/zap/ctxzap"
 	"go.uber.org/zap"
 
-	"{{.Domain}}/{{.Project}}/{{.Service}}/pkg/constant"
+	//"{{.Domain}}/{{.Project}}/{{.Service}}/pkg/constant"
 	"{{.Domain}}/{{.Project}}/{{.Service}}/server/domain"
 	"{{.Domain}}/{{.Project}}/{{.Service}}/server/proto/{{.Service}}"
-	"github.com/imind-lab/micro/broker"
+	//"github.com/imind-lab/micro/broker"
 	"github.com/imind-lab/micro/util"
 )
 

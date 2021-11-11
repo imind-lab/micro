@@ -55,8 +55,6 @@ func ClientConn(ctx context.Context, name string, tls bool) (*grpc.ClientConn, i
 	port := viper.GetInt("rpc." + name + ".port")
 	addr := fmt.Sprintf("%s:%d", service, port)
 
-	fmt.Println("addr", addr)
-
 	retryOpts := []grpc_retry.CallOption{
 		grpc_retry.WithMax(3),
 		grpc_retry.WithPerRetryTimeout(3 * time.Second),
@@ -96,7 +94,6 @@ func ClientConn(ctx context.Context, name string, tls bool) (*grpc.ClientConn, i
 		dialOpt = append(dialOpt, grpc.WithInsecure())
 	}
 
-	fmt.Println("dialOpt", dialOpt)
 	dialOpt = append(dialOpt, grpc.WithUnaryInterceptor(grpc_middleware.ChainUnaryClient(unaryInterceptors...)),
 		grpc.WithStreamInterceptor(grpc_middleware.ChainStreamClient(streamInterceptors...)))
 
