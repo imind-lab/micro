@@ -16,7 +16,7 @@ import (
 func CreateBuild(data *Data) error {
 	// 生成Makefile
 	var tpl = `GOPATH := $(shell go env GOPATH)
-VERSION := 0.0.1.1
+VERSION := 0.0.1.0
 
 gengo:
 	protoc -I. --proto_path ../server/proto \
@@ -33,22 +33,21 @@ build: depend
 test:
 	go test -v ../... -cover
 
-docker: build health
-	docker build -f ./Dockerfile -t registry.cn-beijing.aliyuncs.com/imind/{{.Service}}:$(VERSION) ../
-	#docker push registry.cn-beijing.aliyuncs.com/imind/{{.Service}}:$(VERSION)
-	rm -rf {{.Service}} grpc-health-probe
+docker: gengo
+	docker build -f ./Dockerfile -t 348681422678.dkr.ecr.ap-southeast-1.amazonaws.com/{{.Project}}/{{.Service}}:$(VERSION) ../
+	docker push 348681422678.dkr.ecr.ap-southeast-1.amazonaws.com/{{.Project}}/{{.Service}}:$(VERSION)
 
 health:
 	CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -a -installsuffix cgo -o grpc-health-probe ../pkg/grpc-health-probe/main.go
 
-helm:
-	helm install {{.Service}} ./helm/{{.Service}} --set image.tag=$(VERSION)
+deploy: docker
+	helm upgrade {{.Service}} ../deploy/helm/{{.Service}} --set image.tag=$(VERSION)
 
 clean:
-	docker rmi registry.cn-beijing.aliyuncs.com/imind/{{.Service}}:$(VERSION)
+	docker rmi 348681422678.dkr.ecr.ap-southeast-1.amazonaws.com/{{.Project}}/{{.Service}}:$(VERSION)
 
 k8s: docker
-	kubectl set image deployment/{{.Service}} {{.Service}}=registry.cn-beijing.aliyuncs.com/imind/{{.Service}}:$(VERSION)
+	kubectl set image deployment/{{.Service}} {{.Service}}=348681422678.dkr.ecr.ap-southeast-1.amazonaws.com/{{.Project}}/{{.Service}}:$(VERSION)
 
 .PHONY: gengo depend build test docker health deploy helm clean k8s
 `
@@ -78,7 +77,16 @@ k8s: docker
 	f.Close()
 
 	// 生成Dockerfile
-	tpl = `FROM alpine:latest
+	tpl = `FROM golang:alpine as builder
+RUN apk --no-cache add git
+WORKDIR /go/src/{{.Domain}}/{{.Project}}/{{.Service}}/
+COPY . .
+ENV GOPROXY=https://goproxy.cn,direct
+RUN go get ./...
+RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -a -installsuffix cgo -o {{.Service}} main.go
+RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -a -installsuffix cgo -o grpc-health-probe pkg/grpc-health-probe/main.go
+
+FROM alpine:latest
 RUN sed -i 's/dl-cdn.alpinelinux.org/mirrors.ustc.edu.cn/g' /etc/apk/repositories
 RUN apk add --no-cache tzdata \
     && ln -sf /usr/share/zoneinfo/Asia/Shanghai /etc/localtime \
@@ -87,8 +95,8 @@ RUN apk add --no-cache tzdata \
 
 WORKDIR .
 ADD conf /conf
-ADD build/{{.Service}} build/grpc-health-probe /bin/
-ENTRYPOINT [ "/bin/{{.Service}}" ]
+COPY --from=builder /go/src/{{.Domain}}/{{.Project}}/{{.Service}}/{{.Service}} /go/src/{{.Domain}}/{{.Project}}/{{.Service}}/grpc-health-probe /bin/
+ENTRYPOINT [ "/bin/{{.Service}}", "server" ]
 `
 
 	t, err = template.New("dockerfile").Parse(tpl)

@@ -16,6 +16,7 @@ import (
 func CreateConf(data *Data) error {
 	// 生成conf.yaml
 	var tpl = `service:
+  project: {{.Project}}
   name: {{.Service}}
   port: #监听端口
     http: 80
@@ -25,24 +26,24 @@ func CreateConf(data *Data) error {
 
 db:
   logMode: 4
-  imind:
+  chope:
     write:
-      host: 127.0.0.1
+      host: uat-daniel-ms-instance-1.ctn3ok75ssrh.ap-southeast-1.rds.amazonaws.com
       port: 3306
-      user: root
-      pass: 123456
-      name: mind
+      user: uatdanielms
+      pass: 9xBf6cdlVlxwiJeN
+      name: chope
     read:
-      - host: 127.0.0.1
+      - host: uat-daniel-ms-instance-1.ctn3ok75ssrh.ap-southeast-1.rds.amazonaws.com
         port: 3306
-        user: root
-        pass: 123456
-        name: mind
-      - host: 127.0.0.1
+        user: uatdanielms
+        pass: 9xBf6cdlVlxwiJeN
+        name: chope
+      - host: uat-daniel-ms-instance-1.ctn3ok75ssrh.ap-southeast-1.rds.amazonaws.com
         port: 3306
-        user: root
-        pass: 123456
-        name: mind
+        user: uatdanielms
+        pass: 9xBf6cdlVlxwiJeN
+        name: chope
 
 redis:
   addr: '127.0.0.1:6379'
@@ -63,8 +64,8 @@ tracing:
   type: const
   param: 1
   name:
-    client: imind-{{.Service}}-cli
-    server: imind-{{.Service}}-srv
+    client: {{.Project}}-{{.Service}}-cli
+    server: {{.Project}}-{{.Service}}-srv
 
 log:
   path: './logs/ms.log'

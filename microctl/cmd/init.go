@@ -189,6 +189,13 @@ var serverCmd = &cobra.Command{
 			} else {
 				fmt.Println("生成API-Server出错", err)
 			}
+
+			err = api.CreateDeploy(data)
+			if err == nil {
+				fmt.Println("生成API-Deploy成功")
+			} else {
+				fmt.Println("生成API-Deploy出错", err)
+			}
 		}
 	},
 }

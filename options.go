@@ -37,6 +37,7 @@ type Options struct {
 
 func newOptions(opts ...Option) Options {
 	name := viper.GetString("service.name")
+	project := viper.GetString("service.project")
 
 	logPath := viper.GetString("log.path")
 	logLevel := viper.GetInt("log.level")
@@ -46,7 +47,7 @@ func newOptions(opts ...Option) Options {
 	logCompress := viper.GetBool("log.compress")
 	logFormat := viper.GetString("log.format")
 
-	logger := log.NewLogger(logPath, zapcore.Level(logLevel), logSize, logBackup, logAge, logCompress, logFormat, zap.Fields(zap.String("project", "imind-lab"), zap.String("service", "user")))
+	logger := log.NewLogger(logPath, zapcore.Level(logLevel), logSize, logBackup, logAge, logCompress, logFormat, zap.Fields(zap.String("project", project), zap.String("service", name)))
 	ctx := ctxzap.ToContext(context.Background(), logger)
 
 	traceName := viper.GetString("tracing.name.server")

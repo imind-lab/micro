@@ -18,57 +18,48 @@ import (
 func CreateConf(data *tp.Data) error {
 	// 生成conf.yaml
 	var tpl = `service:
-  port:   #监听端口
+  project: {{.Project}}
+  name: {{.Service}}-api
+  port: #监听端口
     http: 80
     grpc: 50051
   profile:
     rate: 1
 
 db:
-  imind:
+  logMode: 4
+  chope:
     write:
-      host: mysql.infra
+      host: uat-daniel-ms-instance-1.ctn3ok75ssrh.ap-southeast-1.rds.amazonaws.com
       port: 3306
-      user: root
-      pass: J1DLdSDFUm
-      name: mind
+      user: uatdanielms
+      pass: 9xBf6cdlVlxwiJeN
+      name: chope
     read:
-      - host: mysql.infra
+      - host: uat-daniel-ms-instance-1.ctn3ok75ssrh.ap-southeast-1.rds.amazonaws.com
         port: 3306
-        user: root
-        pass: J1DLdSDFUm
-        name: mind
-      - host: mysql.infra
+        user: uatdanielms
+        pass: 9xBf6cdlVlxwiJeN
+        name: chope
+      - host: uat-daniel-ms-instance-1.ctn3ok75ssrh.ap-southeast-1.rds.amazonaws.com
         port: 3306
-        user: root
-        pass: J1DLdSDFUm
-        name: mind
+        user: uatdanielms
+        pass: 9xBf6cdlVlxwiJeN
+        name: chope
 
 redis:
-  addr: 'redis-master.infra:6379'
-  pass: 'UY3Fa4WLvE'
+  addr: '127.0.0.1:6379'
   db: 0
 
 kafka:
   business:
     producer:
-      - 'kafka.infra:9092'
+      - '127.0.0.1:9092'
     consumer:
-      - 'kafka.infra:9092'
+      - '127.0.0.1:9092'
     topic:
-      commentAction: comment_action
-      commonTask: common_task
-      create{{.Svc}}: create_{{.Service}}
-      update{{.Svc}}Count: update_{{.Service}}_count
-
-  bigdata:
-    producer:
-      - 'kafka.infra:9092'
-    consumer:
-      - 'kafka.infra:9092'
-    topic:
-      create{{.Svc}}: create_{{.Service}}
-      update{{.Svc}}Count: update_{{.Service}}_count
+      {{.Service}}Create: {{.Service}}_create
+      {{.Service}}Update: {{.Service}}_update
 
 tracing:
   agent: '172.16.50.50:6831'
@@ -89,7 +80,7 @@ log:
 rpc:
   {{.Service}}:
     service: {{.Service}}
-    port: 5501
+    port: 50051
 `
 	t, err := template.New("conf").Parse(tpl)
 	if err != nil {

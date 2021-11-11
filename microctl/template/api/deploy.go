@@ -5,19 +5,20 @@
  *  Copyright © 2021 imind.tech All rights reserved.
  */
 
-package template
+package api
 
 import (
+	tp "github.com/imind-lab/micro/microctl/template"
 	"os"
 	"strings"
 	"text/template"
 )
 
 // 生成docker
-func CreateDeploy(data *Data) error {
+func CreateDeploy(data *tp.Data) error {
 	// 生成Makefile
 	var tpl = `apiVersion: v2
-name: {{.Service}}
+name: {{.Service}}-api
 description: A Helm chart for Kubernetes
 
 # A chart can be either an 'application' or a 'library' chart.
@@ -49,7 +50,7 @@ icon: https://static.imind.tech/frontend/images/wechat/bj.png
 		return err
 	}
 
-	dir := "./" + data.Domain + "/" + data.Project + "/" + data.Service + "/deploy/helm/" + data.Service + "/"
+	dir := "./" + data.Domain + "/" + data.Project + "/" + data.Service + "-api/deploy/helm/" + data.Service + "-api/"
 
 	err = os.MkdirAll(dir, os.ModePerm)
 	if err != nil {
@@ -76,7 +77,7 @@ icon: https://static.imind.tech/frontend/images/wechat/bj.png
 replicaCount: 2
 
 image:
-  repository: 348681422678.dkr.ecr.ap-southeast-1.amazonaws.com/{{.Project}}/{{.Service}}
+  repository: 348681422678.dkr.ecr.ap-southeast-1.amazonaws.com/{{.Project}}/{{.Service}}-api
   pullPolicy: IfNotPresent
   # Overrides the image tag whose default is the chart appVersion.
   tag: ""
@@ -120,7 +121,7 @@ service:
 istio:
   enabled: true
   http:
-    host: {{.Service}}.chope.co
+    host: {{.Service}}-api.chope.co
     port: 80
 
 ingress:
@@ -279,7 +280,7 @@ Create the name of the service account to use
 {{- end }}
 `
 
-	dir = "./" + data.Domain + "/" + data.Project + "/" + data.Service + "/deploy/helm/" + data.Service + "/templates/"
+	dir = "./" + data.Domain + "/" + data.Project + "/" + data.Service + "-api/deploy/helm/" + data.Service + "-api/templates/"
 
 	err = os.MkdirAll(dir, os.ModePerm)
 	if err != nil {
@@ -533,7 +534,7 @@ spec:
 	// 生成conf.yaml
 	tpl = `service:
   project: {{.Project}}
-  name: {{.Service}}
+  name: {{.Service}}-api
   port: #监听端口
     http: 80
     grpc: 50051
@@ -580,8 +581,8 @@ tracing:
   type: const
   param: 1
   name:
-    client: {{.Project}}-{{.Service}}-cli
-    server: {{.Project}}-{{.Service}}-srv
+    client: {{.Project}}-{{.Service}}-api-cli
+    server: {{.Project}}-{{.Service}}-api-srv
 
 log:
   path: './logs/ms.log'
@@ -591,6 +592,10 @@ log:
   backup: 30
   compress: true
   format: json
+rpc:
+  {{.Service}}:
+    service: {{.Service}}
+    port: 50051
 `
 
 	t, err = template.New("conf.yaml").Parse(tpl)
@@ -598,7 +603,7 @@ log:
 		return err
 	}
 
-	dir = "./" + data.Domain + "/" + data.Project + "/" + data.Service + "/deploy/helm/" + data.Service + "/conf/"
+	dir = "./" + data.Domain + "/" + data.Project + "/" + data.Service + "-api/deploy/helm/" + data.Service + "-api/conf/"
 
 	err = os.MkdirAll(dir, os.ModePerm)
 	if err != nil {
@@ -635,7 +640,7 @@ spec:
   restartPolicy: Never
 `
 
-	dir = "./" + data.Domain + "/" + data.Project + "/" + data.Service + "/deploy/helm/" + data.Service + "/templates/tests/"
+	dir = "./" + data.Domain + "/" + data.Project + "/" + data.Service + "-api/deploy/helm/" + data.Service + "-api/templates/tests/"
 
 	err = os.MkdirAll(dir, os.ModePerm)
 	if err != nil {
