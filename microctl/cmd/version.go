@@ -10,7 +10,7 @@ var versionCmd = &cobra.Command{
 	Use:   "version",
 	Short: "show microctl version",
 	Run: func(cmd *cobra.Command, args []string) {
-		fmt.Println("v0.1.1")
+		fmt.Println("v1.0.1")
 	},
 }
 
