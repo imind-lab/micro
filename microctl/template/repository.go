@@ -289,7 +289,7 @@ func (repo {{.Service}}Repository) Update{{.Svc}}Status(ctx context.Context, id,
 	logger := ctxzap.Extract(ctx).With(zap.String("layer", "{{.Service}}Repository"), zap.String("func", "Update{{.Svc}}Status"))
 
 	logger.Debug("invoke info", zap.Int32("id", id), zap.Int32("status", status))
-	tx := repo.WriteDB(ctx).Model(model.{{.Svc}}{}).Where("id = ?", id)
+	tx := repo.WriteDB(ctx).Model(&model.{{.Svc}}{}).Where("id = ?", id)
 	tx = tx.Update("status", status)
 	if tx.Error != nil {
 		return 0, errorsx.Wrap(tx.Error, "{{.Service}}Repository.Update{{.Svc}}Status")
@@ -306,7 +306,7 @@ func (repo {{.Service}}Repository) Update{{.Svc}}Count(ctx context.Context, id, 
 	logger := ctxzap.Extract(ctx).With(zap.String("layer", "{{.Service}}Repository"), zap.String("func", "Update{{.Svc}}Count"))
 
 	logger.Debug("invoke info", zap.Int32("id", id), zap.Int32("num", num), zap.String("column", column))
-	tx := repo.WriteDB(ctx).Model(model.{{.Svc}}{}).Where("id = ?", id)
+	tx := repo.WriteDB(ctx).Model(&model.{{.Svc}}{}).Where("id = ?", id)
 	tx = tx.Updates(map[string]interface{}{column: gorm.Expr(column+" + ?", num)})
 	if tx.Error != nil {
 		return 0, errorsx.Wrap(tx.Error, "{{.Service}}Repository.Update{{.Svc}}Count")

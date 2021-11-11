@@ -41,7 +41,7 @@ health:
 	CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -a -installsuffix cgo -o grpc-health-probe ../pkg/grpc-health-probe/main.go
 
 deploy: docker
-	helm upgrade {{.Service}} ../deploy/helm/{{.Service}} --set image.tag=$(VERSION)
+	helm upgrade --install {{.Service}} ../deploy/helm/{{.Service}} --set image.tag=$(VERSION)
 
 clean:
 	docker rmi 348681422678.dkr.ecr.ap-southeast-1.amazonaws.com/{{.Project}}/{{.Service}}:$(VERSION)

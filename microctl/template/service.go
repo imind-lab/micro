@@ -122,15 +122,15 @@ func (svc *{{.Svc}}Service) Create{{.Svc}}(ctx context.Context, req *{{.Service}
 
 	rsp.Success = true
 
-	endpoint, err := broker.NewBroker(constant.MQName)
-	if err != nil {
-		ctxzap.Error(ctx, "broker.NewBroker error", zap.Error(err))
-		return rsp, err
-	}
-	endpoint.Publish(&broker.Message{
-		Topic: endpoint.Options().Topics["create{{.Service}}"],
-		Body:  []byte(fmt.Sprintf("{{.Svc}} %s Created", m.Name)),
-	})
+	//endpoint, err := broker.NewBroker(constant.MQName)
+	//if err != nil {
+	//	ctxzap.Error(ctx, "broker.NewBroker error", zap.Error(err))
+	//	return rsp, err
+	//}
+	//endpoint.Publish(&broker.Message{
+	//	Topic: endpoint.Options().Topics["create{{.Service}}"],
+	//	Body:  []byte(fmt.Sprintf("{{.Svc}} %s Created", m.Name)),
+	//})
 
 	return rsp, nil
 }
@@ -250,15 +250,15 @@ func (svc *{{.Svc}}Service) Update{{.Svc}}Count(ctx context.Context, req *{{.Ser
 	}
 	rsp.Success = true
 
-	endpoint, err := broker.NewBroker(constant.MQName)
-	if err != nil {
-		ctxzap.Error(ctx, "kafka.New error", zap.Error(err))
-		return rsp, err
-	}
-	endpoint.Publish(&broker.Message{
-		Topic: endpoint.Options().Topics["update{{.Service}}count"],
-		Body:  nil,
-	})
+	//endpoint, err := broker.NewBroker(constant.MQName)
+	//if err != nil {
+	//	ctxzap.Error(ctx, "kafka.New error", zap.Error(err))
+	//	return rsp, err
+	//}
+	//endpoint.Publish(&broker.Message{
+	//	Topic: endpoint.Options().Topics["update{{.Service}}count"],
+	//	Body:  nil,
+	//})
 
 	return rsp, nil
 }
