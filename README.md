@@ -42,7 +42,7 @@ go install github.com/favadi/protoc-go-inject-tag@latest
 ##### 1、安装microctl工具
 
 ```shell
-go get -u https://github.com/imind-lab/micro/microctl@latest
+go install https://github.com/imind-lab/micro/microctl@latest
 # 把microctl加入系统PATH
 echo 'export PATH=$PATH:$GOPATH/bin' >> ~/.zprofile
 source ~/.zprofile
