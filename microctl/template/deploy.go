@@ -112,9 +112,9 @@ securityContext: {}
 service:
   type: ClusterIP
   ports:
-    - name: http
+    - name: http-80
       port: 80
-    - name: grpc
+    - name: grpc-50051
       port: 50051
 
 istio:

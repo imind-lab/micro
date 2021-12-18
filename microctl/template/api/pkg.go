@@ -89,7 +89,7 @@ import (
 //CRequestTimeout 并发请求超时时间
 const CRequestTimeout = time.Second * 10
 
-const DBName = "imind"
+const DBName = "chope"
 const Realtime = false
 
 const MQName = "business"

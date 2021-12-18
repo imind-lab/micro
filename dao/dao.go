@@ -14,80 +14,49 @@ import (
 )
 
 type Dao interface {
-	WriteDB(ctx context.Context) *gorm.DB
-	ReadDB(ctx context.Context) *gorm.DB
-
-	ExtraWriteDB(ctx context.Context, name string) *gorm.DB
-	ExtraReadDB(ctx context.Context, name string) *gorm.DB
-
-	SetRealTime(realTime bool)
+	DB(ctx context.Context) *gorm.DB
+	ExtraDB(ctx context.Context, name string) *gorm.DB
 	SetDBMock(db *gorm.DB)
 
 	Redis() *redis.Client
-
 	SetRedisMock(rdb *redis.Client)
 }
 
 type dao struct {
-	MySQL
 	Cache
+	Database
 
-	dbName    string
-	dbMock    *gorm.DB
-	realTime  bool
+	dbName string
+	dbMock *gorm.DB
+
 	redisMock *redis.Client
 }
 
-func NewRepository(dbName string, realTime bool) Dao {
+func NewDao(dbName string) Dao {
 	rep := &dao{
-		MySQL:    NewMySQL(),
 		Cache:    NewCache(),
+		Database: NewDatabase(),
 		dbName:   dbName,
-		realTime: realTime,
 	}
 	return rep
 }
 
-func (d *dao) WriteDB(ctx context.Context) *gorm.DB {
+func (d *dao) DB(ctx context.Context) *gorm.DB {
 	if d.dbMock != nil {
 		return d.dbMock
 	}
-	return d.MySQL.WriteDB(d.dbName).WithContext(ctx)
+	return d.Database.DB(d.dbName).WithContext(ctx)
 }
 
-func (d *dao) ReadDB(ctx context.Context) *gorm.DB {
+func (d *dao) ExtraDB(ctx context.Context, name string) *gorm.DB {
 	if d.dbMock != nil {
 		return d.dbMock
 	}
-	if d.realTime {
-		return d.MySQL.WriteDB(d.dbName).WithContext(ctx)
-	}
-	return d.MySQL.ReadDB(d.dbName).WithContext(ctx)
-}
-
-func (d *dao) ExtraWriteDB(ctx context.Context, name string) *gorm.DB {
-	if d.dbMock != nil {
-		return d.dbMock
-	}
-	return d.MySQL.WriteDB(name).WithContext(ctx)
-}
-
-func (d *dao) ExtraReadDB(ctx context.Context, name string) *gorm.DB {
-	if d.dbMock != nil {
-		return d.dbMock
-	}
-	if d.realTime {
-		return d.MySQL.WriteDB(name).WithContext(ctx)
-	}
-	return d.MySQL.ReadDB(name).WithContext(ctx)
+	return d.Database.DB(name).WithContext(ctx)
 }
 
 func (d *dao) SetDBMock(db *gorm.DB) {
 	d.dbMock = db
-}
-
-func (d *dao) SetRealTime(realTime bool) {
-	d.realTime = realTime
 }
 
 func (d *dao) SetRedisMock(rdb *redis.Client) {

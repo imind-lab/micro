@@ -60,7 +60,11 @@ func main() {
 	// 生成go.mod
 	tpl = `module {{.Domain}}/{{.Project}}/{{.Service}}
 
-go 1.16
+go 1.17
+
+require (
+	github.com/imind-lab/micro v0.1.1
+)
 `
 
 	t, err = template.New("go.mod").Parse(tpl)
