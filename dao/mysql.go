@@ -10,204 +10,146 @@ package dao
 import (
 	"fmt"
 	"log"
-	"math/rand"
 	"sync"
 	"time"
-
-	"gorm.io/gorm/logger"
 
 	"github.com/spf13/viper"
 	"gorm.io/driver/mysql"
 	"gorm.io/gorm"
+	"gorm.io/gorm/logger"
+	"gorm.io/gorm/schema"
+	"gorm.io/plugin/dbresolver"
 )
 
 var (
 	dbOnce   sync.Once
-	dbClient MySQL
+	dbClient Database
 )
 
 const dsnFormat = "%s:%s@tcp(%s:%d)/%s?charset=utf8mb4&multiStatements=true&interpolateParams=true&parseTime=True&loc=Local"
 
-// MySQL 定义MySQL接口方法
-type MySQL interface {
-	WriteDB(name string) *gorm.DB
-	ReadDB(name string) *gorm.DB
+// Database 定义Database接口方法
+type Database interface {
+	DB(name string) *gorm.DB
 }
 
-type RWDB struct {
-	WOnce sync.Once
-	Write *gorm.DB
-	ROnce sync.Once
-	Read  []*gorm.DB
+type MySQL struct {
+	Once sync.Once
+	DB   *gorm.DB
 }
 
-// NewMySQL 创建MySQL接口实例
-func NewMySQL() MySQL {
+// NewDatabase 创建MySQL接口实例
+func NewDatabase() Database {
 	dbOnce.Do(func() {
 		dbClient = &database{
-			dbs: make(map[string]*RWDB),
+			dbs: make(map[string]*MySQL),
 		}
 	})
 	return dbClient
 }
 
 type database struct {
-	dbs map[string]*RWDB
+	dbs map[string]*MySQL
 }
 
 // 获取指定数据库的写连接
 // @name 数据库别名
-func (d *database) WriteDB(name string) *gorm.DB {
+func (d *database) DB(name string) *gorm.DB {
 	db, ok := d.dbs[name]
 	if ok {
-		db.WOnce.Do(func() {
+		db.Once.Do(func() {
 			var err error
-			db.Write, err = initDB(name)
+			db.DB, err = openDB(name)
 			if err != nil {
 				log.Fatalf("initDB error: %s, %v", name, err)
 			}
 		})
-		return db.Write
+		return db.DB
 	}
 
-	db = &RWDB{}
-	db.WOnce.Do(func() {
+	db = &MySQL{}
+	db.Once.Do(func() {
 		var err error
-		db.Write, err = initDB(name)
+		db.DB, err = openDB(name)
 		if err != nil {
 			log.Fatalf("initDB error: %s, %v", name, err)
 		}
 	})
 	d.dbs[name] = db
 
-	return db.Write
-}
-
-// 获取指定数据库的读连接（多读实例之间随机分配）
-// @name 数据库别名
-func (d *database) ReadDB(name string) *gorm.DB {
-	db, ok := d.dbs[name]
-	if ok {
-		db.ROnce.Do(func() {
-			var err error
-			db.Read, err = initDBs(name)
-			if err != nil {
-				log.Fatalf("initDB error: %s, %v", name, err)
-			}
-		})
-		return randDB(db.Read)
-	}
-
-	db = &RWDB{}
-	db.ROnce.Do(func() {
-		var err error
-		db.Read, err = initDBs(name)
-		if err != nil {
-			log.Fatalf("initDB error: %s, %v", name, err)
-		}
-	})
-	d.dbs[name] = db
-
-	return randDB(db.Read)
-}
-
-//
-func initDB(name string) (*gorm.DB, error) {
-	host, port, user, pass, dbname, err := readConfig(name)
-	if err != nil {
-		return nil, err
-	}
-	return openDB(host, user, pass, dbname, port)
+	return db.DB
 }
 
 // 根据参数打开数据库连接
-func openDB(host, user, pass, dbname string, port int) (*gorm.DB, error) {
+func openDB(name string) (*gorm.DB, error) {
+	host, port, user, pass, dbname, err := readConfig(name, true)
+	if err != nil {
+		return nil, err
+	}
 	dsn := fmt.Sprintf(dsnFormat, user, pass, host, port, dbname)
 
 	logMode := viper.GetInt("db.logMode")
 	if logMode < 1 || logMode > 4 {
 		logMode = 1
 	}
+	tablePrefix := viper.GetString("db." + name + ".tablePrefix")
 	db, err := gorm.Open(mysql.Open(dsn), &gorm.Config{
 		Logger: logger.Default.LogMode(logger.LogLevel(logMode)),
+		NamingStrategy: schema.NamingStrategy{
+			TablePrefix:   tablePrefix,
+			SingularTable: true,
+		},
 	})
 	if err != nil {
 		log.Fatal(fmt.Sprintf("can't open database: %s", dsn))
 	} else {
-		dbConfig(db)
+		maxOpen := viper.GetInt("db.max.open")
+		maxIdle := viper.GetInt("db.max.idle")
+		maxLife := viper.GetInt("db.max.life")
+
+		host, port, user, pass, dbname, err := readConfig(name, false)
+		if err == nil {
+			dsn = fmt.Sprintf(dsnFormat, user, pass, host, port, dbname)
+
+			db.Use(
+				dbresolver.Register(dbresolver.Config{
+					Replicas: []gorm.Dialector{mysql.Open(dsn)},
+					Policy:   dbresolver.RandomPolicy{},
+				}).
+					SetMaxOpenConns(maxOpen).
+					SetMaxIdleConns(maxIdle).
+					SetConnMaxLifetime(time.Duration(maxLife) * time.Minute),
+			)
+		}
+
+		sqlDB, err := db.DB()
+		if err == nil {
+			sqlDB.SetMaxOpenConns(maxOpen)
+			sqlDB.SetMaxIdleConns(maxIdle)
+			sqlDB.SetConnMaxLifetime(time.Duration(maxLife) * time.Minute)
+			sqlDB.Ping()
+		}
 	}
 	return db, err
 }
 
-func readConfig(name string) (string, int, string, string, string, error) {
-	hostKey := "db." + name + ".write.host"
+func readConfig(name string, master bool) (string, int, string, string, string, error) {
+	typ := "replica"
+	if master {
+		typ = "master"
+	}
+	hostKey := "db." + name + "." + typ + ".host"
 	if !viper.IsSet(hostKey) {
 		return "", 0, "", "", "", fmt.Errorf("%s write configuration not exist", name)
 	}
 	host := viper.GetString(hostKey)
-	portKey := "db." + name + ".write.port"
+	portKey := "db." + name + "." + typ + ".port"
 	port := viper.GetInt(portKey)
-	userKey := "db." + name + ".write.user"
+	userKey := "db." + name + "." + typ + ".user"
 	user := viper.GetString(userKey)
-	passKey := "db." + name + ".write.pass"
+	passKey := "db." + name + "." + typ + ".pass"
 	pass := viper.GetString(passKey)
-	dbKey := "db." + name + ".write.name"
+	dbKey := "db." + name + "." + typ + ".name"
 	db := viper.GetString(dbKey)
 	return host, port, user, pass, db, nil
-}
-
-type dbInfo struct {
-	Host string `json:"host"`
-	Port int    `json:"port"`
-	User string `json:"user"`
-	Pass string `json:"pass"`
-	Name string `json:"name"`
-}
-
-func initDBs(name string) ([]*gorm.DB, error) {
-	infos, err := readConfigs(name)
-	if err != nil {
-		return nil, err
-	}
-	dbs := make([]*gorm.DB, 0, len(infos))
-	for _, info := range infos {
-		db, err := openDB(info.Host, info.User, info.Pass, info.Name, info.Port)
-		if err != nil {
-			return nil, err
-		}
-		dbs = append(dbs, db)
-	}
-	return dbs, err
-}
-
-func readConfigs(name string) ([]dbInfo, error) {
-	var infos []dbInfo
-	dbsKey := "db." + name + ".read"
-	if !viper.IsSet(dbsKey) {
-		return nil, fmt.Errorf("%s read configuration not exist", name)
-	}
-	err := viper.UnmarshalKey(dbsKey, &infos)
-	return infos, err
-}
-
-// 配置数据库连接池参数
-func dbConfig(db *gorm.DB) {
-	sqlDB, err := db.DB()
-	if err == nil {
-		sqlDB.SetMaxOpenConns(100)
-		sqlDB.SetMaxIdleConns(8)
-		sqlDB.SetConnMaxLifetime(time.Hour)
-		sqlDB.Ping()
-	}
-}
-
-// 从一组连接中随机返回一个连接
-func randDB(dbs []*gorm.DB) *gorm.DB {
-	cnt := len(dbs)
-	if cnt == 0 {
-		return nil
-	}
-	rand.Seed(time.Now().Unix())
-	idx := rand.Intn(cnt)
-	return dbs[idx]
 }
