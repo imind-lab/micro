@@ -196,7 +196,7 @@ var serverCmd = &cobra.Command{
 func init() {
 	rootCmd.PersistentFlags().StringVarP(&domain, "domain", "d", "github.com", "company domain")
 	rootCmd.PersistentFlags().StringVarP(&project, "project", "p", "imind-lab", "project name")
-	rootCmd.PersistentFlags().StringVarP(&service, "service", "s", "greet", "service name")
+	rootCmd.PersistentFlags().StringVarP(&service, "service", "s", "greeter", "service name")
 	rootCmd.PersistentFlags().BoolVarP(&gateway, "api", "a", true, "generate api-gateway")
 	rootCmd.AddCommand(serverCmd)
 }

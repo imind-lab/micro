@@ -15,13 +15,115 @@ import (
 // 生成repository
 func CreateRepository(data *Data) error {
 	var tpl = `/**
- *  ImindLab
+ *  IMindLab
  *
  *  Create by songli on {{.Date}}
  *  Copyright © {{.Year}} imind.tech All rights reserved.
  */
 
 package repository
+
+import (
+	"context"
+	"{{.Domain}}/{{.Project}}/{{.Service}}/domain/{{.Service}}/repository/model"
+)
+
+type {{.Svc}}Repository interface {
+	Create{{.Svc}}(ctx context.Context, m model.{{.Svc}}) (model.{{.Svc}}, error)
+
+	Get{{.Svc}}ById(ctx context.Context, id int32, opt ...{{.Svc}}ByIdOption) (model.{{.Svc}}, error)
+
+	Find{{.Svc}}ById(ctx context.Context, id int32) (model.{{.Svc}}, error)
+	Get{{.Svc}}List(ctx context.Context, status, lastId, pageSize, page int32) ([]model.{{.Svc}}, int, error)
+
+	Update{{.Svc}}Status(ctx context.Context, id, status int32) (int64, error)
+	Update{{.Svc}}Count(ctx context.Context, id, num int32, column string) (int64, error)
+
+	Delete{{.Svc}}ById(ctx context.Context, id int32) (int64, error)
+}`
+
+	t, err := template.New("repository").Parse(tpl)
+	if err != nil {
+		return err
+	}
+
+	t.Option()
+	dir := "./" + data.Domain + "/" + data.Project + "/" + data.Service + "/domain/" + data.Service + "/repository/"
+
+	err = os.MkdirAll(dir, os.ModePerm)
+	if err != nil {
+		return err
+	}
+
+	fileName := dir + "repository.go"
+
+	f, err := os.Create(fileName)
+	if err != nil {
+		return err
+	}
+	err = t.Execute(f, data)
+	if err != nil {
+		return err
+	}
+	f.Close()
+
+	tpl = `package repository
+
+import (
+	"time"
+)
+
+type {{.Svc}}ByIdOptions struct {
+	RandExpire time.Duration
+}
+
+func New{{.Svc}}ByIdOptions(randExpire time.Duration) *{{.Svc}}ByIdOptions {
+	return &{{.Svc}}ByIdOptions{RandExpire: randExpire}
+}
+
+type {{.Svc}}ByIdOption func(*{{.Svc}}ByIdOptions)
+
+func {{.Svc}}ByIdRandExpire(expire time.Duration) {{.Svc}}ByIdOption {
+	return func(o *{{.Svc}}ByIdOptions) {
+		o.RandExpire = expire
+	}
+}
+
+`
+
+	t, err = template.New("repoption").Parse(tpl)
+	if err != nil {
+		return err
+	}
+
+	t.Option()
+	dir = "./" + data.Domain + "/" + data.Project + "/" + data.Service + "/domain/" + data.Service + "/repository/"
+
+	err = os.MkdirAll(dir, os.ModePerm)
+	if err != nil {
+		return err
+	}
+
+	fileName = dir + "options.go"
+
+	f, err = os.Create(fileName)
+	if err != nil {
+		return err
+	}
+	err = t.Execute(f, data)
+	if err != nil {
+		return err
+	}
+	f.Close()
+
+	tpl = `/**
+ *  IMindLab
+ *
+ *  Create by songli on {{.Date}}
+ *  Copyright © {{.Year}} imind.tech All rights reserved.
+ */
+
+package persistence
 
 import (
 	"context"
@@ -35,27 +137,15 @@ import (
 	"go.uber.org/zap"
 	"gorm.io/gorm"
 
+	"{{.Domain}}/{{.Project}}/{{.Service}}/domain/{{.Service}}/repository"
+	"{{.Domain}}/{{.Project}}/{{.Service}}/domain/{{.Service}}/repository/model"
 	"{{.Domain}}/{{.Project}}/{{.Service}}/pkg/constant"
 	utilx "{{.Domain}}/{{.Project}}/{{.Service}}/pkg/util"
-	"{{.Domain}}/{{.Project}}/{{.Service}}/server/model"
 	"github.com/imind-lab/micro/dao"
-	redisx "github.com/imind-lab/micro/redis"
-	"github.com/imind-lab/micro/tracing"
+	redisx "{{.Domain}}/imind-lab/micro/redis"
 	"github.com/imind-lab/micro/util"
 )
 
-type {{.Svc}}Repository interface {
-	Create{{.Svc}}(ctx context.Context, m model.{{.Svc}}) (model.{{.Svc}}, error)
-
-	Get{{.Svc}}ById(ctx context.Context, id int32, opt ...{{.Svc}}ByIdOption) (model.{{.Svc}}, error)
-	Find{{.Svc}}ById(ctx context.Context, id int32) (model.{{.Svc}}, error)
-	Get{{.Svc}}List(ctx context.Context, status, lastId, pageSize, page int32) ([]model.{{.Svc}}, int, error)
-
-	Update{{.Svc}}Status(ctx context.Context, id, status int32) (int64, error)
-	Update{{.Svc}}Count(ctx context.Context, id, num int32, column string) (int64, error)
-
-	Delete{{.Svc}}ById(ctx context.Context, id int32) (int64, error)
-}
 
 type {{.Service}}Repository struct {
 	dao.Dao
@@ -63,7 +153,7 @@ type {{.Service}}Repository struct {
 
 //New{{.Svc}}Repository 创建用户仓库实例
 func New{{.Svc}}Repository() {{.Svc}}Repository {
-	rep := dao.NewRepository(constant.DBName, constant.Realtime)
+	rep := dao.NewDao(constant.DBName)
 	repo := {{.Service}}Repository{
 		Dao: rep,
 	}
@@ -97,9 +187,7 @@ func (repo {{.Service}}Repository) Get{{.Svc}}ById(ctx context.Context, id int32
 
 	logger := ctxzap.Extract(ctx).With(zap.String("layer", "{{.Service}}Repository"), zap.String("func", "Get{{.Svc}}ById"))
 
-	opts := {{.Svc}}ByIdOptions{
-		randExpire: util.RandDuration(120),
-	}
+	opts := repository.New{{.Svc}}ByIdOptions(util.RandDuration(120))
 	for _, o := range opt {
 		o(&opts)
 	}
@@ -117,7 +205,7 @@ func (repo {{.Service}}Repository) Get{{.Svc}}ById(ctx context.Context, id int32
 		return m, errorsx.WithMessage(err, "{{.Service}}Repository.Get{{.Svc}}ById")
 	}
 
-	expire := constant.CacheMinute5 + opts.randExpire
+	expire := constant.CacheMinute5 + opts.RandExpire
 	if m.IsEmpty() {
 		expire = constant.CacheMinute1
 	}
@@ -344,64 +432,20 @@ func (repo {{.Service}}Repository) Delete{{.Svc}}ById(ctx context.Context, id in
 }
 `
 
-	t, err := template.New("repository").Parse(tpl)
+	t, err = template.New("repository").Parse(tpl)
 	if err != nil {
 		return err
 	}
 
 	t.Option()
-	dir := "./" + data.Domain + "/" + data.Project + "/" + data.Service + "/server/repository/"
+	dir = "./" + data.Domain + "/" + data.Project + "/" + data.Service + "/domain/" + data.Service + "/repository/persistence/"
 
 	err = os.MkdirAll(dir, os.ModePerm)
 	if err != nil {
 		return err
 	}
 
-	fileName := dir + data.Service + ".go"
-
-	f, err := os.Create(fileName)
-	if err != nil {
-		return err
-	}
-	err = t.Execute(f, data)
-	if err != nil {
-		return err
-	}
-	f.Close()
-
-	tpl = `package repository
-
-import (
-	"time"
-)
-
-type {{.Svc}}ByIdOptions struct {
-	randExpire time.Duration
-}
-
-type {{.Svc}}ByIdOption func(*{{.Svc}}ByIdOptions)
-
-func {{.Svc}}ByIdRandExpire(expire time.Duration) {{.Svc}}ByIdOption {
-	return func(o *{{.Svc}}ByIdOptions) {
-		o.randExpire = expire
-	}
-}
-`
-
-	t, err = template.New("repoption").Parse(tpl)
-	if err != nil {
-		return err
-	}
-
-	t.Option()
-	dir = "./" + data.Domain + "/" + data.Project + "/" + data.Service + "/server/repository/"
-
-	err = os.MkdirAll(dir, os.ModePerm)
-	if err != nil {
-		return err
-	}
-
-	fileName = dir + "options.go"
+	fileName = dir + data.Service + ".go"
 
 	f, err = os.Create(fileName)
 	if err != nil {

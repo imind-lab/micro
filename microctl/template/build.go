@@ -16,13 +16,13 @@ import (
 func CreateBuild(data *Data) error {
 	// 生成Makefile
 	var tpl = `GOPATH := $(shell go env GOPATH)
-VERSION := 0.0.1.1
+VERSION := 0.0.1.0
 
 gengo:
-	protoc -I. --proto_path ../server/proto \
- --go_out ../server/proto --go_opt paths=source_relative --go-grpc_out ../server/proto --go-grpc_opt paths=source_relative \
- --grpc-gateway_out ../server/proto --grpc-gateway_opt logtostderr=true --grpc-gateway_opt paths=source_relative --grpc-gateway_opt generate_unbound_methods=false {{.Service}}/{{.Service}}.proto
-	protoc-go-inject-tag -input=../server/proto/{{.Service}}/{{.Service}}.pb.go
+	protoc -I. --proto_path ../application/{{.Service}}/proto \
+ --go_out ../application/{{.Service}}/proto --go_opt paths=source_relative --go-grpc_out ../application/{{.Service}}/proto --go-grpc_opt paths=source_relative \
+ --grpc-gateway_out ../application/{{.Service}}/proto --grpc-gateway_opt logtostderr=true --grpc-gateway_opt paths=source_relative --grpc-gateway_opt generate_unbound_methods=false {{.Service}}/{{.Service}}.proto
+	protoc-go-inject-tag -input=../application/{{.Service}}/proto/{{.Service}}/{{.Service}}.pb.go
 
 depend:
 	go get ../...
@@ -42,7 +42,7 @@ health:
 	CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -a -installsuffix cgo -o grpc-health-probe ../pkg/grpc-health-probe/main.go
 
 helm:
-	helm install {{.Service}} ./helm/{{.Service}} --set image.tag=$(VERSION)
+	helm upgrade --install {{.Service}} ./helm/{{.Service}} --set image.tag=$(VERSION)
 
 clean:
 	docker rmi registry.cn-beijing.aliyuncs.com/imind/{{.Service}}:$(VERSION)
