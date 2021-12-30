@@ -22,14 +22,14 @@ func CreateBuild(data *tp.Data) error {
 VERSION := 0.0.1.0
 
 gengo:
-	protoc -I. --proto_path ../server/proto \
- --go_out ../server/proto --go_opt paths=source_relative --go-grpc_out ../server/proto --go-grpc_opt paths=source_relative \
- --grpc-gateway_out ../server/proto --grpc-gateway_opt logtostderr=true --grpc-gateway_opt paths=source_relative --grpc-gateway_opt generate_unbound_methods=true {{.Service}}-api/{{.Service}}-api.proto
-	protoc-go-inject-tag -input=../server/proto/{{.Service}}-api/{{.Service}}-api.pb.go
+	protoc -I. --proto_path ../application/{{.Service}}-api/proto:../pkg/proto \
+ --go_out ../application/{{.Service}}-api/proto --go_opt paths=source_relative --go-grpc_out ../application/{{.Service}}-api/proto --go-grpc_opt paths=source_relative \
+ --grpc-gateway_out ../application/{{.Service}}-api/proto --grpc-gateway_opt logtostderr=true --grpc-gateway_opt paths=source_relative --grpc-gateway_opt generate_unbound_methods=true {{.Service}}-api.proto
+	protoc-go-inject-tag -input=../application/{{.Service}}-api/proto/{{.Service}}-api.pb.go
 
 genphp:
-	protoc -I. --proto_path ../server/proto \
- --php_out ../server/proto/{{.Service}}-api --grpc_out ../server/proto/{{.Service}}-api --plugin=protoc-gen-grpc=${GOPATH}/bin/grpc_php_plugin {{.Service}}-api/{{.Service}}-api.proto
+	protoc -I. --proto_path ../application/{{.Service}}-api/proto \
+ --php_out ../application/{{.Service}}-api/proto --grpc_out ../application/{{.Service}}-api/proto --plugin=protoc-gen-grpc=${GOPATH}/bin/grpc_php_plugin {{.Service}}-api.proto
 
 depend: gengo
 	go get ../...
@@ -49,7 +49,7 @@ health:
 	CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -a -installsuffix cgo -o grpc-health-probe ../pkg/grpc-health-probe/main.go
 
 helm:
-	helm install {{.Service}} ./helm/{{.Service}} --set image.tag=$(VERSION)
+	helm upgrade --install {{.Service}} ./helm/{{.Service}} --set image.tag=$(VERSION)
 
 clean:
 	docker rmi registry.cn-beijing.aliyuncs.com/{{.Project}}/{{.Service}}-api:$(VERSION)

@@ -15,13 +15,13 @@ import (
 // 生成domain
 func CreateDomain(data *Data) error {
 	var tpl = `/**
- *  ImindLab
+ *  IMindLab
  *
  *  Create by songli on {{.Date}}
  *  Copyright © {{.Year}} imind.tech All rights reserved.
  */
 
-package domain
+package service
 
 import (
 	"context"
@@ -31,9 +31,10 @@ import (
 	"github.com/pkg/errors"
 	"go.uber.org/zap"
 
-	"{{.Domain}}/{{.Project}}/{{.Service}}/server/model"
-	"{{.Domain}}/{{.Project}}/{{.Service}}/server/proto/{{.Service}}"
-	"{{.Domain}}/{{.Project}}/{{.Service}}/server/repository"
+	"{{.Domain}}/{{.Project}}/{{.Service}}/application/{{.Service}}/proto"
+	"{{.Domain}}/{{.Project}}/{{.Service}}/domain/{{.Service}}/repository"
+	"{{.Domain}}/{{.Project}}/{{.Service}}/domain/{{.Service}}/repository/model"
+	"{{.Domain}}/{{.Project}}/{{.Service}}/domain/{{.Service}}/repository/persistence"
 	"github.com/imind-lab/micro/dao"
 )
 
@@ -56,7 +57,7 @@ type {{.Service}}Domain struct {
 }
 
 func New{{.Svc}}Domain() {{.Svc}}Domain {
-	repo := repository.New{{.Svc}}Repository()
+	repo := persistence.New{{.Svc}}Repository()
 	dm := {{.Service}}Domain{
 		Cache: dao.NewCache(),
 		repo:  repo}
@@ -160,7 +161,7 @@ func {{.Svc}}Dto2Model(dto *{{.Service}}.{{.Svc}}) model.{{.Svc}} {
 	}
 
 	t.Option()
-	dir := "./" + data.Domain + "/" + data.Project + "/" + data.Service + "/server/domain/"
+	dir := "./" + data.Domain + "/" + data.Project + "/" + data.Service + "/domain/" + data.Service + "/service/"
 
 	err = os.MkdirAll(dir, os.ModePerm)
 	if err != nil {

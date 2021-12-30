@@ -88,7 +88,7 @@ func openDB(name string) (*gorm.DB, error) {
 	}
 	dsn := fmt.Sprintf(dsnFormat, user, pass, host, port, dbname)
 
-	logMode := viper.GetInt("db.logMode")
+	logMode := viper.GetInt("db.logLevel")
 	if logMode < 1 || logMode > 4 {
 		logMode = 1
 	}

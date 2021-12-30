@@ -143,16 +143,16 @@ import (
 	utilx "{{.Domain}}/{{.Project}}/{{.Service}}/pkg/util"
 	"github.com/imind-lab/micro/dao"
 	redisx "{{.Domain}}/imind-lab/micro/redis"
+	"github.com/imind-lab/micro/tracing"
 	"github.com/imind-lab/micro/util"
 )
-
 
 type {{.Service}}Repository struct {
 	dao.Dao
 }
 
 //New{{.Svc}}Repository 创建用户仓库实例
-func New{{.Svc}}Repository() {{.Svc}}Repository {
+func New{{.Svc}}Repository() repository.{{.Svc}}Repository {
 	rep := dao.NewDao(constant.DBName)
 	repo := {{.Service}}Repository{
 		Dao: rep,
@@ -164,7 +164,7 @@ func (repo {{.Service}}Repository) Create{{.Svc}}(ctx context.Context, m model.{
 	span, ctx := tracing.StartSpan(ctx, "{{.Service}}Repository.Create{{.Svc}}")
 	defer span.Finish()
 
-	if err := repo.WriteDB(ctx).Create(&m).Error; err != nil {
+	if err := repo.DB(ctx).Create(&m).Error; err != nil {
 		return m, errorsx.Wrap(err, "{{.Service}}Repository.Create{{.Svc}}")
 	}
 	repo.Cache{{.Svc}}(ctx, m)
@@ -181,7 +181,7 @@ func (repo {{.Service}}Repository) Cache{{.Svc}}(ctx context.Context, m model.{{
 	return nil
 }
 
-func (repo {{.Service}}Repository) Get{{.Svc}}ById(ctx context.Context, id int32, opt ...{{.Svc}}ByIdOption) (model.{{.Svc}}, error) {
+func (repo {{.Service}}Repository) Get{{.Svc}}ById(ctx context.Context, id int32, opt ...repository.{{.Svc}}ByIdOption) (model.{{.Svc}}, error) {
 	span, ctx := tracing.StartSpan(ctx, "{{.Service}}Repository.Get{{.Svc}}ById")
 	defer span.Finish()
 
@@ -189,7 +189,7 @@ func (repo {{.Service}}Repository) Get{{.Svc}}ById(ctx context.Context, id int32
 
 	opts := repository.New{{.Svc}}ByIdOptions(util.RandDuration(120))
 	for _, o := range opt {
-		o(&opts)
+		o(opts)
 	}
 
 	var m model.{{.Svc}}
@@ -218,7 +218,7 @@ func (repo {{.Service}}Repository) Find{{.Svc}}ById(ctx context.Context, id int3
 	defer span.Finish()
 
 	var m model.{{.Svc}}
-	err := repo.ReadDB(ctx).Where("id = ?", id).First(&m).Error
+	err := repo.DB(ctx).Where("id = ?", id).First(&m).Error
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return m, nil
@@ -252,7 +252,7 @@ func (repo {{.Service}}Repository) Get{{.Svc}}sCount(ctx context.Context, status
 
 func (repo {{.Service}}Repository) Find{{.Svc}}sCount(ctx context.Context, status int32) (int64, error) {
 	var count int64
-	tx := repo.ReadDB(ctx).Model(model.{{.Svc}}{}).Select("count(id)")
+	tx := repo.DB(ctx).Model(model.{{.Svc}}{}).Select("count(id)")
 	tx = tx.Where("status=?", status)
 	if err := tx.Count(&count).Error; err != nil {
 		return 0, errorsx.Wrap(err, "{{.Service}}Repository.Find{{.Svc}}sCount")
@@ -298,7 +298,7 @@ func (repo {{.Service}}Repository) Get{{.Svc}}ListIds(ctx context.Context, statu
 
 func (repo {{.Service}}Repository) Find{{.Svc}}ListIds(ctx context.Context, status, lastId, pageSize int32) ([]int32, []*redis.Z, error) {
 
-	tx := repo.ReadDB(ctx).Model(model.{{.Svc}}{}).Select("id")
+	tx := repo.DB(ctx).Model(model.{{.Svc}}{}).Select("id")
 	tx = tx.Where("status=?", status)
 	tx = tx.Order("id DESC")
 	rows, err := tx.Rows()
@@ -340,7 +340,7 @@ func (repo {{.Service}}Repository) Find{{.Svc}}ListIds(ctx context.Context, stat
 	return ids, args, nil
 }
 
-func (repo {{.Service}}Repository) Get{{.Svc}}List4Concurrent(ctx context.Context, ids []int32, fn func(context.Context, int32, ...{{.Svc}}ByIdOption) (model.{{.Svc}}, error)) ([]model.{{.Svc}}, error) {
+func (repo {{.Service}}Repository) Get{{.Svc}}List4Concurrent(ctx context.Context, ids []int32, fn func(context.Context, int32, ...repository.{{.Svc}}ByIdOption) (model.{{.Svc}}, error)) ([]model.{{.Svc}}, error) {
 	var wg sync.WaitGroup
 
 	count := len(ids)
@@ -377,7 +377,7 @@ func (repo {{.Service}}Repository) Update{{.Svc}}Status(ctx context.Context, id,
 	logger := ctxzap.Extract(ctx).With(zap.String("layer", "{{.Service}}Repository"), zap.String("func", "Update{{.Svc}}Status"))
 
 	logger.Debug("invoke info", zap.Int32("id", id), zap.Int32("status", status))
-	tx := repo.WriteDB(ctx).Model(model.{{.Svc}}{}).Where("id = ?", id)
+	tx := repo.DB(ctx).Model(model.{{.Svc}}{}).Where("id = ?", id)
 	tx = tx.Update("status", status)
 	if tx.Error != nil {
 		return 0, errorsx.Wrap(tx.Error, "{{.Service}}Repository.Update{{.Svc}}Status")
@@ -394,7 +394,7 @@ func (repo {{.Service}}Repository) Update{{.Svc}}Count(ctx context.Context, id, 
 	logger := ctxzap.Extract(ctx).With(zap.String("layer", "{{.Service}}Repository"), zap.String("func", "Update{{.Svc}}Count"))
 
 	logger.Debug("invoke info", zap.Int32("id", id), zap.Int32("num", num), zap.String("column", column))
-	tx := repo.WriteDB(ctx).Model(model.{{.Svc}}{}).Where("id = ?", id)
+	tx := repo.DB(ctx).Model(model.{{.Svc}}{}).Where("id = ?", id)
 	tx = tx.Updates(map[string]interface{}{column: gorm.Expr(column+" + ?", num)})
 	if tx.Error != nil {
 		return 0, errorsx.Wrap(tx.Error, "{{.Service}}Repository.Update{{.Svc}}Count")
@@ -411,7 +411,7 @@ func (repo {{.Service}}Repository) Delete{{.Svc}}ById(ctx context.Context, id in
 	logger := ctxzap.Extract(ctx).With(zap.String("layer", "{{.Service}}Repository"), zap.String("func", "Delete{{.Svc}}ById"))
 
 	logger.Debug("invoke info", zap.Int32("id", id))
-	tx := repo.WriteDB(ctx).Delete(&model.{{.Svc}}{}, id)
+	tx := repo.DB(ctx).Delete(&model.{{.Svc}}{}, id)
 	if tx.Error != nil {
 		return 0, errorsx.Wrap(tx.Error, "{{.Service}}Repository.Delete{{.Svc}}ById")
 	}

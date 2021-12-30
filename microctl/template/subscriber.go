@@ -15,7 +15,7 @@ import (
 // 生成subscriber
 func CreateSubscriber(data *Data) error {
 	var tpl = `/**
- *  ImindLab
+ *  IMindLab
  *
  *  Create by songli on {{.Date}}
  *  Copyright © {{.Year}} imind.tech All rights reserved.
@@ -59,7 +59,7 @@ func (svc *{{.Svc}}) UpdateCountHandle(msg *broker.Message) error {
 	}
 
 	t.Option()
-	dir := "./" + data.Domain + "/" + data.Project + "/" + data.Service + "/server/subscriber/"
+	dir := "./" + data.Domain + "/" + data.Project + "/" + data.Service + "/application/" + data.Service + "/event/subscriber/"
 
 	err = os.MkdirAll(dir, os.ModePerm)
 	if err != nil {

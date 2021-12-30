@@ -18,57 +18,12 @@ import (
 func CreateConf(data *tp.Data) error {
 	// 生成conf.yaml
 	var tpl = `service:
+  name: {{.Service}}-api
   port:   #监听端口
     http: 80
     grpc: 50051
   profile:
     rate: 1
-
-db:
-  imind:
-    write:
-      host: mysql.infra
-      port: 3306
-      user: root
-      pass: J1DLdSDFUm
-      name: mind
-    read:
-      - host: mysql.infra
-        port: 3306
-        user: root
-        pass: J1DLdSDFUm
-        name: mind
-      - host: mysql.infra
-        port: 3306
-        user: root
-        pass: J1DLdSDFUm
-        name: mind
-
-redis:
-  addr: 'redis-master.infra:6379'
-  pass: 'UY3Fa4WLvE'
-  db: 0
-
-kafka:
-  business:
-    producer:
-      - 'kafka.infra:9092'
-    consumer:
-      - 'kafka.infra:9092'
-    topic:
-      commentAction: comment_action
-      commonTask: common_task
-      create{{.Svc}}: create_{{.Service}}
-      update{{.Svc}}Count: update_{{.Service}}_count
-
-  bigdata:
-    producer:
-      - 'kafka.infra:9092'
-    consumer:
-      - 'kafka.infra:9092'
-    topic:
-      create{{.Svc}}: create_{{.Service}}
-      update{{.Svc}}Count: update_{{.Service}}_count
 
 tracing:
   agent: '172.16.50.50:6831'
@@ -89,7 +44,7 @@ log:
 rpc:
   {{.Service}}:
     service: {{.Service}}
-    port: 5501
+    port: 50051
 `
 	t, err := template.New("conf").Parse(tpl)
 	if err != nil {

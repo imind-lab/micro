@@ -15,7 +15,7 @@ import (
 // 生成service
 func CreateService(data *Data) error {
 	var tpl = `/**
- *  ImindLab
+ *  IMindLab
  *
  *  Create by songli on {{.Date}}
  *  Copyright © {{.Year}} imind.tech All rights reserved.
@@ -31,13 +31,13 @@ import (
 
 	"github.com/go-playground/validator/v10"
 	"github.com/grpc-ecosystem/go-grpc-middleware/logging/zap/ctxzap"
-	"go.uber.org/zap"
-
-	"{{.Domain}}/{{.Project}}/{{.Service}}/pkg/constant"
-	"{{.Domain}}/{{.Project}}/{{.Service}}/server/domain"
-	"{{.Domain}}/{{.Project}}/{{.Service}}/server/proto/{{.Service}}"
 	"github.com/imind-lab/micro/broker"
 	"github.com/imind-lab/micro/util"
+	"go.uber.org/zap"
+
+	"{{.Domain}}/{{.Project}}/{{.Service}}/application/{{.Service}}/proto"
+	domain "{{.Domain}}/{{.Project}}/{{.Service}}/domain/{{.Service}}/service"
+	"{{.Domain}}/{{.Project}}/{{.Service}}/pkg/constant"
 )
 
 type {{.Svc}}Service struct {
@@ -327,7 +327,7 @@ func (svc *{{.Svc}}Service) Get{{.Svc}}ListByStream(stream {{.Service}}.{{.Svc}}
 		return err
 	}
 
-	dir := "./" + data.Domain + "/" + data.Project + "/" + data.Service + "/server/service/"
+	dir := "./" + data.Domain + "/" + data.Project + "/" + data.Service + "/application/" + data.Service + "/service/"
 
 	err = os.MkdirAll(dir, os.ModePerm)
 	if err != nil {

@@ -16,9 +16,9 @@ import (
 	"google.golang.org/grpc"
 
 	"{{.Domain}}/{{.Project}}/{{.Service}}/pkg/constant"
-	"{{.Domain}}/{{.Project}}/{{.Service}}/server/proto/{{.Service}}"
-	"{{.Domain}}/{{.Project}}/{{.Service}}/server/service"
-	"{{.Domain}}/{{.Project}}/{{.Service}}/server/subscriber"
+	"{{.Domain}}/{{.Project}}/{{.Service}}/application/{{.Service}}/proto"
+	"{{.Domain}}/{{.Project}}/{{.Service}}/application/{{.Service}}/service"
+	"{{.Domain}}/{{.Project}}/{{.Service}}/application/{{.Service}}/event/subscriber"
 	"github.com/imind-lab/micro"
 	"github.com/imind-lab/micro/broker"
 	grpcx "github.com/imind-lab/micro/grpc"

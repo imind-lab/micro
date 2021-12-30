@@ -17,7 +17,7 @@ import (
 // 生成service
 func CreateService(data *tp.Data) error {
 	var tpl = `/**
- *  ImindLab
+ *  IMindLab
  *
  *  Create by songli on {{.Date}}
  *  Copyright © {{.Year}} imind.tech All rights reserved.
@@ -39,9 +39,9 @@ import (
 	"go.uber.org/zap"
 	"google.golang.org/grpc/metadata"
 
-	{{.Service}}_api "{{.Domain}}/{{.Project}}/{{.Service}}-api/server/proto/{{.Service}}-api"
+	"{{.Domain}}/{{.Project}}/{{.Service}}-api/application/{{.Service}}-api/proto"
 	{{.Service}}Client "{{.Domain}}/{{.Project}}/{{.Service}}/client"
-	"{{.Domain}}/{{.Project}}/{{.Service}}/server/proto/{{.Service}}"
+	"{{.Domain}}/{{.Project}}/{{.Service}}/application/{{.Service}}/proto"
 	sentinelx "github.com/imind-lab/micro/sentinel"
 )
 
@@ -529,7 +529,7 @@ func (svc *{{.Svc}}Service) Close() {
 	}
 
 	t.Option()
-	dir := "./" + data.Domain + "/" + data.Project + "/" + data.Service + "-api/server/service/"
+	dir := "./" + data.Domain + "/" + data.Project + "/" + data.Service + "-api/application/" + data.Service + "-api/service/"
 
 	err = os.MkdirAll(dir, os.ModePerm)
 	if err != nil {
@@ -558,8 +558,8 @@ func (svc *{{.Svc}}Service) Close() {
 package service
 
 import (
-        {{.Service}}_api "{{.Domain}}/{{.Project}}/{{.Service}}-api/server/proto/{{.Service}}-api"
-        "{{.Domain}}/{{.Project}}/{{.Service}}/server/proto/{{.Service}}"
+        "{{.Domain}}/{{.Project}}/{{.Service}}-api/application/{{.Service}}-api/proto"
+        "{{.Domain}}/{{.Project}}/{{.Service}}/application/{{.Service}}/proto"
 )
 
 func {{.Svc}}Map(pos []*{{.Service}}.{{.Svc}}, fn func(*{{.Service}}.{{.Svc}}) *{{.Service}}_api.{{.Svc}}) []*{{.Service}}_api.{{.Svc}} {

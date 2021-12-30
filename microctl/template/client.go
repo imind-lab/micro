@@ -16,7 +16,7 @@ import (
 func CreateClient(data *Data) error {
 	// 生成client.go
 	var tpl = `/**
- *  ImindLab
+ *  IMindLab
  *
  *  Create by songli on {{.Date}}
  *  Copyright © {{.Year}} imind.tech All rights reserved.
@@ -105,7 +105,7 @@ func Close() {
 
 	// 生成template.go
 	tpl = `/**
- *  ImindLab
+ *  IMindLab
  *
  *  Create by songli on {{.Date}}
  *  Copyright © {{.Year}} imind.tech All rights reserved.
@@ -115,7 +115,7 @@ package client
 
 import (
 	"context"
-	"{{.Domain}}/{{.Project}}/{{.Service}}/server/proto/{{.Service}}"
+	"{{.Domain}}/{{.Project}}/{{.Service}}/application/{{.Service}}/proto"
 	"github.com/imind-lab/micro/grpc"
 	"io"
 )

@@ -24,25 +24,25 @@ func CreateConf(data *Data) error {
     rate: 1
 
 db:
-  logMode: 4
+  logLevel: 4
+  max:
+    open: 100
+    idle: 5
+    life: 30
   imind:
-    write:
+    tablePrefix: tbl
+    master:
       host: 127.0.0.1
       port: 3306
       user: root
       pass: 123456
       name: mind
-    read:
-      - host: 127.0.0.1
-        port: 3306
-        user: root
-        pass: 123456
-        name: mind
-      - host: 127.0.0.1
-        port: 3306
-        user: root
-        pass: 123456
-        name: mind
+    replica:
+      host: 127.0.0.1
+      port: 3306
+      user: root
+      pass: 123456
+      name: mind
 
 redis:
   addr: '127.0.0.1:6379'

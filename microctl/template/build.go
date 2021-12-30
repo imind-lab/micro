@@ -19,10 +19,10 @@ func CreateBuild(data *Data) error {
 VERSION := 0.0.1.0
 
 gengo:
-	protoc -I. --proto_path ../application/{{.Service}}/proto \
+	protoc -I. --proto_path ../application/{{.Service}}/proto:../pkg/proto \
  --go_out ../application/{{.Service}}/proto --go_opt paths=source_relative --go-grpc_out ../application/{{.Service}}/proto --go-grpc_opt paths=source_relative \
- --grpc-gateway_out ../application/{{.Service}}/proto --grpc-gateway_opt logtostderr=true --grpc-gateway_opt paths=source_relative --grpc-gateway_opt generate_unbound_methods=false {{.Service}}/{{.Service}}.proto
-	protoc-go-inject-tag -input=../application/{{.Service}}/proto/{{.Service}}/{{.Service}}.pb.go
+ --grpc-gateway_out ../application/{{.Service}}/proto --grpc-gateway_opt logtostderr=true --grpc-gateway_opt paths=source_relative --grpc-gateway_opt generate_unbound_methods=false {{.Service}}.proto
+	protoc-go-inject-tag -input=../application/{{.Service}}/proto/{{.Service}}.pb.go
 
 depend:
 	go get ../...

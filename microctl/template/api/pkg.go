@@ -19,7 +19,7 @@ func CreatePkg(data *tp.Data) error {
 
 	// 生成pkg.cache.go
 	tpl := `/**
- *  ImindLab
+ *  IMindLab
  *
  *  Create by songli on {{.Date}}
  *  Copyright © {{.Year}} imind.tech All rights reserved.
@@ -74,7 +74,7 @@ const (
 
 	// 生成pkg.option.go
 	tpl = `/**
- *  ImindLab
+ *  IMindLab
  *
  *  Create by songli on {{.Date}}
  *  Copyright © {{.Year}} imind.tech All rights reserved.
@@ -150,7 +150,7 @@ func CacheKey(keys ...string) string {
 
 	// 生成pkg.hash.go
 	tpl = `/**
- *  ImindLab
+ *  IMindLab
  *
  *  Create by songli on {{.Date}}
  *  Copyright © {{.Year}} imind.tech All rights reserved.

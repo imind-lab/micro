@@ -15,7 +15,7 @@ import (
 // 生成main
 func CreateMain(data *Data) error {
 	var tpl = `/**
- *  ImindLab
+ *  IMindLab
  *
  *  Create by songli on {{.Date}}
  *  Copyright © {{.Year}} imind.tech All rights reserved.

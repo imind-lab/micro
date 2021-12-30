@@ -21,7 +21,7 @@ func CreateProto(data *tp.Data) error {
 
 package {{.Service}}_api;
 
-option go_package = "{{.Domain}}/{{.Project}}/{{.Service}}-api/server/proto/{{.Service}}-api;{{.Service}}_api";
+option go_package = "{{.Domain}}/{{.Project}}/{{.Service}}-api/application/{{.Service}}-api/proto;{{.Service}}_api";
 
 import "google/api/annotations.proto";
 
@@ -174,7 +174,7 @@ message Error {
 		return err
 	}
 
-	dir := "./" + data.Domain + "/" + data.Project + "/" + data.Service + "-api/server/proto/" + data.Service + "-api/"
+	dir := "./" + data.Domain + "/" + data.Project + "/" + data.Service + "-api/application/" + data.Service + "-api/proto/"
 
 	err = os.MkdirAll(dir, os.ModePerm)
 	if err != nil {
@@ -233,7 +233,7 @@ extend google.protobuf.MethodOptions {
 		return err
 	}
 
-	dir = "./" + data.Domain + "/" + data.Project + "/" + data.Service + "-api/server/proto/google/api/"
+	dir = "./" + data.Domain + "/" + data.Project + "/" + data.Service + "-api/pkg/proto/google/api/"
 
 	err = os.MkdirAll(dir, os.ModePerm)
 	if err != nil {
@@ -883,7 +883,7 @@ enum Code {
 		return err
 	}
 
-	dir = "./" + data.Domain + "/" + data.Project + "/" + data.Service + "-api/server/proto/google/rpc/"
+	dir = "./" + data.Domain + "/" + data.Project + "/" + data.Service + "-api/pkg/proto/google/rpc/"
 
 	err = os.MkdirAll(dir, os.ModePerm)
 	if err != nil {

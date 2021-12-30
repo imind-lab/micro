@@ -17,39 +17,23 @@ import (
 	"github.com/spf13/viper"
 	"google.golang.org/grpc"
 
-	"{{.Domain}}/{{.Project}}/{{.Service}}/pkg/constant"
-	"{{.Domain}}/{{.Project}}/{{.Service}}/server/proto/{{.Service}}"
-	"{{.Domain}}/{{.Project}}/{{.Service}}/server/service"
-	"{{.Domain}}/{{.Project}}/{{.Service}}/server/subscriber"
+	"{{.Domain}}/{{.Project}}/{{.Service}}-api/application/{{.Service}}-api/proto"
+	"{{.Domain}}/{{.Project}}/{{.Service}}-api/application/{{.Service}}-api/service"
 	"github.com/imind-lab/micro"
-	"github.com/imind-lab/micro/broker"
 	grpcx "github.com/imind-lab/micro/grpc"
 )
 
 func Serve() error {
 	svc := micro.NewService()
 
-	// 初始化kafka代理
-	endpoint, err := broker.NewBroker(constant.MQName)
-	if err != nil {
-		return err
-	}
-	// 设置消息队列事件处理器（可选）
-	mqHandler := subscriber.New{{.Svc}}(svc.Options().Context)
-	endpoint.Subscribe(
-		broker.Processor{Topic: endpoint.Options().Topics["createuser"], Handler: mqHandler.CreateHandle, Retry: 1},
-		broker.Processor{Topic: endpoint.Options().Topics["updateusercount"], Handler: mqHandler.UpdateCountHandle, Retry: 0},
-	)
-
 	grpcCred := grpcx.NewGrpcCred()
 
 	svc.Init(
-		micro.Broker(endpoint),
 		micro.ServerCred(grpcCred.ServerCred()),
 		micro.ClientCred(grpcCred.ClientCred()))
 
 	grpcSrv := svc.GrpcServer()
-	{{.Service}}.Register{{.Svc}}ServiceServer(grpcSrv, service.New{{.Svc}}Service())
+	{{.Service}}_api.Register{{.Svc}}ServiceServer(grpcSrv, service.New{{.Svc}}Service(svc.Options().Logger))
 
 	// 注册gRPC-Gateway
 	endPoint := fmt.Sprintf(":%d", viper.GetInt("service.port.grpc"))
@@ -57,7 +41,7 @@ func Serve() error {
 
 	mux := svc.ServeMux()
 	opts := []grpc.DialOption{grpc.WithTransportCredentials(grpcCred.ClientCred())}
-	err = {{.Service}}.Register{{.Svc}}ServiceHandlerFromEndpoint(svc.Options().Context, mux, endPoint, opts)
+	err := {{.Service}}_api.Register{{.Svc}}ServiceHandlerFromEndpoint(svc.Options().Context, mux, endPoint, opts)
 	if err != nil {
 		return err
 	}
