@@ -16,7 +16,7 @@ func (c Code) String() string {
 // General error code configuration
 // Possible response codes
 const (
-	Success Code = iota + 1000
+	Success Code = iota + 10000
 	Throttled
 	MissingParams
 	InvalidParams
