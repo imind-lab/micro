@@ -16,6 +16,7 @@ import (
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/health"
 	healthpb "google.golang.org/grpc/health/grpc_health_v1"
+	"google.golang.org/grpc/reflection"
 	"google.golang.org/grpc/status"
 	"gopkg.in/tomb.v2"
 	"net"
@@ -235,6 +236,8 @@ func (s service) newGrpcServer() *grpc.Server {
 		grpc.StreamInterceptor(grpc_middleware.ChainStreamServer(streamInterceptors...)))
 
 	grpcServer := grpc.NewServer(serverOpt...)
+
+	reflection.Register(grpcServer)
 
 	// 注册gRPC健康检测
 	srv := health.NewServer()
