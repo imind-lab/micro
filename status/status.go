@@ -4,19 +4,14 @@ import (
 	"fmt"
 )
 
-// A Code will be returned
-// whenever an SMSMessage is sent.
 type Code int
 
-// String implements the fmt.Stringer interface
 func (c Code) String() string {
 	return Errors[c]
 }
 
-// General error code configuration
-// Possible response codes
 const (
-	Success Code = iota + 10000
+	Success Code = iota + 1000
 	Throttled
 	MissingParams
 	InvalidParams
