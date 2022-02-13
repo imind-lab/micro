@@ -13,6 +13,7 @@ func (c Code) String() string {
 const (
 	Success Code = iota + 1000
 	Throttled
+	CircuitBroke
 	MissingParams
 	InvalidParams
 	InvalidCredentials
@@ -43,6 +44,7 @@ const (
 var Errors = map[Code]string{
 	Success:                    "Success",
 	Throttled:                  "Throttled",
+	CircuitBroke:               "CircuitBroke",
 	MissingParams:              "Missing params",
 	InvalidParams:              "Invalid params",
 	InvalidCredentials:         "Invalid credentials",
