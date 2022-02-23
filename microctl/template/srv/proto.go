@@ -5,20 +5,25 @@
  *  Copyright © 2021 imind.tech All rights reserved.
  */
 
-package template
+package srv
 
 import (
 	"os"
 	"text/template"
+
+	tpl "github.com/imind-lab/micro/microctl/template"
 )
 
 // 生成proto
-func CreateProto(data *Data) error {
+func CreateProto(data *tpl.Data) error {
 	var tpl = `syntax = "proto3";
 
 package {{.Service}};
 
 option go_package = "{{.Domain}}/{{.Project}}/{{.Service}}/application/{{.Service}}/proto;{{.Service}}";
+
+option php_namespace = "proto\\{{.Svc}}";
+option php_metadata_namespace = "proto\\GPBMetadata";
 
 import "google/api/annotations.proto";
 
@@ -63,22 +68,24 @@ service {{.Svc}}Service {
 
 message Create{{.Svc}}Request {
     // @inject_tag: validate:"required"
-    {{.Svc}} dto = 1;
+    {{.Svc}} data = 1;
 }
 
+// @inject_response Create{{.Svc}}Response
 message Create{{.Svc}}Response {
-    bool success = 1;
-    Error error = 2;
+    int32 code = 1;
+    string message = 2;
 }
 
 message Get{{.Svc}}ByIdRequest {
     int32 id = 1;
 }
 
+// @inject_response Get{{.Svc}}ByIdResponse *{{.Svc}} data
 message Get{{.Svc}}ByIdResponse {
-    bool success = 1;
-    {{.Svc}} dto = 2;
-    Error error = 3;
+    int32 code = 1;
+    string message = 2;
+    {{.Svc}} data = 3;
 }
 
 message Get{{.Svc}}ListRequest {
@@ -90,10 +97,11 @@ message Get{{.Svc}}ListRequest {
     int32 page = 4;
 }
 
+// @inject_response Get{{.Svc}}ListResponse *{{.Svc}}List data
 message Get{{.Svc}}ListResponse {
-    bool success = 1;
-    {{.Svc}}List data = 2;
-    Error error = 3;
+    int32 code = 1;
+    string message = 2;
+    {{.Svc}}List data = 3;
 }
 
 message Update{{.Svc}}StatusRequest {
@@ -101,9 +109,10 @@ message Update{{.Svc}}StatusRequest {
     int32 status = 2;
 }
 
+// @inject_response Update{{.Svc}}StatusResponse
 message Update{{.Svc}}StatusResponse {
-    bool success = 1;
-    Error error = 2;
+    int32 code = 1;
+    string message = 2;
 }
 
 message Update{{.Svc}}CountRequest {
@@ -112,18 +121,20 @@ message Update{{.Svc}}CountRequest {
     string column = 3;
 }
 
+// @inject_response Update{{.Svc}}CountResponse
 message Update{{.Svc}}CountResponse {
-    bool success = 1;
-    Error error = 2;
+    int32 code = 1;
+    string message = 2;
 }
 
 message Delete{{.Svc}}ByIdRequest {
     int32 id = 1;
 }
 
+// @inject_response Delete{{.Svc}}ByIdResponse
 message Delete{{.Svc}}ByIdResponse {
-    bool success = 1;
-    Error error = 2;
+    int32 code = 1;
+    string message = 2;
 }
 
 message {{.Svc}} {
@@ -153,11 +164,6 @@ message Get{{.Svc}}ListByStreamRequest {
 message Get{{.Svc}}ListByStreamResponse {
     int32 index = 1;
     {{.Svc}} result = 2;
-}
-
-message Error {
-    int32 code = 1;
-    string message = 2;
 }
 `
 

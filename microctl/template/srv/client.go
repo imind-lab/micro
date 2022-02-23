@@ -5,15 +5,17 @@
  *  Copyright © 2021 imind.tech All rights reserved.
  */
 
-package template
+package srv
 
 import (
 	"os"
 	"text/template"
+
+	tpl "github.com/imind-lab/micro/microctl/template"
 )
 
 // 生成Client
-func CreateClient(data *Data) error {
+func CreateClient(data *tpl.Data) error {
 	// 生成client.go
 	var tpl = `/**
  *  IMindLab

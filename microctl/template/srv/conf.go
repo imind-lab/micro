@@ -5,15 +5,17 @@
  *  Copyright © 2021 imind.tech All rights reserved.
  */
 
-package template
+package srv
 
 import (
 	"os"
 	"text/template"
+
+	tpl "github.com/imind-lab/micro/microctl/template"
 )
 
 // 生成conf
-func CreateConf(data *Data) error {
+func CreateConf(data *tpl.Data) error {
 	// 生成conf.yaml
 	var tpl = `service:
   name: {{.Service}}

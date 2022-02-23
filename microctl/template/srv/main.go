@@ -5,15 +5,17 @@
  *  Copyright © 2021 imind.tech All rights reserved.
  */
 
-package template
+package srv
 
 import (
 	"os"
 	"text/template"
+
+	tpl "github.com/imind-lab/micro/microctl/template"
 )
 
 // 生成main
-func CreateMain(data *Data) error {
+func CreateMain(data *tpl.Data) error {
 	var tpl = `/**
  *  IMindLab
  *
@@ -61,6 +63,8 @@ func main() {
 	tpl = `module {{.Domain}}/{{.Project}}/{{.Service}}
 
 go 1.16
+
+require github.com/imind-lab/micro v0.0.0-20220213103335-b4cb8d3d2705 // indirect
 `
 
 	t, err = template.New("go.mod").Parse(tpl)

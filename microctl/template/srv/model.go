@@ -5,16 +5,18 @@
  *  Copyright © 2021 imind.tech All rights reserved.
  */
 
-package template
+package srv
 
 import (
 	"os"
 	"strings"
 	"text/template"
+
+	tpl "github.com/imind-lab/micro/microctl/template"
 )
 
 // 生成model
-func CreateModel(data *Data) error {
+func CreateModel(data *tpl.Data) error {
 	var tpl = `/**
  *  {{.Svc}}Lab
  *

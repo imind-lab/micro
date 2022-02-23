@@ -2,6 +2,7 @@ package status
 
 import (
 	"fmt"
+	"strings"
 )
 
 type Code int
@@ -73,38 +74,42 @@ var Errors = map[Code]string{
 }
 
 type Error struct {
-	Code Code
-	Msg  string
+	Code    Code
+	Message string
 }
 
-func New(code Code) Error {
+func NewError(code Code, message ...string) Error {
+	msg := code.String()
+	if len(message) > 0 {
+		msg = strings.Join(message, ", ")
+	}
 	return Error{
-		Code: code,
-		Msg:  code.String(),
+		Code:    code,
+		Message: msg,
 	}
 }
 
 // Error 实现Error接口
 func (err Error) Error() string {
-	return fmt.Sprintf("code = %v, message = %v", err.Code, err.Msg)
+	return fmt.Sprintf("code = %v, message = %v", err.Code, err.Message)
 }
 
 // ResponseOK 处理成功
-var ResponseOK = New(Success)
+var ResponseOK = NewError(Success)
 
 // ErrorDBConnect 数据库相关问题
-var ErrorDBConnect = New(DBConnectFailed)
-var ErrorDBQuery = New(DBQueryFailed)
-var ErrorDBSave = New(DBSaveFailed)
-var ErrorDBNoRowsAffected = New(DBNoRowsAffected)
+var ErrorDBConnect = NewError(DBConnectFailed)
+var ErrorDBQuery = NewError(DBQueryFailed)
+var ErrorDBSave = NewError(DBSaveFailed)
+var ErrorDBNoRowsAffected = NewError(DBNoRowsAffected)
 
 // ErrorInvalidUrl 业务逻辑相关问题
-var ErrorInvalidUrl = New(InvalidUrl)
-var ErrorEmptyReturnValue = New(EmptyReturnValue)
-var ErrorPullDataFailed = New(PullDataFailed)
-var ErrorRouteNotFound = New(RouteNotFound)
-var ErrorInvalidParams = New(InvalidParams)
-var ErrorRecordNotExist = New(RecordNotExist)
+var ErrorInvalidUrl = NewError(InvalidUrl)
+var ErrorEmptyReturnValue = NewError(EmptyReturnValue)
+var ErrorPullDataFailed = NewError(PullDataFailed)
+var ErrorRouteNotFound = NewError(RouteNotFound)
+var ErrorInvalidParams = NewError(InvalidParams)
+var ErrorRecordNotExist = NewError(RecordNotExist)
 
 // ErrorSystem 严重错误
-var ErrorSystem = New(SystemError)
+var ErrorSystem = NewError(SystemError)

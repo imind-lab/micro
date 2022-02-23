@@ -5,19 +5,21 @@
  *  Copyright © 2021 imind.tech All rights reserved.
  */
 
-package template
+package srv
 
 import (
 	"os"
 	"text/template"
+
+	tpl "github.com/imind-lab/micro/microctl/template"
 )
 
 // 生成service
-func CreateService(data *Data) error {
+func CreateService(data *tpl.Data) error {
 	var tpl = `/**
- *  IMindLab
+ *  {{.Project}}
  *
- *  Create by songli on {{.Date}}
+ *  Create by songli on {{.Year}}/09/30
  *  Copyright © {{.Year}} imind.tech All rights reserved.
  */
 
@@ -31,28 +33,29 @@ import (
 
 	"github.com/go-playground/validator/v10"
 	"github.com/grpc-ecosystem/go-grpc-middleware/logging/zap/ctxzap"
-	"github.com/imind-lab/micro/broker"
-	"github.com/imind-lab/micro/util"
 	"go.uber.org/zap"
 
 	"{{.Domain}}/{{.Project}}/{{.Service}}/application/{{.Service}}/proto"
-	domain "{{.Domain}}/{{.Project}}/{{.Service}}/domain/{{.Service}}/service"
+	"{{.Domain}}/{{.Project}}/{{.Service}}/domain/{{.Service}}/service"
 	"{{.Domain}}/{{.Project}}/{{.Service}}/pkg/constant"
+	"github.com/imind-lab/micro/broker"
+	"github.com/imind-lab/micro/log"
+	"github.com/imind-lab/micro/status"
+	"github.com/imind-lab/micro/util"
 )
 
 type {{.Svc}}Service struct {
 	{{.Service}}.Unimplemented{{.Svc}}ServiceServer
 
-	validate *validator.Validate
-
-	dm domain.{{.Svc}}Domain
+	vd *validator.Validate
+	dm service.{{.Svc}}Domain
 }
 
 func New{{.Svc}}Service() *{{.Svc}}Service {
-	dm := domain.New{{.Svc}}Domain()
+	dm := service.New{{.Svc}}Domain()
 	svc := &{{.Svc}}Service{
-		dm:       dm,
-		validate: validator.New(),
+		dm: dm,
+		vd: validator.New(),
 	}
 
 	return svc
@@ -60,14 +63,13 @@ func New{{.Svc}}Service() *{{.Svc}}Service {
 
 // Create{{.Svc}} 创建{{.Svc}}
 func (svc *{{.Svc}}Service) Create{{.Svc}}(ctx context.Context, req *{{.Service}}.Create{{.Svc}}Request) (*{{.Service}}.Create{{.Svc}}Response, error) {
-	logger := ctxzap.Extract(ctx).With(zap.String("layer", "{{.Svc}}Service"), zap.String("func", "Create{{.Svc}}"))
+	logger := log.GetLogger(ctx, "{{.Svc}}Service", "Create{{.Svc}}")
 	logger.Debug("Receive Create{{.Svc}} request")
 
 	rsp := &{{.Service}}.Create{{.Svc}}Response{}
 
-	m := req.Dto
-	fmt.Println("Dto", m)
-	err := svc.validate.Struct(req)
+	m := req.Data
+	err := svc.vd.Struct(req)
 	if err != nil {
 
 		if _, ok := err.(*validator.InvalidValidationError); ok {
@@ -91,20 +93,14 @@ func (svc *{{.Svc}}Service) Create{{.Svc}}(ctx context.Context, req *{{.Service}
 	}
 	if m == nil {
 		logger.Error("{{.Svc}}不能为空", zap.Any("params", m), zap.Error(err))
-
-		err := &{{.Service}}.Error{}
-		err.Message = "{{.Svc}}不能为空"
-		rsp.Error = err
+		rsp.SetCode(status.MissingParams, "{{.Svc}}不能为空")
 		return rsp, nil
 	}
 
-	err = svc.validate.Var(m.Name, "required,email")
+	err = svc.vd.Var(m.Name, "email")
 	if err != nil {
 		logger.Error("Name不能为空", zap.Any("name", m.Name), zap.Error(err))
-
-		err := &{{.Service}}.Error{}
-		err.Message = "Name不能为空"
-		rsp.Error = err
+		rsp.SetCode(status.InvalidParams, "Name不能为空")
 		return rsp, nil
 	}
 	m.CreateTime = util.GetNowWithMillisecond()
@@ -113,14 +109,9 @@ func (svc *{{.Svc}}Service) Create{{.Svc}}(ctx context.Context, req *{{.Service}
 	err = svc.dm.Create{{.Svc}}(ctx, m)
 	if err != nil {
 		logger.Error("创建{{.Svc}}失败", zap.Any("{{.Service}}", m), zap.Error(err))
-
-		err := &{{.Service}}.Error{}
-		err.Message = "创建{{.Svc}}失败"
-		rsp.Error = err
+		rsp.SetCode(status.DBSaveFailed, "创建{{.Svc}}失败")
 		return rsp, nil
 	}
-
-	rsp.Success = true
 
 	endpoint, err := broker.NewBroker(constant.MQName)
 	if err != nil {
@@ -132,36 +123,32 @@ func (svc *{{.Svc}}Service) Create{{.Svc}}(ctx context.Context, req *{{.Service}
 		Body:  []byte(fmt.Sprintf("{{.Svc}} %s Created", m.Name)),
 	})
 
+	rsp.SetCode(status.Success, "")
 	return rsp, nil
 }
 
 // Get{{.Svc}}ById 根据Id获取{{.Svc}}
 func (svc *{{.Svc}}Service) Get{{.Svc}}ById(ctx context.Context, req *{{.Service}}.Get{{.Svc}}ByIdRequest) (*{{.Service}}.Get{{.Svc}}ByIdResponse, error) {
-	logger := ctxzap.Extract(ctx).With(zap.String("layer", "{{.Svc}}Service"), zap.String("func", "Get{{.Svc}}ById"))
+	logger := log.GetLogger(ctx, "{{.Svc}}Service", "Get{{.Svc}}ById")
 	logger.Debug("Receive Get{{.Svc}}ById request")
 
 	rsp := &{{.Service}}.Get{{.Svc}}ByIdResponse{}
 	m, err := svc.dm.Get{{.Svc}}ById(ctx, req.Id)
 	if err != nil {
 		logger.Error("获取{{.Svc}}失败", zap.Any("{{.Service}}", m), zap.Error(err))
-
-		err := &{{.Service}}.Error{}
-		err.Message = "获取{{.Svc}}失败"
-		rsp.Error = err
+		rsp.SetCode(status.DBQueryFailed, "获取{{.Svc}}失败")
 		return rsp, nil
 	}
-
-	rsp.Success = true
-	rsp.Dto = m
+	rsp.SetBody(status.Success, m)
 	return rsp, nil
 }
 
 func (svc *{{.Svc}}Service) Get{{.Svc}}List(ctx context.Context, req *{{.Service}}.Get{{.Svc}}ListRequest) (*{{.Service}}.Get{{.Svc}}ListResponse, error) {
-	logger := ctxzap.Extract(ctx).With(zap.String("layer", "{{.Svc}}Service"), zap.String("func", "Get{{.Svc}}List"))
+	logger := log.GetLogger(ctx, "{{.Svc}}Service", "Get{{.Svc}}List")
 	logger.Debug("Receive Get{{.Svc}}List request")
 	rsp := &{{.Service}}.Get{{.Svc}}ListResponse{}
 
-	err := svc.validate.Struct(req)
+	err := svc.vd.Struct(req)
 	if err != nil {
 
 		if _, ok := err.(*validator.InvalidValidationError); ok {
@@ -184,13 +171,10 @@ func (svc *{{.Svc}}Service) Get{{.Svc}}List(ctx context.Context, req *{{.Service
 		}
 
 	}
-	err = svc.validate.Var(req.Status, "gte=0,lte=3")
+	err = svc.vd.Var(req.Status, "gte=0,lte=3")
 	if err != nil {
 		logger.Error("请输入有效的Status", zap.Int32("status", req.Status), zap.Error(err))
-
-		err := &{{.Service}}.Error{}
-		err.Message = "请输入有效的Status"
-		rsp.Error = err
+		rsp.SetCode(status.InvalidParams, "请输入有效的Status")
 		return rsp, nil
 	}
 
@@ -205,51 +189,39 @@ func (svc *{{.Svc}}Service) Get{{.Svc}}List(ctx context.Context, req *{{.Service
 	list, err := svc.dm.Get{{.Svc}}List(ctx, req.Status, req.Lastid, req.Pagesize, req.Page)
 	if err != nil {
 		logger.Error("获取{{.Svc}}失败", zap.Any("list", list), zap.Error(err))
-
-		err := &{{.Service}}.Error{}
-		err.Message = "获取{{.Svc}}List失败"
-		rsp.Error = err
+		rsp.SetCode(status.DBQueryFailed, "获取{{.Svc}}失败")
 		return rsp, nil
 	}
-	rsp.Success = true
-	rsp.Data = list
+	rsp.SetBody(status.Success, list)
 	return rsp, nil
 }
 
 func (svc *{{.Svc}}Service) Update{{.Svc}}Status(ctx context.Context, req *{{.Service}}.Update{{.Svc}}StatusRequest) (*{{.Service}}.Update{{.Svc}}StatusResponse, error) {
-	logger := ctxzap.Extract(ctx).With(zap.String("layer", "{{.Svc}}Service"), zap.String("func", "Update{{.Svc}}Status"))
+	logger := log.GetLogger(ctx, "{{.Svc}}Service", "Update{{.Svc}}Status")
 	logger.Debug("Receive Update{{.Svc}}Status request")
 
 	rsp := &{{.Service}}.Update{{.Svc}}StatusResponse{}
 	affected, err := svc.dm.Update{{.Svc}}Status(ctx, req.Id, req.Status)
 	if err != nil || affected <= 0 {
 		logger.Error("更新{{.Svc}}失败", zap.Int64("affected", affected), zap.Error(err))
-
-		err := &{{.Service}}.Error{}
-		err.Message = "更新{{.Svc}}失败"
-		rsp.Error = err
+		rsp.SetCode(status.DBSaveFailed, "更新{{.Svc}}失败")
 		return rsp, nil
 	}
-	rsp.Success = true
+	rsp.SetCode(status.Success, "")
 	return rsp, nil
 }
 
 func (svc *{{.Svc}}Service) Update{{.Svc}}Count(ctx context.Context, req *{{.Service}}.Update{{.Svc}}CountRequest) (*{{.Service}}.Update{{.Svc}}CountResponse, error) {
-	logger := ctxzap.Extract(ctx).With(zap.String("layer", "{{.Svc}}Service"), zap.String("func", "Update{{.Svc}}Count"))
+	logger := log.GetLogger(ctx, "{{.Svc}}Service", "Update{{.Svc}}Count")
 	logger.Debug("Receive Update{{.Svc}}Count request")
 
 	rsp := &{{.Service}}.Update{{.Svc}}CountResponse{}
 	affected, err := svc.dm.Update{{.Svc}}Count(ctx, req.Id, req.Num, req.Column)
 	if err != nil || affected <= 0 {
 		logger.Error("更新{{.Svc}}失败", zap.Int64("affected", affected), zap.Error(err))
-
-		err := &{{.Service}}.Error{}
-		err.Message = "更新{{.Svc}}失败"
-		rsp.Error = err
+		rsp.SetCode(status.DBSaveFailed, "更新{{.Svc}}失败")
 		return rsp, nil
 	}
-	rsp.Success = true
-
 	endpoint, err := broker.NewBroker(constant.MQName)
 	if err != nil {
 		ctxzap.Error(ctx, "kafka.New error", zap.Error(err))
@@ -259,30 +231,27 @@ func (svc *{{.Svc}}Service) Update{{.Svc}}Count(ctx context.Context, req *{{.Ser
 		Topic: endpoint.Options().Topics["update{{.Service}}count"],
 		Body:  nil,
 	})
-
+	rsp.SetCode(status.Success, "")
 	return rsp, nil
 }
 
 func (svc *{{.Svc}}Service) Delete{{.Svc}}ById(ctx context.Context, req *{{.Service}}.Delete{{.Svc}}ByIdRequest) (*{{.Service}}.Delete{{.Svc}}ByIdResponse, error) {
-	logger := ctxzap.Extract(ctx).With(zap.String("layer", "{{.Svc}}Service"), zap.String("func", "Delete{{.Svc}}ById"))
+	logger := ctxzap.Extract(ctx).With(zap.String("layer", "{{.Svc}}Service"), zap.String("func", "Create{{.Svc}}"))
 	logger.Debug("Receive Delete{{.Svc}}ById request")
 
 	rsp := &{{.Service}}.Delete{{.Svc}}ByIdResponse{}
 	affected, err := svc.dm.Delete{{.Svc}}ById(ctx, req.Id)
 	if err != nil || affected <= 0 {
 		logger.Error("更新{{.Svc}}失败", zap.Int64("affected", affected), zap.Error(err))
-
-		err := &{{.Service}}.Error{}
-		err.Message = "删除{{.Svc}}失败"
-		rsp.Error = err
+		rsp.SetCode(status.DBSaveFailed, "更新{{.Svc}}失败")
 		return rsp, nil
 	}
-	rsp.Success = true
+	rsp.SetCode(status.Success, "")
 	return rsp, nil
 }
 
 func (svc *{{.Svc}}Service) Get{{.Svc}}ListByStream(stream {{.Service}}.{{.Svc}}Service_Get{{.Svc}}ListByStreamServer) error {
-	logger := ctxzap.Extract(stream.Context()).With(zap.String("layer", "{{.Svc}}Service"), zap.String("func", "Get{{.Svc}}ListByStream"))
+	logger := log.GetLogger(stream.Context(), "{{.Svc}}Service", "Get{{.Svc}}ListByStream")
 	logger.Debug("Receive Get{{.Svc}}ListByStream request")
 
 	for {
@@ -317,7 +286,6 @@ func (svc *{{.Svc}}Service) Get{{.Svc}}ListByStream(stream {{.Service}}.{{.Svc}}
 				Result: nil,
 			})
 		}
-
 	}
 }
 `

@@ -5,16 +5,18 @@
  *  Copyright © 2021 imind.tech All rights reserved.
  */
 
-package template
+package srv
 
 import (
 	"os"
 	"strings"
 	"text/template"
+
+	tpl "github.com/imind-lab/micro/microctl/template"
 )
 
 // 生成constant
-func CreatePkg(data *Data) error {
+func CreatePkg(data *tpl.Data) error {
 
 	// 生成pkg.cache.go
 	tpl := `/**

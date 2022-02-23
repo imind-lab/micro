@@ -10,7 +10,7 @@ package redis
 import (
 	"context"
 	"errors"
-	"fmt"
+	"strconv"
 	"time"
 
 	"github.com/go-redis/redis/v8"
@@ -88,14 +88,14 @@ func HGet(ctx context.Context, cli *redis.Client, key string, value interface{},
 	return errors.New("Data does not exist")
 }
 
-func ZRevRange(ctx context.Context, cli *redis.Client, key string, start, stop int64) ([]int32, error) {
+func ZRevRange(ctx context.Context, cli *redis.Client, key string, start, stop int64) ([]int, error) {
 	rtype, err := cli.Type(ctx, key).Result()
 	if err == nil {
 		switch rtype {
 		case "zset":
 			data := cli.ZRevRange(ctx, key, start, stop)
 			if data.Err() == nil {
-				var ids []int32
+				var ids []int
 				err := data.ScanSlice(&ids)
 				if err == nil {
 					return ids, nil
@@ -103,34 +103,34 @@ func ZRevRange(ctx context.Context, cli *redis.Client, key string, start, stop i
 			}
 		case "none":
 		default:
-			return []int32{}, nil
+			return []int{}, nil
 		}
 		return nil, errors.New("Data does not exist")
 	}
 	return nil, err
 }
 
-func ZRevRangeWithCard(ctx context.Context, cli *redis.Client, key string, lastid, pagesize, page int32) ([]int32, int, error) {
+func ZRevRangeWithCard(ctx context.Context, cli *redis.Client, key string, lastId, pageSize, pageNum int64) ([]int, int, error) {
 	rtype, err := cli.Type(ctx, key).Result()
 	if err == nil {
 		switch rtype {
 		case "zset":
 			reply := cli.ZCard(ctx, key)
 			if reply.Err() == nil {
-				if lastid > 0 {
-					data := cli.ZRevRangeByScore(ctx, key, &redis.ZRangeBy{Max: fmt.Sprintf("%d", lastid-1), Min: "-inf", Offset: 0, Count: int64(pagesize)})
+				if lastId > 0 {
+					data := cli.ZRevRangeByScore(ctx, key, &redis.ZRangeBy{Max: strconv.FormatInt(lastId-1, 10), Min: "-inf", Offset: 0, Count: pageSize})
 					if data.Err() == nil {
-						var ids []int32
+						var ids []int
 						err := data.ScanSlice(&ids)
 						if err == nil {
 							return ids, int(reply.Val()), nil
 						}
 					}
 				} else {
-					start := (page - 1) * pagesize
-					data := cli.ZRevRangeByScore(ctx, key, &redis.ZRangeBy{Max: "+inf", Min: "-inf", Offset: int64(start), Count: int64(pagesize)})
+					start := (pageNum - 1) * pageSize
+					data := cli.ZRevRangeByScore(ctx, key, &redis.ZRangeBy{Max: "+inf", Min: "-inf", Offset: start, Count: pageSize})
 					if data.Err() == nil {
-						var ids []int32
+						var ids []int
 						err := data.ScanSlice(&ids)
 						if err == nil {
 							return ids, int(reply.Val()), nil
@@ -140,7 +140,7 @@ func ZRevRangeWithCard(ctx context.Context, cli *redis.Client, key string, lasti
 			}
 		case "none":
 		default:
-			return []int32{}, 0, nil
+			return []int{}, 0, nil
 		}
 		return nil, 0, errors.New("Data does not exist")
 	}
@@ -175,5 +175,17 @@ func SetHashTable(ctx context.Context, cli *redis.Client, key string, m interfac
 		return err
 	}
 
+	return nil
+}
+
+func DelKeys(ctx context.Context, cli *redis.Client, key string) error {
+	keys, err := cli.SMembers(ctx, key).Result()
+	if err != nil {
+		return err
+	}
+	err = cli.Del(ctx, keys...).Err()
+	if err != nil {
+		return err
+	}
 	return nil
 }

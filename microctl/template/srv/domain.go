@@ -5,19 +5,21 @@
  *  Copyright © 2021 imind.tech All rights reserved.
  */
 
-package template
+package srv
 
 import (
 	"os"
 	"text/template"
+
+	tpl "github.com/imind-lab/micro/microctl/template"
 )
 
 // 生成domain
-func CreateDomain(data *Data) error {
+func CreateDomain(data *tpl.Data) error {
 	var tpl = `/**
- *  IMindLab
+ *  {{.Project}}
  *
- *  Create by songli on {{.Date}}
+ *  Create by songli on {{.Year}}/09/30
  *  Copyright © {{.Year}} imind.tech All rights reserved.
  */
 
@@ -27,15 +29,13 @@ import (
 	"context"
 	"math"
 
-	"github.com/grpc-ecosystem/go-grpc-middleware/logging/zap/ctxzap"
-	"github.com/pkg/errors"
-	"go.uber.org/zap"
-
 	"{{.Domain}}/{{.Project}}/{{.Service}}/application/{{.Service}}/proto"
 	"{{.Domain}}/{{.Project}}/{{.Service}}/domain/{{.Service}}/repository"
 	"{{.Domain}}/{{.Project}}/{{.Service}}/domain/{{.Service}}/repository/model"
 	"{{.Domain}}/{{.Project}}/{{.Service}}/domain/{{.Service}}/repository/persistence"
 	"github.com/imind-lab/micro/dao"
+	"github.com/imind-lab/micro/log"
+	"github.com/pkg/errors"
 )
 
 type {{.Svc}}Domain interface {
@@ -71,7 +71,7 @@ func (dm {{.Service}}Domain) Create{{.Svc}}(ctx context.Context, dto *{{.Service
 }
 
 func (dm {{.Service}}Domain) Get{{.Svc}}ById(ctx context.Context, id int32) (*{{.Service}}.{{.Svc}}, error) {
-	logger := ctxzap.Extract(ctx).With(zap.String("layer", "{{.Service}}Domain"), zap.String("func", "Get{{.Svc}}ById"))
+	logger := log.GetLogger(ctx, "{{.Service}}Domain", "Get{{.Svc}}ById")
 
 	logger.Info("{{.Service}}Domain.Get{{.Svc}}ById invoke")
 	m, err := dm.repo.Get{{.Svc}}ById(ctx, id)

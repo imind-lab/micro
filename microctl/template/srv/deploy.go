@@ -5,16 +5,18 @@
  *  Copyright © 2021 imind.tech All rights reserved.
  */
 
-package template
+package srv
 
 import (
 	"os"
 	"strings"
 	"text/template"
+
+	tpl "github.com/imind-lab/micro/microctl/template"
 )
 
 // 生成docker
-func CreateDeploy(data *Data) error {
+func CreateDeploy(data *tpl.Data) error {
 	// 生成Makefile
 	var tpl = `apiVersion: v2
 name: greet
@@ -76,7 +78,7 @@ icon: https://static.imind.tech/frontend/images/wechat/bj.png
 replicaCount: 2
 
 image:
-  repository: registry.cn-beijing.aliyuncs.com/imind/greet
+  repository: registry.cn-beijing.aliyuncs.com/imind/{{.Service}}
   pullPolicy: IfNotPresent
   # Overrides the image tag whose default is the chart appVersion.
   tag: ""
@@ -120,10 +122,10 @@ service:
 traefik:
   enabled: true
   http:
-    host: test.imind.tech
+    host: {{.Service}}.imind.tech
     port: 80
   grpc:
-    host: test-grpc.imind.tech
+    host: grpc-{{.Service}}.imind.tech
     port: 50051
     tls: traefik-cert
 
@@ -161,7 +163,7 @@ livenessProbe:
   exec:
     command:
       - /bin/grpc-health-probe
-      - -addr=:50051
+      - -addr=localhost:50051
       - -tls
       - -tls-ca-cert=/conf/ssl/tls.crt
       - -tls-server-name=www.imind.tech
@@ -175,7 +177,7 @@ readinessProbe:
   exec:
     command:
       - /bin/grpc-health-probe
-      - -addr=:50051
+      - -addr=localhost:50051
       - -tls
       - -tls-ca-cert=/conf/ssl/tls.crt
       - -tls-server-name=www.imind.tech
@@ -387,7 +389,7 @@ spec:
 
 	// 生成hpa.yaml
 	tpl = `{{- if .Values.autoscaling.enabled }}
-apiVersion: autoscaling/v2beta1
+apiVersion: autoscaling/v2beta2
 kind: HorizontalPodAutoscaler
 metadata:
   name: {{ include "imind.fullname" . }}
@@ -405,13 +407,17 @@ spec:
     - type: Resource
       resource:
         name: cpu
-        targetAverageUtilization: {{ .Values.autoscaling.targetCPUUtilizationPercentage }}
+        target:
+          type: Utilization
+          averageUtilization: {{ .Values.autoscaling.targetCPUUtilizationPercentage }}
     {{- end }}
     {{- if .Values.autoscaling.targetMemoryUtilizationPercentage }}
     - type: Resource
       resource:
         name: memory
-        targetAverageUtilization: {{ .Values.autoscaling.targetMemoryUtilizationPercentage }}
+        target:
+          type: Utilization
+          averageUtilization: {{ .Values.autoscaling.targetMemoryUtilizationPercentage }}
     {{- end }}
 {{- end }}
 `

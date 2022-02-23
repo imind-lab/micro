@@ -1,12 +1,14 @@
-package template
+package srv
 
 import (
 	"os"
 	"text/template"
+
+	tpl "github.com/imind-lab/micro/microctl/template"
 )
 
 // 生成cmd
-func CreateCmd(data *Data) error {
+func CreateCmd(data *tpl.Data) error {
 	// 生成cmd.go
 	var tpl = `package cmd
 

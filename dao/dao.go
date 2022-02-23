@@ -8,14 +8,13 @@
 package dao
 
 import (
-	"context"
 	"github.com/go-redis/redis/v8"
 	"gorm.io/gorm"
 )
 
 type Dao interface {
-	DB(ctx context.Context) *gorm.DB
-	ExtraDB(ctx context.Context, name string) *gorm.DB
+	DB() *gorm.DB
+	ExtraDB(name string) *gorm.DB
 	SetDBMock(db *gorm.DB)
 
 	Redis() *redis.Client
@@ -41,18 +40,18 @@ func NewDao(dbName string) Dao {
 	return rep
 }
 
-func (d *dao) DB(ctx context.Context) *gorm.DB {
+func (d *dao) DB() *gorm.DB {
 	if d.dbMock != nil {
 		return d.dbMock
 	}
-	return d.Database.DB(d.dbName).WithContext(ctx)
+	return d.Database.DB(d.dbName)
 }
 
-func (d *dao) ExtraDB(ctx context.Context, name string) *gorm.DB {
+func (d *dao) ExtraDB(name string) *gorm.DB {
 	if d.dbMock != nil {
 		return d.dbMock
 	}
-	return d.Database.DB(name).WithContext(ctx)
+	return d.Database.DB(name)
 }
 
 func (d *dao) SetDBMock(db *gorm.DB) {

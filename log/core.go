@@ -8,6 +8,8 @@
 package log
 
 import (
+	"context"
+	"github.com/grpc-ecosystem/go-grpc-middleware/logging/zap/ctxzap"
 	"os"
 
 	"go.uber.org/zap"
@@ -64,4 +66,8 @@ func newCore(filePath string, level zapcore.Level, maxSize int, maxBackups int, 
 		zapcore.NewMultiWriteSyncer(zapcore.AddSync(os.Stdout), zapcore.AddSync(&hook)), // 打印到控制台和文件
 		atomicLevel, // 日志级别
 	)
+}
+
+func GetLogger(ctx context.Context, layer, fn string) *zap.Logger {
+	return ctxzap.Extract(ctx).With(zap.String("layer", layer), zap.String("func", fn))
 }

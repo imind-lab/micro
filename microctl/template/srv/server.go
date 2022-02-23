@@ -1,12 +1,14 @@
-package template
+package srv
 
 import (
 	"os"
 	"text/template"
+
+	tpl "github.com/imind-lab/micro/microctl/template"
 )
 
 // 生成server
-func CreateServer(data *Data) error {
+func CreateServer(data *tpl.Data) error {
 	var tpl = `package server
 
 import (

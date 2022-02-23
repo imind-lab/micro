@@ -5,15 +5,17 @@
  *  Copyright © 2021 imind.tech All rights reserved.
  */
 
-package template
+package srv
 
 import (
 	"os"
 	"text/template"
+
+	tpl "github.com/imind-lab/micro/microctl/template"
 )
 
 // 生成repository
-func CreateRepository(data *Data) error {
+func CreateRepository(data *tpl.Data) error {
 	var tpl = `/**
  *  IMindLab
  *
@@ -117,9 +119,9 @@ func {{.Svc}}ByIdRandExpire(expire time.Duration) {{.Svc}}ByIdOption {
 	f.Close()
 
 	tpl = `/**
- *  IMindLab
+ *  {{.Project}}
  *
- *  Create by songli on {{.Date}}
+ *  Create by songli on {{.Year}}/09/30
  *  Copyright © {{.Year}} imind.tech All rights reserved.
  */
 
@@ -132,7 +134,6 @@ import (
 	"sync"
 
 	"github.com/go-redis/redis/v8"
-	"github.com/grpc-ecosystem/go-grpc-middleware/logging/zap/ctxzap"
 	errorsx "github.com/pkg/errors"
 	"go.uber.org/zap"
 	"gorm.io/gorm"
@@ -142,7 +143,8 @@ import (
 	"{{.Domain}}/{{.Project}}/{{.Service}}/pkg/constant"
 	utilx "{{.Domain}}/{{.Project}}/{{.Service}}/pkg/util"
 	"github.com/imind-lab/micro/dao"
-	redisx "{{.Domain}}/imind-lab/micro/redis"
+	"github.com/imind-lab/micro/log"
+	redisx "github.com/imind-lab/micro/redis"
 	"github.com/imind-lab/micro/tracing"
 	"github.com/imind-lab/micro/util"
 )
@@ -185,7 +187,7 @@ func (repo {{.Service}}Repository) Get{{.Svc}}ById(ctx context.Context, id int32
 	span, ctx := tracing.StartSpan(ctx, "{{.Service}}Repository.Get{{.Svc}}ById")
 	defer span.Finish()
 
-	logger := ctxzap.Extract(ctx).With(zap.String("layer", "{{.Service}}Repository"), zap.String("func", "Get{{.Svc}}ById"))
+	logger := log.GetLogger(ctx, "{{.Service}}Repository", "Get{{.Svc}}ById")
 
 	opts := repository.New{{.Svc}}ByIdOptions(util.RandDuration(120))
 	for _, o := range opt {
@@ -232,7 +234,7 @@ func (repo {{.Service}}Repository) Get{{.Svc}}sCount(ctx context.Context, status
 	span, ctx := tracing.StartSpan(ctx, "{{.Service}}Repository.Get{{.Svc}}sCount")
 	defer span.Finish()
 
-	logger := ctxzap.Extract(ctx).With(zap.String("layer", "{{.Service}}Repository"), zap.String("func", "Get{{.Svc}}sCount"))
+	logger := log.GetLogger(ctx, "{{.Service}}Repository", "Get{{.Svc}}sCount")
 
 	key := utilx.CacheKey("{{.Service}}_cnt_", strconv.Itoa(int(status)))
 	cnt, err := redisx.GetNumber(ctx, repo.Redis(), key)
@@ -261,7 +263,7 @@ func (repo {{.Service}}Repository) Find{{.Svc}}sCount(ctx context.Context, statu
 }
 
 func (repo {{.Service}}Repository) Get{{.Svc}}List(ctx context.Context, status, lastId, pageSize, page int32) ([]model.{{.Svc}}, int, error) {
-	logger := ctxzap.Extract(ctx).With(zap.String("layer", "{{.Service}}Repository"), zap.String("func", "Get{{.Svc}}List"))
+	logger := log.GetLogger(ctx, "{{.Service}}Repository", "Get{{.Svc}}List")
 
 	ids, cnt, err := repo.Get{{.Svc}}ListIds(ctx, status, lastId, pageSize, page)
 	if err != nil {
@@ -374,7 +376,7 @@ type concurrent{{.Svc}}Output struct {
 }
 
 func (repo {{.Service}}Repository) Update{{.Svc}}Status(ctx context.Context, id, status int32) (int64, error) {
-	logger := ctxzap.Extract(ctx).With(zap.String("layer", "{{.Service}}Repository"), zap.String("func", "Update{{.Svc}}Status"))
+	logger := log.GetLogger(ctx, "{{.Service}}Repository", "Update{{.Svc}}Status")
 
 	logger.Debug("invoke info", zap.Int32("id", id), zap.Int32("status", status))
 	tx := repo.DB(ctx).Model(model.{{.Svc}}{}).Where("id = ?", id)
@@ -391,7 +393,7 @@ func (repo {{.Service}}Repository) Update{{.Svc}}Status(ctx context.Context, id,
 }
 
 func (repo {{.Service}}Repository) Update{{.Svc}}Count(ctx context.Context, id, num int32, column string) (int64, error) {
-	logger := ctxzap.Extract(ctx).With(zap.String("layer", "{{.Service}}Repository"), zap.String("func", "Update{{.Svc}}Count"))
+	logger := log.GetLogger(ctx, "{{.Service}}Repository", "Update{{.Svc}}Count")
 
 	logger.Debug("invoke info", zap.Int32("id", id), zap.Int32("num", num), zap.String("column", column))
 	tx := repo.DB(ctx).Model(model.{{.Svc}}{}).Where("id = ?", id)
@@ -408,7 +410,7 @@ func (repo {{.Service}}Repository) Update{{.Svc}}Count(ctx context.Context, id, 
 }
 
 func (repo {{.Service}}Repository) Delete{{.Svc}}ById(ctx context.Context, id int32) (int64, error) {
-	logger := ctxzap.Extract(ctx).With(zap.String("layer", "{{.Service}}Repository"), zap.String("func", "Delete{{.Svc}}ById"))
+	logger := log.GetLogger(ctx, "{{.Service}}Repository", "Delete{{.Svc}}ById")
 
 	logger.Debug("invoke info", zap.Int32("id", id))
 	tx := repo.DB(ctx).Delete(&model.{{.Svc}}{}, id)
