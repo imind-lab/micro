@@ -12,12 +12,12 @@ import (
 
 type Suite struct {
 	suite.Suite
-	redisDB   *redis.Client
-	redisMock redismock.ClientMock
+	redisDB   *redis.ClusterClient
+	redisMock redismock.ClusterClientMock
 }
 
 func (s *Suite) SetupSuite() {
-	s.redisDB, s.redisMock = redismock.NewClientMock()
+	s.redisDB, s.redisMock = redismock.NewClusterMock()
 }
 
 func (s *Suite) AfterTest(_, _ string) {

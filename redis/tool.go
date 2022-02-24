@@ -16,7 +16,7 @@ import (
 	"github.com/go-redis/redis/v8"
 )
 
-func SetSortedSet(ctx context.Context, cli *redis.Client, key string, args []*redis.Z, expire time.Duration) error {
+func SetSortedSet(ctx context.Context, cli *redis.ClusterClient, key string, args []*redis.Z, expire time.Duration) error {
 	if len(args) == 0 {
 		err := cli.Set(ctx, key, "", expire).Err()
 		return err
@@ -32,7 +32,7 @@ func SetSortedSet(ctx context.Context, cli *redis.Client, key string, args []*re
 	return nil
 }
 
-func GetNumber(ctx context.Context, cli *redis.Client, key string) (int64, error) {
+func GetNumber(ctx context.Context, cli *redis.ClusterClient, key string) (int64, error) {
 	reply := cli.Get(ctx, key)
 	if reply.Err() != nil {
 		return 0, reply.Err()
@@ -44,7 +44,7 @@ func GetNumber(ctx context.Context, cli *redis.Client, key string) (int64, error
 	return cnt, nil
 }
 
-func HGetAll(ctx context.Context, cli *redis.Client, key string, value interface{}) error {
+func HGetAll(ctx context.Context, cli *redis.ClusterClient, key string, value interface{}) error {
 	reply := cli.HGetAll(ctx, key)
 	v, err := reply.Result()
 	if err != nil {
@@ -59,7 +59,7 @@ func HGetAll(ctx context.Context, cli *redis.Client, key string, value interface
 	return errors.New("Data does not exist")
 }
 
-func HGet(ctx context.Context, cli *redis.Client, key string, value interface{}, fields ...string) error {
+func HGet(ctx context.Context, cli *redis.ClusterClient, key string, value interface{}, fields ...string) error {
 	if len(fields) > 0 {
 		reply := cli.HMGet(ctx, key, fields...)
 		v, err := reply.Result()
@@ -88,7 +88,7 @@ func HGet(ctx context.Context, cli *redis.Client, key string, value interface{},
 	return errors.New("Data does not exist")
 }
 
-func ZRevRange(ctx context.Context, cli *redis.Client, key string, start, stop int64) ([]int, error) {
+func ZRevRange(ctx context.Context, cli *redis.ClusterClient, key string, start, stop int64) ([]int, error) {
 	rtype, err := cli.Type(ctx, key).Result()
 	if err == nil {
 		switch rtype {
@@ -110,7 +110,7 @@ func ZRevRange(ctx context.Context, cli *redis.Client, key string, start, stop i
 	return nil, err
 }
 
-func ZRevRangeWithCard(ctx context.Context, cli *redis.Client, key string, lastId, pageSize, pageNum int64) ([]int, int, error) {
+func ZRevRangeWithCard(ctx context.Context, cli *redis.ClusterClient, key string, lastId, pageSize, pageNum int64) ([]int, int, error) {
 	rtype, err := cli.Type(ctx, key).Result()
 	if err == nil {
 		switch rtype {
@@ -147,7 +147,7 @@ func ZRevRangeWithCard(ctx context.Context, cli *redis.Client, key string, lastI
 	return nil, 0, err
 }
 
-func SetSet(ctx context.Context, cli *redis.Client, key string, args []interface{}, expire time.Duration) error {
+func SetSet(ctx context.Context, cli *redis.ClusterClient, key string, args []interface{}, expire time.Duration) error {
 	if len(args) == 0 {
 		err := cli.Set(ctx, key, "", expire).Err()
 		return err
@@ -164,7 +164,7 @@ func SetSet(ctx context.Context, cli *redis.Client, key string, args []interface
 	return nil
 }
 
-func SetHashTable(ctx context.Context, cli *redis.Client, key string, m interface{}, expire time.Duration) error {
+func SetHashTable(ctx context.Context, cli *redis.ClusterClient, key string, m interface{}, expire time.Duration) error {
 	err := cli.HMSet(ctx, key, FlatStruct(m)).Err()
 	if err != nil {
 		return err
@@ -178,7 +178,7 @@ func SetHashTable(ctx context.Context, cli *redis.Client, key string, m interfac
 	return nil
 }
 
-func DelKeys(ctx context.Context, cli *redis.Client, key string) error {
+func DelKeys(ctx context.Context, cli *redis.ClusterClient, key string) error {
 	keys, err := cli.SMembers(ctx, key).Result()
 	if err != nil {
 		return err

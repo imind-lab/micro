@@ -17,8 +17,8 @@ type Dao interface {
 	ExtraDB(name string) *gorm.DB
 	SetDBMock(db *gorm.DB)
 
-	Redis() *redis.Client
-	SetRedisMock(rdb *redis.Client)
+	Redis() *redis.ClusterClient
+	SetRedisMock(rdb *redis.ClusterClient)
 }
 
 type dao struct {
@@ -28,7 +28,7 @@ type dao struct {
 	dbName string
 	dbMock *gorm.DB
 
-	redisMock *redis.Client
+	redisMock *redis.ClusterClient
 }
 
 func NewDao(dbName string) Dao {
@@ -58,11 +58,11 @@ func (d *dao) SetDBMock(db *gorm.DB) {
 	d.dbMock = db
 }
 
-func (d *dao) SetRedisMock(rdb *redis.Client) {
+func (d *dao) SetRedisMock(rdb *redis.ClusterClient) {
 	d.redisMock = rdb
 }
 
-func (d *dao) Redis() *redis.Client {
+func (d *dao) Redis() *redis.ClusterClient {
 	if d.redisMock != nil {
 		return d.redisMock
 	}
