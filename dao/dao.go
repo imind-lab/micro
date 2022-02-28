@@ -8,7 +8,6 @@
 package dao
 
 import (
-	"github.com/go-redis/redis/v8"
 	"gorm.io/gorm"
 )
 
@@ -17,8 +16,8 @@ type Dao interface {
 	ExtraDB(name string) *gorm.DB
 	SetDBMock(db *gorm.DB)
 
-	Redis() *redis.ClusterClient
-	SetRedisMock(rdb *redis.ClusterClient)
+	Redis() Redis
+	//SetRedisMock(rdb *redis.ClusterClient)
 }
 
 type dao struct {
@@ -28,7 +27,7 @@ type dao struct {
 	dbName string
 	dbMock *gorm.DB
 
-	redisMock *redis.ClusterClient
+	//redisMock *redis.ClusterClient
 }
 
 func NewDao(dbName string) Dao {
@@ -58,13 +57,13 @@ func (d *dao) SetDBMock(db *gorm.DB) {
 	d.dbMock = db
 }
 
-func (d *dao) SetRedisMock(rdb *redis.ClusterClient) {
-	d.redisMock = rdb
-}
+//func (d *dao) SetRedisMock(rdb *redis.ClusterClient) {
+//	d.redisMock = rdb
+//}
 
-func (d *dao) Redis() *redis.ClusterClient {
-	if d.redisMock != nil {
-		return d.redisMock
-	}
+func (d *dao) Redis() Redis {
+	//if d.redisMock != nil {
+	//	return d.redisMock
+	//}
 	return d.Cache.Redis()
 }

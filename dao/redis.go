@@ -9,7 +9,10 @@ package dao
 
 import (
 	"context"
+	"errors"
+	redisx "github.com/imind-lab/micro/redis"
 	"net"
+	"strconv"
 	"sync"
 	"time"
 
@@ -23,42 +26,254 @@ var (
 )
 
 type Cache interface {
-	Redis() *redis.ClusterClient
+	Redis() Redis
 }
 
 type cache struct {
-	redisClient *redis.ClusterClient
+	redisClient Redis
 }
 
 func NewCache() Cache {
 	cacheOnce.Do(func() {
-
-		addr := viper.GetStringSlice("redis.addr")
-		rdb := redisClusterClient(addr)
+		var client Redis
+		model := viper.GetString("redis.model")
+		if model == "cluster" {
+			client = NewRedisCluster()
+		} else {
+			client = NewRedisNode()
+		}
 
 		cacheClient = &cache{}
-		cacheClient.redisClient = rdb
+		cacheClient.redisClient = client
 
 	})
 	return cacheClient
 }
 
-func (c *cache) Redis() *redis.ClusterClient {
+func (c *cache) Redis() Redis {
 	return c.redisClient
 }
 
-func redisClusterClient(addrs []string) *redis.ClusterClient {
-	return redis.NewClusterClient(&redis.ClusterOptions{
-		Addrs:          addrs,
-		MaxRedirects:   0,
-		ReadOnly:       false,
-		RouteByLatency: false,
-		RouteRandomly:  false,
-		PoolFIFO:       false,
+type Redis interface {
+	GetNumber(ctx context.Context, key string) (int64, error)
+
+	HashTableGet(ctx context.Context, key string, value interface{}, fields ...string) error
+	HashTableGetAll(ctx context.Context, key string, value interface{}) error
+	HashTableSet(ctx context.Context, key string, m interface{}, expire time.Duration) error
+
+	SetSet(ctx context.Context, key string, args []interface{}, expire time.Duration) error
+	SetDelKeys(ctx context.Context, key string) error
+
+	SortedSetRange(ctx context.Context, key string, pageNum, pageSize int64, desc bool) ([]int, int, error)
+	SortedSetRangeByScore(ctx context.Context, key string, lastId, pageSize int64, desc bool) ([]int, int, error)
+	SortedSetSet(ctx context.Context, key string, args []*redis.Z, expire time.Duration) error
+
+	Del(ctx context.Context, keys ...string) *redis.IntCmd
+	Get(ctx context.Context, key string) *redis.StringCmd
+	SAdd(ctx context.Context, key string, members ...interface{}) *redis.IntCmd
+	Set(ctx context.Context, key string, value interface{}, expiration time.Duration) *redis.StatusCmd
+	ZRem(ctx context.Context, key string, members ...interface{}) *redis.IntCmd
+}
+
+type redisNode struct {
+	*redis.Client
+}
+
+func NewRedisNode() redisNode {
+	addr := viper.GetString("redis.addr")
+	pass := viper.GetString("redis.pass")
+	db := viper.GetInt("redis.db")
+	rdb := redisClient(addr, pass, db)
+	return redisNode{rdb}
+}
+
+func (cli redisNode) GetNumber(ctx context.Context, key string) (int64, error) {
+	reply := cli.Get(ctx, key)
+	if reply.Err() != nil {
+		return 0, reply.Err()
+	}
+	cnt, err := reply.Int64()
+	if err != nil {
+		return 0, err
+	}
+	return cnt, nil
+}
+
+func (cli redisNode) HashTableGet(ctx context.Context, key string, value interface{}, fields ...string) error {
+	if len(fields) > 0 {
+		reply := cli.HMGet(ctx, key, fields...)
+		v, err := reply.Result()
+		if err != nil {
+			return err
+		}
+		if len(v) > 0 {
+			err := reply.Scan(value)
+			if err == nil {
+				return nil
+			}
+		}
+	} else {
+		reply := cli.HGetAll(ctx, key)
+		v, err := reply.Result()
+		if err != nil {
+			return err
+		}
+		if len(v) > 0 {
+			err := reply.Scan(value)
+			if err == nil {
+				return nil
+			}
+		}
+	}
+	return errors.New("HashTable data does not exist")
+}
+
+func (cli redisNode) HashTableGetAll(ctx context.Context, key string, value interface{}) error {
+	reply := cli.HGetAll(ctx, key)
+	v, err := reply.Result()
+	if err != nil {
+		return err
+	}
+	if len(v) > 0 {
+		err := reply.Scan(value)
+		if err == nil {
+			return nil
+		}
+	}
+	return errors.New("HashTable data does not exist")
+}
+
+func (cli redisNode) HashTableSet(ctx context.Context, key string, m interface{}, expire time.Duration) error {
+	err := cli.HMSet(ctx, key, redisx.FlatStruct(m)).Err()
+	if err != nil {
+		return err
+	}
+
+	err = cli.Expire(ctx, key, expire).Err()
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (cli redisNode) SetSet(ctx context.Context, key string, args []interface{}, expire time.Duration) error {
+	if len(args) == 0 {
+		err := cli.Set(ctx, key, "", expire).Err()
+		return err
+
+	}
+	err := cli.SAdd(ctx, key, args...).Err()
+	if err != nil {
+		return err
+	}
+	err = cli.Expire(ctx, key, expire).Err()
+	if err != nil {
+		return err
+	}
+	return nil
+}
+func (cli redisNode) SetDelKeys(ctx context.Context, key string) error {
+	keys, err := cli.SMembers(ctx, key).Result()
+	if err != nil {
+		return err
+	}
+	err = cli.Del(ctx, keys...).Err()
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func (cli redisNode) SortedSetRange(ctx context.Context, key string, pageNum, pageSize int64, desc bool) ([]int, int, error) {
+	rtype, err := cli.Type(ctx, key).Result()
+	if err == nil {
+		switch rtype {
+		case "zset":
+			reply := cli.ZCard(ctx, key)
+			if reply.Err() == nil {
+				start := (pageNum - 1) * pageSize
+				stop := start + pageSize
+				var data *redis.StringSliceCmd
+				if desc {
+					data = cli.ZRevRange(ctx, key, start, stop)
+				} else {
+					data = cli.ZRange(ctx, key, start, stop)
+				}
+				if data.Err() == nil {
+					var ids []int
+					err := data.ScanSlice(&ids)
+					if err == nil {
+						return ids, int(reply.Val()), nil
+					}
+				}
+			}
+		case "none":
+		default:
+			return []int{}, 0, nil
+		}
+		return nil, 0, errors.New("SortedSet data does not exist")
+	}
+	return nil, 0, err
+}
+
+func (cli redisNode) SortedSetRangeByScore(ctx context.Context, key string, lastId, pageSize int64, desc bool) ([]int, int, error) {
+	rtype, err := cli.Type(ctx, key).Result()
+	if err == nil {
+		switch rtype {
+		case "zset":
+			reply := cli.ZCard(ctx, key)
+			if reply.Err() == nil {
+				var data *redis.StringSliceCmd
+				if desc {
+					data = cli.ZRevRangeByScore(ctx, key, &redis.ZRangeBy{Max: strconv.FormatInt(lastId-1, 10), Min: "-inf", Offset: 0, Count: pageSize})
+				} else {
+					data = cli.ZRangeByScore(ctx, key, &redis.ZRangeBy{Max: "+inf", Min: strconv.FormatInt(lastId+1, 10), Offset: 0, Count: pageSize})
+				}
+				if data.Err() == nil {
+					var ids []int
+					err := data.ScanSlice(&ids)
+					if err == nil {
+						return ids, int(reply.Val()), nil
+					}
+				}
+			}
+		case "none":
+		default:
+			return []int{}, 0, nil
+		}
+		return nil, 0, errors.New("SortedSet data does not exist")
+	}
+	return nil, 0, err
+}
+
+func (cli redisNode) SortedSetSet(ctx context.Context, key string, args []*redis.Z, expire time.Duration) error {
+	if len(args) == 0 {
+		err := cli.Set(ctx, key, "", expire).Err()
+		return err
+	}
+	err := cli.ZAdd(ctx, key, args...).Err()
+	if err != nil {
+		return err
+	}
+	err = cli.Expire(ctx, key, expire).Err()
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func redisClient(addr, pass string, db int) *redis.Client {
+	return redis.NewClient(&redis.Options{
+		//连接信息
+		Network:  "tcp", //网络类型，tcp or unix，默认tcp
+		Addr:     addr,  //主机名+冒号+端口，默认localhost:6379
+		Password: pass,  //密码
+		DB:       db,    // redis数据库index
 
 		//连接池容量及闲置连接数量
-		PoolSize:     100, // 连接池最大socket连接数，默认为4倍CPU数， 4 * runtime.NumCPU
-		MinIdleConns: 10,  //在启动阶段创建指定数量的Idle连接，并长期维持idle状态的连接数不少于指定数量；。
+		PoolSize:     15, // 连接池最大socket连接数，默认为4倍CPU数， 4 * runtime.NumCPU
+		MinIdleConns: 10, //在启动阶段创建指定数量的Idle连接，并长期维持idle状态的连接数不少于指定数量；。
 
 		//超时
 		DialTimeout:  5 * time.Second, //连接建立超时时间，默认5秒。
@@ -92,17 +307,204 @@ func redisClusterClient(addrs []string) *redis.ClusterClient {
 	})
 }
 
-func redisClient(addr, pass string, db int) *redis.Client {
-	return redis.NewClient(&redis.Options{
-		//连接信息
-		Network:  "tcp", //网络类型，tcp or unix，默认tcp
-		Addr:     addr,  //主机名+冒号+端口，默认localhost:6379
-		Password: pass,  //密码
-		DB:       db,    // redis数据库index
+type redisCluster struct {
+	*redis.ClusterClient
+}
+
+func NewRedisCluster() redisCluster {
+	addr := viper.GetStringSlice("redis.addr")
+	rdb := clusterClient(addr)
+	return redisCluster{rdb}
+}
+
+func (cli redisCluster) GetNumber(ctx context.Context, key string) (int64, error) {
+	reply := cli.Get(ctx, key)
+	if reply.Err() != nil {
+		return 0, reply.Err()
+	}
+	cnt, err := reply.Int64()
+	if err != nil {
+		return 0, err
+	}
+	return cnt, nil
+}
+
+func (cli redisCluster) HashTableGet(ctx context.Context, key string, value interface{}, fields ...string) error {
+	if len(fields) > 0 {
+		reply := cli.HMGet(ctx, key, fields...)
+		v, err := reply.Result()
+		if err != nil {
+			return err
+		}
+		if len(v) > 0 {
+			err := reply.Scan(value)
+			if err == nil {
+				return nil
+			}
+		}
+	} else {
+		reply := cli.HGetAll(ctx, key)
+		v, err := reply.Result()
+		if err != nil {
+			return err
+		}
+		if len(v) > 0 {
+			err := reply.Scan(value)
+			if err == nil {
+				return nil
+			}
+		}
+	}
+	return errors.New("HashTable data does not exist")
+}
+
+func (cli redisCluster) HashTableGetAll(ctx context.Context, key string, value interface{}) error {
+	reply := cli.HGetAll(ctx, key)
+	v, err := reply.Result()
+	if err != nil {
+		return err
+	}
+	if len(v) > 0 {
+		err := reply.Scan(value)
+		if err == nil {
+			return nil
+		}
+	}
+	return errors.New("HashTable data does not exist")
+}
+
+func (cli redisCluster) HashTableSet(ctx context.Context, key string, m interface{}, expire time.Duration) error {
+	err := cli.HMSet(ctx, key, redisx.FlatStruct(m)).Err()
+	if err != nil {
+		return err
+	}
+
+	err = cli.Expire(ctx, key, expire).Err()
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (cli redisCluster) SetSet(ctx context.Context, key string, args []interface{}, expire time.Duration) error {
+	if len(args) == 0 {
+		err := cli.Set(ctx, key, "", expire).Err()
+		return err
+
+	}
+	err := cli.SAdd(ctx, key, args...).Err()
+	if err != nil {
+		return err
+	}
+	err = cli.Expire(ctx, key, expire).Err()
+	if err != nil {
+		return err
+	}
+	return nil
+}
+func (cli redisCluster) SetDelKeys(ctx context.Context, key string) error {
+	keys, err := cli.SMembers(ctx, key).Result()
+	if err != nil {
+		return err
+	}
+	err = cli.Del(ctx, keys...).Err()
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func (cli redisCluster) SortedSetRange(ctx context.Context, key string, pageNum, pageSize int64, desc bool) ([]int, int, error) {
+	rtype, err := cli.Type(ctx, key).Result()
+	if err == nil {
+		switch rtype {
+		case "zset":
+			reply := cli.ZCard(ctx, key)
+			if reply.Err() == nil {
+				start := (pageNum - 1) * pageSize
+				stop := start + pageSize
+				var data *redis.StringSliceCmd
+				if desc {
+					data = cli.ZRevRange(ctx, key, start, stop)
+				} else {
+					data = cli.ZRange(ctx, key, start, stop)
+				}
+				if data.Err() == nil {
+					var ids []int
+					err := data.ScanSlice(&ids)
+					if err == nil {
+						return ids, int(reply.Val()), nil
+					}
+				}
+			}
+		case "none":
+		default:
+			return []int{}, 0, nil
+		}
+		return nil, 0, errors.New("SortedSet data does not exist")
+	}
+	return nil, 0, err
+}
+
+func (cli redisCluster) SortedSetRangeByScore(ctx context.Context, key string, lastId, pageSize int64, desc bool) ([]int, int, error) {
+	rtype, err := cli.Type(ctx, key).Result()
+	if err == nil {
+		switch rtype {
+		case "zset":
+			reply := cli.ZCard(ctx, key)
+			if reply.Err() == nil {
+				var data *redis.StringSliceCmd
+				if desc {
+					data = cli.ZRevRangeByScore(ctx, key, &redis.ZRangeBy{Max: strconv.FormatInt(lastId-1, 10), Min: "-inf", Offset: 0, Count: pageSize})
+				} else {
+					data = cli.ZRangeByScore(ctx, key, &redis.ZRangeBy{Max: "+inf", Min: strconv.FormatInt(lastId+1, 10), Offset: 0, Count: pageSize})
+				}
+				if data.Err() == nil {
+					var ids []int
+					err := data.ScanSlice(&ids)
+					if err == nil {
+						return ids, int(reply.Val()), nil
+					}
+				}
+			}
+		case "none":
+		default:
+			return []int{}, 0, nil
+		}
+		return nil, 0, errors.New("SortedSet data does not exist")
+	}
+	return nil, 0, err
+}
+
+func (cli redisCluster) SortedSetSet(ctx context.Context, key string, args []*redis.Z, expire time.Duration) error {
+	if len(args) == 0 {
+		err := cli.Set(ctx, key, "", expire).Err()
+		return err
+	}
+	err := cli.ZAdd(ctx, key, args...).Err()
+	if err != nil {
+		return err
+	}
+	err = cli.Expire(ctx, key, expire).Err()
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func clusterClient(addrs []string) *redis.ClusterClient {
+	return redis.NewClusterClient(&redis.ClusterOptions{
+		Addrs:          addrs,
+		MaxRedirects:   0,
+		ReadOnly:       false,
+		RouteByLatency: false,
+		RouteRandomly:  false,
+		PoolFIFO:       false,
 
 		//连接池容量及闲置连接数量
-		PoolSize:     15, // 连接池最大socket连接数，默认为4倍CPU数， 4 * runtime.NumCPU
-		MinIdleConns: 10, //在启动阶段创建指定数量的Idle连接，并长期维持idle状态的连接数不少于指定数量；。
+		PoolSize:     100, // 连接池最大socket连接数，默认为4倍CPU数， 4 * runtime.NumCPU
+		MinIdleConns: 10,  //在启动阶段创建指定数量的Idle连接，并长期维持idle状态的连接数不少于指定数量；。
 
 		//超时
 		DialTimeout:  5 * time.Second, //连接建立超时时间，默认5秒。

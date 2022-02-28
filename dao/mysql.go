@@ -8,7 +8,9 @@
 package dao
 
 import (
+	"context"
 	"fmt"
+	"golang.org/x/time/rate"
 	"log"
 	"sync"
 	"time"
@@ -24,6 +26,7 @@ import (
 var (
 	dbOnce   sync.Once
 	dbClient Database
+	limiter  *rate.Limiter
 )
 
 const dsnFormat = "%s:%s@tcp(%s:%d)/%s?charset=utf8mb4&multiStatements=true&interpolateParams=true&parseTime=True&loc=Local"
@@ -44,6 +47,9 @@ func NewDatabase() Database {
 		dbClient = &database{
 			dbs: make(map[string]*MySQL),
 		}
+		limit := viper.GetFloat64("db.concurrence.limit")
+		capacity := viper.GetInt("db.concurrence.capacity")
+		limiter = rate.NewLimiter(rate.Limit(limit), capacity)
 	})
 	return dbClient
 }
@@ -55,6 +61,10 @@ type database struct {
 // 获取指定数据库的写连接
 // @name 数据库别名
 func (d *database) DB(name string) *gorm.DB {
+	err := limiter.Wait(context.Background())
+	if err != nil {
+		log.Printf("DB limiter error: %s, %v", name, err)
+	}
 	db, ok := d.dbs[name]
 	if ok {
 		db.Once.Do(func() {
