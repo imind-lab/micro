@@ -19,7 +19,7 @@ import (
 func CreateDeploy(data *tpl.Data) error {
 	// 生成Makefile
 	var tpl = `apiVersion: v2
-name: greet
+name: {{.Service}}
 description: A Helm chart for Kubernetes
 
 # A chart can be either an 'application' or a 'library' chart.
@@ -429,38 +429,6 @@ spec:
 		return err
 	}
 
-	// 生成NOTES.text
-	tpl = `1. Get the application URL by running these commands:
-{{- if .Values.ingress.enabled }}
-{{- range $host := .Values.ingress.hosts }}
-  {{- range .paths }}
-  http{{ if $.Values.ingress.tls }}s{{ end }}://{{ $host.host }}{{ .path }}
-  {{- end }}
-{{- end }}
-{{- else if contains "NodePort" .Values.service.type }}
-  export NODE_PORT=$(kubectl get --namespace {{ .Release.Namespace }} -o jsonpath="{.spec.ports[0].nodePort}" services {{ include "imind.fullname" . }})
-  export NODE_IP=$(kubectl get nodes --namespace {{ .Release.Namespace }} -o jsonpath="{.items[0].status.addresses[0].address}")
-  echo http://$NODE_IP:$NODE_PORT
-{{- else if contains "LoadBalancer" .Values.service.type }}
-     NOTE: It may take a few minutes for the LoadBalancer IP to be available.
-           You can watch the status of by running 'kubectl get --namespace {{ .Release.Namespace }} svc -w {{ include "imind.fullname" . }}'
-  export SERVICE_IP=$(kubectl get svc --namespace {{ .Release.Namespace }} {{ include "imind.fullname" . }} --template "{{"{{ range (index .status.loadBalancer.ingress 0) }}{{.}}{{ end }}"}}")
-  echo http://$SERVICE_IP:{{ .Values.service.port }}
-{{- else if contains "ClusterIP" .Values.service.type }}
-  export POD_NAME=$(kubectl get pods --namespace {{ .Release.Namespace }} -l "app.kubernetes.io/name={{ include "imind.name" . }},app.kubernetes.io/instance={{ .Release.Name }}" -o jsonpath="{.items[0].metadata.name}")
-  export CONTAINER_PORT=$(kubectl get pod --namespace {{ .Release.Namespace }} $POD_NAME -o jsonpath="{.spec.containers[0].ports[0].containerPort}")
-  echo "Visit http://127.0.0.1:8080 to use your application"
-  kubectl --namespace {{ .Release.Namespace }} port-forward $POD_NAME 8080:$CONTAINER_PORT
-{{- end }}
-`
-
-	fileName = dir + "NOTES.text"
-
-	err = os.WriteFile(fileName, []byte(tpl), os.ModePerm)
-	if err != nil {
-		return err
-	}
-
 	// 生成secret.yaml
 	tpl = `{{- $fullName := include "imind.fullname" . -}}
 apiVersion: v1
@@ -575,57 +543,68 @@ spec:
 		return err
 	}
 
-	// 生成conf-test.yaml
-	tpl = `server:
-  port:   #监听端口
-    http: 80
+	// 生成conf.yaml
+	tpl = `service:
+  namespace: {{.Project}}
+  name: {{.Service}}
+  version: latest
+  logLevel: -2
+  port: #监听端口
+    http: 88
     grpc: 50051
+  concurrence:
+    limit: 10
+    capacity: 10
   profile:
     rate: 1
 
+
 db:
-  logMode: 4
-  hr:
-    write:
-      host: 127.0.0.1
+  logLevel: 4
+  max:
+    open: 10
+    idle: 5
+    life: 30
+  concurrence:
+    limit: 10
+    capacity: 10
+  imind:
+    tablePrefix: tbl
+    master:
+      host: mysql.infra
       port: 3306
       user: root
-      pass: rStoAmBDJk
-      name: hr
-    read:
-      - host: 127.0.0.1
-        port: 3306
-        user: root
-        pass: rStoAmBDJk
-        name: hr
-      - host: 127.0.0.1
-        port: 3306
-        user: root
-        pass: rStoAmBDJk
-        name: hr
+      pass: imind123
+      name: imind
+    replica:
+      host: mysql.infra
+      port: 3306
+      user: root
+      pass: imind123
+      name: imind
 
 redis:
   addr: 'redis-master.infra:6379'
-  pass: 'VrvwqhvvRz'
+  pass: imind456
   db: 0
 
 kafka:
   business:
     producer:
-      - 'kafka:9092'
+      - 'kafka.infra:9092'
     consumer:
-      - 'kafka:9092'
+      - 'kafka.infra:9092'
     topic:
-      commentAction: comment_action
-      commonTask: common_task
+      {{.Service}}Create: {{.Service}}_create
+      {{.Service}}Update: {{.Service}}_update
 
 tracing:
   agent: '172.16.50.50:6831'
   type: const
   param: 1
   name:
-    client: imind-greet-cli
-    server: imind-greet-srv
+    client: imind-{{.Service}}-cli
+    server: imind-{{.Service}}-srv
 
 log:
   path: './logs/ms.log'
@@ -637,7 +616,7 @@ log:
   format: json
 `
 
-	t, err = template.New("conf-test.yaml").Parse(tpl)
+	t, err = template.New("conf.yaml").Parse(tpl)
 	if err != nil {
 		return err
 	}
@@ -649,86 +628,7 @@ log:
 		return err
 	}
 
-	fileName = dir + "conf-test.yaml"
-
-	f, err = os.Create(fileName)
-	if err != nil {
-		return err
-	}
-	err = t.Execute(f, data)
-	if err != nil {
-		return err
-	}
-	f.Close()
-
-	// 生成conf-prod.yaml
-	tpl = `server:
-  port:   #监听端口
-    http: 80
-    grpc: 50051
-  profile:
-    rate: 1
-
-db:
-  logMode: 4
-  hr:
-    write:
-      host: 127.0.0.1
-      port: 3306
-      user: root
-      pass: rStoAmBDJk
-      name: hr
-    read:
-      - host: 127.0.0.1
-        port: 3306
-        user: root
-        pass: rStoAmBDJk
-        name: hr
-      - host: 127.0.0.1
-        port: 3306
-        user: root
-        pass: rStoAmBDJk
-        name: hr
-
-redis:
-  addr: 'redis-master.infra:6379'
-  pass: 'VrvwqhvvRz'
-  db: 0
-
-kafka:
-  business:
-    producer:
-      - 'kafka:9092'
-    consumer:
-      - 'kafka:9092'
-    topic:
-      commentAction: comment_action
-      commonTask: common_task
-
-tracing:
-  agent: '172.16.50.50:6831'
-  type: const
-  param: 1
-  name:
-    client: imind-greet-cli
-    server: imind-greet-srv
-
-log:
-  path: './logs/ms.log'
-  level: -1
-  age: 7
-  size: 128
-  backup: 30
-  compress: true
-  format: json
-`
-
-	t, err = template.New("conf-prod.yaml").Parse(tpl)
-	if err != nil {
-		return err
-	}
-
-	fileName = dir + "conf-prod.yaml"
+	fileName = dir + "conf.yaml"
 
 	f, err = os.Create(fileName)
 	if err != nil {

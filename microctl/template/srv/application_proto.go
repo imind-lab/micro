@@ -1,8 +1,8 @@
 /**
  *  MindLab
  *
- *  Create by songli on 2020/10/23
- *  Copyright © 2021 imind.tech All rights reserved.
+ *  Create by songli on {{.Year}}/02/27
+ *  Copyright © {{.Year}} imind.tech All rights reserved.
  */
 
 package srv
@@ -14,16 +14,13 @@ import (
 	tpl "github.com/imind-lab/micro/microctl/template"
 )
 
-// 生成proto
-func CreateProto(data *tpl.Data) error {
+// 生成client/service.go
+func CreateApplicationProto(data *tpl.Data) error {
 	var tpl = `syntax = "proto3";
 
 package {{.Service}};
 
 option go_package = "{{.Domain}}/{{.Project}}/{{.Service}}/application/{{.Service}}/proto;{{.Service}}";
-
-option php_namespace = "proto\\{{.Svc}}";
-option php_metadata_namespace = "proto\\GPBMetadata";
 
 import "google/api/annotations.proto";
 
@@ -34,28 +31,26 @@ service {{.Svc}}Service {
            body: "*"
         };
     }
+
     rpc Get{{.Svc}}ById (Get{{.Svc}}ByIdRequest) returns (Get{{.Svc}}ByIdResponse) {
         option (google.api.http) = {
            get: "/v1/{{.Service}}/one/{id}"
         };
     }
+
     rpc Get{{.Svc}}List (Get{{.Svc}}ListRequest) returns (Get{{.Svc}}ListResponse) {
         option (google.api.http) = {
            get: "/v1/{{.Service}}/list/{status}"
         };
     }
+
     rpc Update{{.Svc}}Status (Update{{.Svc}}StatusRequest) returns (Update{{.Svc}}StatusResponse) {
         option (google.api.http) = {
            post: "/v1/{{.Service}}/status"
            body: "*"
         };
     }
-    rpc Update{{.Svc}}Count (Update{{.Svc}}CountRequest) returns (Update{{.Svc}}CountResponse) {
-        option (google.api.http) = {
-           post: "/v1/{{.Service}}/count"
-           body: "*"
-        };
-    }
+
     rpc Delete{{.Svc}}ById (Delete{{.Svc}}ByIdRequest) returns (Delete{{.Svc}}ByIdResponse) {
         option (google.api.http) = {
            post: "/v1/{{.Service}}/del"
@@ -65,10 +60,11 @@ service {{.Svc}}Service {
 
     rpc Get{{.Svc}}ListByStream (stream Get{{.Svc}}ListByStreamRequest) returns (stream Get{{.Svc}}ListByStreamResponse);
 }
-
 message Create{{.Svc}}Request {
-    // @inject_tag: validate:"required"
-    {{.Svc}} data = 1;
+    // @inject_tag: validate:"required,email"
+    string name = 1;
+    // @inject_tag: validate:"gte=0,lte=3"
+    int32 status = 2;
 }
 
 // @inject_response Create{{.Svc}}Response
@@ -93,8 +89,8 @@ message Get{{.Svc}}ListRequest {
     int32 status = 1;
     int32 lastid = 2;
     // @inject_tag: validate:"gte=5,lte=20"
-    int32 pagesize = 3;
-    int32 page = 4;
+    int32 page_size = 3;
+    int32 page_num = 4;
 }
 
 // @inject_response Get{{.Svc}}ListResponse *{{.Svc}}List data
@@ -111,18 +107,6 @@ message Update{{.Svc}}StatusRequest {
 
 // @inject_response Update{{.Svc}}StatusResponse
 message Update{{.Svc}}StatusResponse {
-    int32 code = 1;
-    string message = 2;
-}
-
-message Update{{.Svc}}CountRequest {
-    int32 id = 1;
-    int32 num = 2;
-    string column = 3;
-}
-
-// @inject_response Update{{.Svc}}CountResponse
-message Update{{.Svc}}CountResponse {
     int32 code = 1;
     string message = 2;
 }
@@ -144,7 +128,7 @@ message {{.Svc}} {
     int32 view_num = 3;
     // @inject_tag: validate:"gte=0,lte=3"
     int32 status = 4;
-    int64 create_time = 5;
+    uint32 create_time = 5;
     string create_datetime = 6;
     string update_datetime = 7;
 }
@@ -167,11 +151,12 @@ message Get{{.Svc}}ListByStreamResponse {
 }
 `
 
-	t, err := template.New("proto").Parse(tpl)
+	t, err := template.New("application_proto").Parse(tpl)
 	if err != nil {
 		return err
 	}
 
+	t.Option()
 	dir := "./" + data.Domain + "/" + data.Project + "/" + data.Service + "/application/" + data.Service + "/proto/"
 
 	err = os.MkdirAll(dir, os.ModePerm)

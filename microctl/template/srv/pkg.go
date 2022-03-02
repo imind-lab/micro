@@ -15,261 +15,10 @@ import (
 	tpl "github.com/imind-lab/micro/microctl/template"
 )
 
-// 生成constant
+// 生成google.proto
 func CreatePkg(data *tpl.Data) error {
 
-	// 生成pkg.cache.go
-	tpl := `/**
- *  IMindLab
- *
- *  Create by songli on {{.Date}}
- *  Copyright © {{.Year}} imind.tech All rights reserved.
- */
-
-package constant
-
-import "time"
-
-const (
-	CachePrefix   = "im_"
-	CacheDay30    = time.Hour * 24 * 30
-	CacheDay15    = time.Hour * 24 * 15
-	CacheDay7     = time.Hour * 24 * 7
-	CacheDay3     = time.Hour * 24 * 3
-	CacheDay2     = time.Hour * 24 * 2
-	CacheDay1     = time.Hour * 24
-	CacheHour12   = time.Hour * 12
-	CacheHour6    = time.Hour * 6
-	CacheHour2    = time.Hour * 2
-	CacheHour1    = time.Hour
-	CacheMinute30 = time.Minute * 30
-	CacheMinute10 = time.Minute * 10
-	CacheMinute5  = time.Minute * 5
-	CacheMinute1  = time.Minute
-	CacheSecond20 = time.Second * 20
-)
-`
-
-	t, err := template.New("constant.cache").Parse(tpl)
-	if err != nil {
-		return err
-	}
-
-	dir := "./" + data.Domain + "/" + data.Project + "/" + data.Service + "/pkg/constant/"
-
-	err = os.MkdirAll(dir, os.ModePerm)
-	if err != nil {
-		return err
-	}
-
-	fileName := dir + "cache.go"
-	f, err := os.Create(fileName)
-	if err != nil {
-		return err
-	}
-	err = t.Execute(f, data)
-	if err != nil {
-		return err
-	}
-	f.Close()
-
-	// 生成pkg.option.go
-	tpl = `/**
- *  IMindLab
- *
- *  Create by songli on {{.Date}}
- *  Copyright © {{.Year}} imind.tech All rights reserved.
- */
-
-package constant
-
-import (
-	"time"
-)
-
-//CRequestTimeout 并发请求超时时间
-const CRequestTimeout = time.Second * 10
-
-const DBName = "imind"
-const Realtime = false
-
-const MQName = "business"
-const GreetQueueLen = 32
-`
-
-	t, err = template.New("constant.option").Parse(tpl)
-	if err != nil {
-		return err
-	}
-
-	fileName = dir + "option.go"
-	f, err = os.Create(fileName)
-	if err != nil {
-		return err
-	}
-	err = t.Execute(f, data)
-	if err != nil {
-		return err
-	}
-	f.Close()
-
-	// 生成pkg.cache.go
-	tpl = `package util
-
-import (
-        "{{.Domain}}/{{.Project}}/{{.Service}}/pkg/constant"
-        "github.com/imind-lab/micro/util"
-)
-
-func CacheKey(keys ...string) string {
-        return constant.CachePrefix + util.AppendString(keys...)
-}
-`
-
-	t, err = template.New("util.cache").Parse(tpl)
-	if err != nil {
-		return err
-	}
-
-	dir = "./" + data.Domain + "/" + data.Project + "/" + data.Service + "/pkg/util/"
-
-	err = os.MkdirAll(dir, os.ModePerm)
-	if err != nil {
-		return err
-	}
-
-	fileName = dir + "cache.go"
-	f, err = os.Create(fileName)
-	if err != nil {
-		return err
-	}
-	err = t.Execute(f, data)
-	if err != nil {
-		return err
-	}
-	f.Close()
-
-	// 生成pkg.hash.go
-	tpl = `/**
- *  IMindLab
- *
- *  Create by songli on {{.Date}}
- *  Copyright © {{.Year}} imind.tech All rights reserved.
- */
-
-package util
-
-import "math"
-
-var HashBase = []string{"a", "b", "c", "d", "e", "f", "g", "h", "i", "j", "k", "l", "m", "n", "o", "p", "q", "r", "s", "t", "u", "v", "w", "x", "y", "z", "A", "B", "C", "D", "E", "F", "G", "H", "I", "J", "K", "L", "M", "N", "O", "P", "Q", "R", "S", "T", "U", "V", "W", "X", "Y", "Z", "1", "2", "3", "4", "5", "6", "7", "8", "9", "0"}
-
-func Base62encode(id int32) string {
-	baseStr := ""
-	for {
-		if id <= 0 {
-			break
-		}
-		i := id % 62
-		baseStr += HashBase[i]
-		id = (id - i) / 62
-	}
-	return baseStr
-}
-func Base62decode(base62 string) int {
-	rs := 0
-	length := len(base62)
-	f := flip(HashBase)
-	for i := 0; i < length; i++ {
-		rs += f[string(base62[i])] * int(math.Pow(62, float64(i)))
-	}
-	return rs
-}
-func flip(s []string) map[string]int {
-	f := make(map[string]int)
-	for index, value := range s {
-		f[value] = index
-	}
-	return f
-}
-`
-
-	t, err = template.New("util.hash").Parse(tpl)
-	if err != nil {
-		return err
-	}
-
-	dir = "./" + data.Domain + "/" + data.Project + "/" + data.Service + "/pkg/util/"
-
-	err = os.MkdirAll(dir, os.ModePerm)
-	if err != nil {
-		return err
-	}
-
-	fileName = dir + "hash.go"
-	f, err = os.Create(fileName)
-	if err != nil {
-		return err
-	}
-	err = t.Execute(f, data)
-	if err != nil {
-		return err
-	}
-	f.Close()
-
-	// 生成pkg.tls.go
-	tpl = `package util
-
-import (
-	"crypto/tls"
-	"io/ioutil"
-	"log"
-
-	"golang.org/x/net/http2"
-)
-
-func GetTLSConfig(certPemPath, certKeyPath string) *tls.Config {
-	var certKeyPair *tls.Certificate
-	cert, _ := ioutil.ReadFile(certPemPath)
-	key, _ := ioutil.ReadFile(certKeyPath)
-
-	pair, err := tls.X509KeyPair(cert, key)
-	if err != nil {
-		log.Println("TLS KeyPair err: %v\n", err)
-	}
-
-	certKeyPair = &pair
-
-	return &tls.Config{
-		Certificates: []tls.Certificate{*certKeyPair},
-		NextProtos:   []string{http2.NextProtoTLS},
-	}
-}
-`
-
-	t, err = template.New("util.tls").Parse(tpl)
-	if err != nil {
-		return err
-	}
-
-	dir = "./" + data.Domain + "/" + data.Project + "/" + data.Service + "/pkg/util/"
-
-	err = os.MkdirAll(dir, os.ModePerm)
-	if err != nil {
-		return err
-	}
-
-	fileName = dir + "tls.go"
-	f, err = os.Create(fileName)
-	if err != nil {
-		return err
-	}
-	err = t.Execute(f, data)
-	if err != nil {
-		return err
-	}
-	f.Close()
-
-	tpl = `// Copyright (c) 2015, Google Inc.
+	tpl := `// Copyright (c) 2015, Google Inc.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -304,21 +53,21 @@ extend google.protobuf.MethodOptions {
 
 	tpl = strings.Replace(tpl, "${backtick}", "`", -1)
 
-	t, err = template.New("google.api.annotations.proto").Parse(tpl)
+	t, err := template.New("google.api.annotations.proto").Parse(tpl)
 	if err != nil {
 		return err
 	}
 
-	dir = "./" + data.Domain + "/" + data.Project + "/" + data.Service + "/pkg/proto/google/api/"
+	dir := "./" + data.Domain + "/" + data.Project + "/" + data.Service + "/pkg/proto/google/api/"
 
 	err = os.MkdirAll(dir, os.ModePerm)
 	if err != nil {
 		return err
 	}
 
-	fileName = dir + "annotations.proto"
+	fileName := dir + "annotations.proto"
 
-	f, err = os.Create(fileName)
+	f, err := os.Create(fileName)
 	if err != nil {
 		return err
 	}

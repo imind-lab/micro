@@ -1,7 +1,6 @@
 package orm
 
 import (
-	"context"
 	"errors"
 	"strings"
 
@@ -27,7 +26,7 @@ func GetTablesInfo(db string, Tables []string) ([]Table, error) {
 	if DbName == "" {
 		return nil, errors.New("config database can no be empty")
 	}
-	connection := dao.NewDao(DbName).DB(context.Background())
+	connection := dao.NewDao(DbName).DB()
 	var tables []Table
 	query := connection.Table("information_schema.tables").Select("table_name name")
 	if len(Tables) > 0 {

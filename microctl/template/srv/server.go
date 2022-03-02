@@ -1,3 +1,10 @@
+/**
+ *  MindLab
+ *
+ *  Create by songli on {{.Year}}/02/27
+ *  Copyright © {{.Year}} imind.tech All rights reserved.
+ */
+
 package srv
 
 import (
@@ -7,23 +14,30 @@ import (
 	tpl "github.com/imind-lab/micro/microctl/template"
 )
 
-// 生成server
+// 生成server/server.go
 func CreateServer(data *tpl.Data) error {
-	var tpl = `package server
+	var tpl = `/**
+ *  {{.Svc}}
+ *
+ *  Create by songli on {{.Date}}
+ *  Copyright © {{.Year}} imind.tech All rights reserved.
+ */
+
+package server
 
 import (
 	"fmt"
 
-	"github.com/spf13/viper"
-	"google.golang.org/grpc"
-
-	"{{.Domain}}/{{.Project}}/{{.Service}}/pkg/constant"
-	"{{.Domain}}/{{.Project}}/{{.Service}}/application/{{.Service}}/proto"
-	"{{.Domain}}/{{.Project}}/{{.Service}}/application/{{.Service}}/service"
-	"{{.Domain}}/{{.Project}}/{{.Service}}/application/{{.Service}}/event/subscriber"
 	"github.com/imind-lab/micro"
 	"github.com/imind-lab/micro/broker"
 	grpcx "github.com/imind-lab/micro/grpc"
+	"github.com/spf13/viper"
+	"google.golang.org/grpc"
+
+	"{{.Domain}}/{{.Project}}/{{.Service}}/application/{{.Service}}/event/subscriber"
+	"{{.Domain}}/{{.Project}}/{{.Service}}/application/{{.Service}}/proto"
+	"{{.Domain}}/{{.Project}}/{{.Service}}/application/{{.Service}}/service"
+	"{{.Domain}}/{{.Project}}/{{.Service}}/pkg/constant"
 )
 
 func Serve() error {
@@ -37,8 +51,7 @@ func Serve() error {
 	// 设置消息队列事件处理器（可选）
 	mqHandler := subscriber.New{{.Svc}}(svc.Options().Context)
 	endpoint.Subscribe(
-		broker.Processor{Topic: endpoint.Options().Topics["createuser"], Handler: mqHandler.CreateHandle, Retry: 1},
-		broker.Processor{Topic: endpoint.Options().Topics["updateusercount"], Handler: mqHandler.UpdateCountHandle, Retry: 0},
+		broker.Processor{Topic: endpoint.Options().Topics["create{{.Service}}"], Handler: mqHandler.CreateHandle, Retry: 1},
 	)
 
 	grpcCred := grpcx.NewGrpcCred()
@@ -65,7 +78,7 @@ func Serve() error {
 }
 `
 
-	t, err := template.New("repository").Parse(tpl)
+	t, err := template.New("main").Parse(tpl)
 	if err != nil {
 		return err
 	}
@@ -89,5 +102,6 @@ func Serve() error {
 		return err
 	}
 	f.Close()
+
 	return nil
 }

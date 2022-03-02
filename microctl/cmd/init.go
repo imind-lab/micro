@@ -92,60 +92,39 @@ var serverCmd = &cobra.Command{
 				fmt.Println("生成API-Server出错", err)
 			}
 		} else {
-			err := srv.CreateModel(data)
+			err := srv.CreateApplicationProto(data)
 			if err == nil {
-				fmt.Println("生成Model成功")
+				fmt.Println("生成ApplicationProto成功")
 			} else {
-				fmt.Println("生成Model出错", err)
+				fmt.Println("生成ApplicationProto出错", err)
 			}
 
-			err = srv.CreateRepository(data)
+			err = srv.CreateApplicationService(data)
 			if err == nil {
-				fmt.Println("生成Repository成功")
+				fmt.Println("生成ApplicationService成功")
 			} else {
-				fmt.Println("生成Repository出错", err)
+				fmt.Println("生成ApplicationService出错", err)
 			}
 
-			err = srv.CreateProto(data)
+			err = srv.CreateApplicationSubscriber(data)
 			if err == nil {
-				fmt.Println("生成Proto成功")
+				fmt.Println("生成ApplicationSubscriber成功")
 			} else {
-				fmt.Println("生成Proto出错", err)
+				fmt.Println("生成ApplicationSubscriber出错", err)
 			}
 
-			err = srv.CreateBuild(data)
+			err = srv.CreateBuildDockerfile(data)
 			if err == nil {
-				fmt.Println("生成Build成功")
+				fmt.Println("生成BuildDockerfile成功")
 			} else {
-				fmt.Println("生成Build出错", err)
+				fmt.Println("生成BuildDockerfile出错", err)
 			}
 
-			err = srv.CreateConf(data)
+			err = srv.CreateBuildMakefile(data)
 			if err == nil {
-				fmt.Println("生成Conf成功")
+				fmt.Println("生成BuildMakefile成功")
 			} else {
-				fmt.Println("生成Conf出错", err)
-			}
-
-			err = srv.CreateDomain(data)
-			if err == nil {
-				fmt.Println("生成Domain成功")
-			} else {
-				fmt.Println("生成Domain出错", err)
-			}
-
-			err = srv.CreateService(data)
-			if err == nil {
-				fmt.Println("生成Service成功")
-			} else {
-				fmt.Println("生成Service出错", err)
-			}
-
-			err = srv.CreateSubscriber(data)
-			if err == nil {
-				fmt.Println("生成Subscriber成功")
-			} else {
-				fmt.Println("生成Subscriber出错", err)
+				fmt.Println("生成BuildMakefile出错", err)
 			}
 
 			err = srv.CreateClient(data)
@@ -155,18 +134,11 @@ var serverCmd = &cobra.Command{
 				fmt.Println("生成Client出错", err)
 			}
 
-			err = srv.CreateMain(data)
+			err = srv.CreateClientService(data)
 			if err == nil {
-				fmt.Println("生成Main成功")
+				fmt.Println("生成ClientService成功")
 			} else {
-				fmt.Println("生成Main出错", err)
-			}
-
-			err = srv.CreatePkg(data)
-			if err == nil {
-				fmt.Println("生成Pkg成功")
-			} else {
-				fmt.Println("生成Pkg出错", err)
+				fmt.Println("生成ClientService出错", err)
 			}
 
 			err = srv.CreateCmd(data)
@@ -176,11 +148,18 @@ var serverCmd = &cobra.Command{
 				fmt.Println("生成Cmd出错", err)
 			}
 
-			err = srv.CreateServer(data)
+			err = srv.CreateCmdServer(data)
 			if err == nil {
-				fmt.Println("生成Server成功")
+				fmt.Println("生成CmdServer成功")
 			} else {
-				fmt.Println("生成Server出错", err)
+				fmt.Println("生成CmdServer出错", err)
+			}
+
+			err = srv.CreateConf(data)
+			if err == nil {
+				fmt.Println("生成Conf成功")
+			} else {
+				fmt.Println("生成Conf出错", err)
 			}
 
 			err = srv.CreateDeploy(data)
@@ -188,6 +167,97 @@ var serverCmd = &cobra.Command{
 				fmt.Println("生成Deploy成功")
 			} else {
 				fmt.Println("生成Deploy出错", err)
+			}
+
+			err = srv.CreateDomainConvert(data)
+			if err == nil {
+				fmt.Println("生成DomainConvert成功")
+			} else {
+				fmt.Println("生成DomainConvert出错", err)
+			}
+
+			err = srv.CreateDomainService(data)
+			if err == nil {
+				fmt.Println("生成DomainService成功")
+			} else {
+				fmt.Println("生成DomainService出错", err)
+			}
+
+			err = srv.CreateMain(data)
+			if err == nil {
+				fmt.Println("生成Main成功")
+			} else {
+				fmt.Println("生成Main出错", err)
+			}
+
+			err = srv.CreateMod(data)
+			if err == nil {
+				fmt.Println("生成Mod成功")
+			} else {
+				fmt.Println("生成Mod出错", err)
+			}
+
+			err = srv.CreatePkg(data)
+			if err == nil {
+				fmt.Println("生成Pkg成功")
+			} else {
+				fmt.Println("生成Pkg出错", err)
+			}
+
+			err = srv.CreatePkgConstantCache(data)
+			if err == nil {
+				fmt.Println("生成PkgConstantCache成功")
+			} else {
+				fmt.Println("生成PkgConstantCache出错", err)
+			}
+
+			err = srv.CreatePkgConstantOption(data)
+			if err == nil {
+				fmt.Println("生成PkgConstantOption成功")
+			} else {
+				fmt.Println("生成PkgConstantOption出错", err)
+			}
+
+			err = srv.CreatePkgUtilCache(data)
+			if err == nil {
+				fmt.Println("生成PkgUtilCache成功")
+			} else {
+				fmt.Println("生成PkgUtilCache出错", err)
+			}
+
+			err = srv.CreateRepositoryInterface(data)
+			if err == nil {
+				fmt.Println("生成RepositoryInterface成功")
+			} else {
+				fmt.Println("生成RepositoryInterface出错", err)
+			}
+
+			err = srv.CreateRepositoryModel(data)
+			if err == nil {
+				fmt.Println("生成RepositoryModel成功")
+			} else {
+				fmt.Println("生成RepositoryModel出错", err)
+			}
+
+			err = srv.CreateRepositoryOptions(data)
+			if err == nil {
+				fmt.Println("生成RepositoryOptions成功")
+			} else {
+				fmt.Println("生成RepositoryOptions出错", err)
+			}
+
+			err = srv.CreateRepositoryPersistence(data)
+			if err == nil {
+				fmt.Println("生成RepositoryPersistence成功")
+			} else {
+				fmt.Println("生成RepositoryPersistence出错", err)
+			}
+
+			err = srv.CreateServer(data)
+			if err == nil {
+				fmt.Println("生成Server成功")
+			} else {
+				fmt.Println("生成Server出错", err)
 			}
 		}
 	},

@@ -1,8 +1,8 @@
 /**
  *  MindLab
  *
- *  Create by songli on 2020/10/23
- *  Copyright © 2021 imind.tech All rights reserved.
+ *  Create by songli on {{.Year}}/02/27
+ *  Copyright © {{.Year}} imind.tech All rights reserved.
  */
 
 package srv
@@ -14,10 +14,10 @@ import (
 	tpl "github.com/imind-lab/micro/microctl/template"
 )
 
-// 生成subscriber
-func CreateSubscriber(data *tpl.Data) error {
+// 生成client/service.go
+func CreateApplicationSubscriber(data *tpl.Data) error {
 	var tpl = `/**
- *  IMindLab
+ *  {{.Svc}}
  *
  *  Create by songli on {{.Date}}
  *  Copyright © {{.Year}} imind.tech All rights reserved.
@@ -28,8 +28,8 @@ package subscriber
 import (
 	"context"
 
-	"github.com/imind-lab/micro/broker"
 	"github.com/grpc-ecosystem/go-grpc-middleware/logging/zap/ctxzap"
+	"github.com/imind-lab/micro/broker"
 	"go.uber.org/zap"
 )
 
@@ -49,13 +49,13 @@ func (svc *{{.Svc}}) CreateHandle(msg *broker.Message) error {
 }
 
 func (svc *{{.Svc}}) UpdateCountHandle(msg *broker.Message) error {
-	logger := ctxzap.Extract(svc.ctx).With(zap.String("layer", "{{.Service}}Subscriber"), zap.String("func", "CreateHandle"))
+	logger := ctxzap.Extract(svc.ctx).With(zap.String("layer", "{{.Service}}Subscriber"), zap.String("func", "UpdateCountHandle"))
 	logger.Debug("{{.Service}}_update_count", zap.String("key", msg.Key), zap.String("body", string(msg.Body)))
 	return nil
 }
 `
 
-	t, err := template.New("subscriber").Parse(tpl)
+	t, err := template.New("application_service").Parse(tpl)
 	if err != nil {
 		return err
 	}
@@ -79,5 +79,6 @@ func (svc *{{.Svc}}) UpdateCountHandle(msg *broker.Message) error {
 		return err
 	}
 	f.Close()
+
 	return nil
 }
