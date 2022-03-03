@@ -7,15 +7,27 @@ import (
 )
 
 var (
-	once    sync.Once
-	limiter *rate.Limiter
+	highOnce    sync.Once
+	highLimiter *rate.Limiter
+
+	lowOnce    sync.Once
+	lowLimiter *rate.Limiter
 )
 
-func GetLimiter() *rate.Limiter {
-	once.Do(func() {
-		limit := viper.GetFloat64("service.concurrence.limit")
-		capacity := viper.GetInt("service.concurrence.capacity")
-		limiter = rate.NewLimiter(rate.Limit(limit), capacity)
+func GetHighLimiter() *rate.Limiter {
+	highOnce.Do(func() {
+		limit := viper.GetFloat64("service.rate.high.limit")
+		capacity := viper.GetInt("service.rate.high.capacity")
+		highLimiter = rate.NewLimiter(rate.Limit(limit), capacity)
 	})
-	return limiter
+	return highLimiter
+}
+
+func GetLowLimiter() *rate.Limiter {
+	highOnce.Do(func() {
+		limit := viper.GetFloat64("service.rate.low.limit")
+		capacity := viper.GetInt("service.rate.low.capacity")
+		lowLimiter = rate.NewLimiter(rate.Limit(limit), capacity)
+	})
+	return lowLimiter
 }
