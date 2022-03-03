@@ -72,7 +72,7 @@ func Process(path string) ([]byte, error) {
 
 					items := strings.Split(reponse, " ")
 					if len(items) >= 3 {
-						body.WriteString("\nfunc (x *" + items[2] + ") SetCode(code status.Code, message ...string) {\n\tx.Code = int32(code)\n\tif len(message) == 0 {\n\t\tx.Message = code.String()\n\t} else {\n\t\tx.Message = message\n\t}\n}\n")
+						body.WriteString("\nfunc (x *" + items[2] + ") SetCode(code status.Code, message ...string) {\n\tx.Code = int32(code)\n\tif len(message) == 0 {\n\t\tx.Message = code.String()\n\t} else {\n\t\tx.Message = strings.Join(message, \"，\")\n\t}\n}\n")
 					}
 					if len(items) >= 5 {
 						body.WriteString("\nfunc (x *" + items[2] + ") SetBody(code status.Code, " + items[4] + " " + items[3] + ") {\n\tx.Code = int32(code)\n\tx.Message = code.String()\n\tx." + strings.Title(items[4]) + " = " + items[4] + "\n}\n")
