@@ -36,11 +36,53 @@ var serverCmd = &cobra.Command{
 		}
 
 		if layer == "api" {
-			err := api.CreateBuild(data)
+			err := api.CreateApplicationConvert(data)
 			if err == nil {
-				fmt.Println("生成API-Build成功")
+				fmt.Println("生成API-ApplicationConvert成功")
 			} else {
-				fmt.Println("生成API-Build出错", err)
+				fmt.Println("生成API-ApplicationConvert出错", err)
+			}
+
+			err = api.CreateApplicationProto(data)
+			if err == nil {
+				fmt.Println("生成API-ApplicationProto成功")
+			} else {
+				fmt.Println("生成API-ApplicationProto出错", err)
+			}
+
+			err = api.CreateApplicationService(data)
+			if err == nil {
+				fmt.Println("生成API-ApplicationService成功")
+			} else {
+				fmt.Println("生成API-ApplicationService出错", err)
+			}
+
+			err = api.CreateBuildDockerfile(data)
+			if err == nil {
+				fmt.Println("生成API-BuildDockerfile成功")
+			} else {
+				fmt.Println("生成API-BuildDockerfile出错", err)
+			}
+
+			err = api.CreateBuildMakefile(data)
+			if err == nil {
+				fmt.Println("生成API-BuildMakefile成功")
+			} else {
+				fmt.Println("生成API-BuildMakefile出错", err)
+			}
+
+			err = api.CreateCmd(data)
+			if err == nil {
+				fmt.Println("生成API-Cmd成功")
+			} else {
+				fmt.Println("生成API-Cmd出错", err)
+			}
+
+			err = api.CreateCmdServer(data)
+			if err == nil {
+				fmt.Println("生成API-CmdServer成功")
+			} else {
+				fmt.Println("生成API-CmdServer出错", err)
 			}
 
 			err = api.CreateConf(data)
@@ -50,25 +92,18 @@ var serverCmd = &cobra.Command{
 				fmt.Println("生成API-Conf出错", err)
 			}
 
-			err = api.CreateProto(data)
-			if err == nil {
-				fmt.Println("生成API-Proto成功")
-			} else {
-				fmt.Println("生成API-Proto出错", err)
-			}
-
-			err = api.CreateService(data)
-			if err == nil {
-				fmt.Println("生成API-Service成功")
-			} else {
-				fmt.Println("生成API-Service出错", err)
-			}
-
 			err = api.CreateMain(data)
 			if err == nil {
 				fmt.Println("生成API-Main成功")
 			} else {
 				fmt.Println("生成API-Main出错", err)
+			}
+
+			err = api.CreateMod(data)
+			if err == nil {
+				fmt.Println("生成API-Mod成功")
+			} else {
+				fmt.Println("生成API-Mod出错", err)
 			}
 
 			err = api.CreatePkg(data)
@@ -78,11 +113,25 @@ var serverCmd = &cobra.Command{
 				fmt.Println("生成API-Pkg出错", err)
 			}
 
-			err = api.CreateCmd(data)
+			err = api.CreatePkgConstantCache(data)
 			if err == nil {
-				fmt.Println("生成API-Cmd成功")
+				fmt.Println("生成API-PkgConstantCache成功")
 			} else {
-				fmt.Println("生成API-Cmd出错", err)
+				fmt.Println("生成API-PkgConstantCache出错", err)
+			}
+
+			err = api.CreatePkgConstantOption(data)
+			if err == nil {
+				fmt.Println("生成API-PkgConstantOption成功")
+			} else {
+				fmt.Println("生成API-PkgConstantOption出错", err)
+			}
+
+			err = api.CreatePkgUtilCache(data)
+			if err == nil {
+				fmt.Println("生成API-PkgUtilCache成功")
+			} else {
+				fmt.Println("生成API-PkgUtilCache出错", err)
 			}
 
 			err = api.CreateServer(data)

@@ -14,44 +14,34 @@ import (
 	tpl "github.com/imind-lab/micro/microctl/template"
 )
 
-// 生成client/service.go
-func CreateCmd(data *tpl.Data) error {
-	var tpl = `package cmd
+// 生成pkg/util/cache.go
+func CreatePkgUtilCache(data *tpl.Data) error {
+	var tpl = `package util
 
 import (
-	"fmt"
-	"os"
-
-	"github.com/spf13/cobra"
+        "{{.Domain}}/{{.Project}}/{{.Service}}/pkg/constant"
+        "github.com/imind-lab/micro/util"
 )
 
-var rootCmd = &cobra.Command{
-	Use:   "grpc",
-	Short: "Run the gRPC {{.Svc}} Server",
-}
-
-func Execute() {
-	if err := rootCmd.Execute(); err != nil {
-		fmt.Println(err)
-		os.Exit(-1)
-	}
+func CacheKey(keys ...string) string {
+        return constant.CachePrefix + util.AppendString(keys...)
 }
 `
 
-	t, err := template.New("cmd_cmd").Parse(tpl)
+	t, err := template.New("cmd_server").Parse(tpl)
 	if err != nil {
 		return err
 	}
 
 	t.Option()
-	dir := "./" + data.Domain + "/" + data.Project + "/" + data.Service + "-api/cmd/"
+	dir := "./" + data.Domain + "/" + data.Project + "/" + data.Service + "-api/pkg/util/"
 
 	err = os.MkdirAll(dir, os.ModePerm)
 	if err != nil {
 		return err
 	}
 
-	fileName := dir + "cmd.go"
+	fileName := dir + "cache.go"
 
 	f, err := os.Create(fileName)
 	if err != nil {

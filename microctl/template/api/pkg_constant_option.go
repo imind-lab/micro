@@ -14,8 +14,8 @@ import (
 	tpl "github.com/imind-lab/micro/microctl/template"
 )
 
-// 生成main.go
-func CreateMain(data *tpl.Data) error {
+// 生成pkg/constant/option.go
+func CreatePkgConstantOption(data *tpl.Data) error {
 	var tpl = `/**
  *  IMindLab
  *
@@ -23,31 +23,36 @@ func CreateMain(data *tpl.Data) error {
  *  Copyright © {{.Year}} imind.tech All rights reserved.
  */
 
-package main
+package constant
 
 import (
-	"{{.Domain}}/{{.Project}}/{{.Service}}-api/cmd"
+	"time"
 )
 
-func main() {
-	cmd.Execute()
-}
+//CRequestTimeout 并发请求超时时间
+const CRequestTimeout = time.Second * 10
+
+const DBName = "imind"
+const Realtime = false
+
+const MQName = "business"
+const GreetQueueLen = 32
 `
 
-	t, err := template.New("main").Parse(tpl)
+	t, err := template.New("cmd_server").Parse(tpl)
 	if err != nil {
 		return err
 	}
 
 	t.Option()
-	dir := "./" + data.Domain + "/" + data.Project + "/" + data.Service + "-api/"
+	dir := "./" + data.Domain + "/" + data.Project + "/" + data.Service + "-api/pkg/constant/"
 
 	err = os.MkdirAll(dir, os.ModePerm)
 	if err != nil {
 		return err
 	}
 
-	fileName := dir + "main.go"
+	fileName := dir + "option.go"
 
 	f, err := os.Create(fileName)
 	if err != nil {

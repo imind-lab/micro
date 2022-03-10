@@ -1,8 +1,8 @@
 /**
  *  MindLab
  *
- *  Create by songli on 2020/10/23
- *  Copyright © 2021 imind.tech All rights reserved.
+ *  Create by songli on {{.Year}}/02/27
+ *  Copyright © {{.Year}} imind.tech All rights reserved.
  */
 
 package api
@@ -11,15 +11,15 @@ import (
 	"os"
 	"text/template"
 
-	tp "github.com/imind-lab/micro/microctl/template"
+	tpl "github.com/imind-lab/micro/microctl/template"
 )
 
-// 生成service
-func CreateService(data *tp.Data) error {
+// 生成client/service.go
+func CreateApplicationService(data *tpl.Data) error {
 	var tpl = `/**
  *  IMindLab
  *
- *  Create by songli on {{.Date}}
+ *  Create by songli on {{.Year}}/03/03
  *  Copyright © {{.Year}} imind.tech All rights reserved.
  */
 
@@ -28,6 +28,7 @@ package service
 import (
 	"context"
 	"fmt"
+	{{.Service}}_api "{{.Domain}}/{{.Project}}/{{.Service}}-api/application/{{.Service}}/proto"
 	"io"
 	"strconv"
 	"sync"
@@ -36,12 +37,12 @@ import (
 	"github.com/alibaba/sentinel-golang/core/base"
 	"github.com/go-playground/validator/v10"
 	"github.com/grpc-ecosystem/go-grpc-middleware/logging/zap/ctxzap"
+	"github.com/imind-lab/micro/status"
 	"go.uber.org/zap"
 	"google.golang.org/grpc/metadata"
 
-	"{{.Domain}}/{{.Project}}/{{.Service}}-api/application/{{.Service}}-api/proto"
-	{{.Service}}Client "{{.Domain}}/{{.Project}}/{{.Service}}/client"
 	"{{.Domain}}/{{.Project}}/{{.Service}}/application/{{.Service}}/proto"
+	{{.Service}}Client "{{.Domain}}/{{.Project}}/{{.Service}}/client"
 	sentinelx "github.com/imind-lab/micro/sentinel"
 )
 
@@ -70,8 +71,6 @@ func (svc *{{.Svc}}Service) Create{{.Svc}}(ctx context.Context, req *{{.Service}
 
 	rsp := &{{.Service}}_api.Create{{.Svc}}Response{}
 
-	m := req.Dto
-	fmt.Println("Dto", m)
 	err := svc.validate.Struct(req)
 	if err != nil {
 
@@ -95,25 +94,13 @@ func (svc *{{.Svc}}Service) Create{{.Svc}}(ctx context.Context, req *{{.Service}
 		}
 
 	}
-	err = svc.validate.Var(m, "required")
-	fmt.Println("validate", err)
-	if m == nil {
-		logger.Error("{{.Svc}}不能为空", zap.Any("params", m))
 
-		err := &{{.Service}}_api.Error{}
-		err.Message = "{{.Svc}}不能为空"
-		rsp.Error = err
-		return rsp, nil
-	}
+	err = svc.validate.Var(req.Name, "required,email")
+	fmt.Println("validate", req.Name, err)
+	if err != nil {
+		logger.Error("无效的Name", zap.Any("name", req.Name))
 
-	err = svc.validate.Var(m.Name, "required,email")
-	fmt.Println("validate", m.Name, err)
-	if len(m.Name) == 0 {
-		logger.Error("Name不能为空", zap.Any("name", m.Name))
-
-		err := &{{.Service}}_api.Error{}
-		err.Message = "Name不能为空"
-		rsp.Error = err
+		rsp.SetCode(status.InvalidParams, "无效的Name")
 		return rsp, nil
 	}
 
@@ -133,26 +120,21 @@ func (svc *{{.Svc}}Service) Create{{.Svc}}(ctx context.Context, req *{{.Service}
 	if err != nil {
 		logger.Error("服务器繁忙，请稍候再试", zap.Any("{{.Service}}Cli", {{.Service}}Cli), zap.Error(err))
 
-		err := &{{.Service}}_api.Error{}
-		err.Message = "服务器繁忙，请稍候再试"
-		rsp.Error = err
+		rsp.SetCode(status.SystemError, "服务器繁忙，请稍候再试")
 		return rsp, nil
 	}
-	{{.Service}}Srv := {{.Svc}}Gw2Srv(req.Dto)
 	resp, err := {{.Service}}Cli.Create{{.Svc}}(ctx, &{{.Service}}.Create{{.Svc}}Request{
-		Dto: {{.Service}}Srv,
+		Name:   req.Name,
+		Status: req.Status,
 	})
 	if err != nil {
-		logger.Error("{{.Service}}Cli.Create{{.Svc}} error", zap.Any("{{.Service}}", m), zap.Error(err))
+		logger.Error("{{.Service}}Cli.Create{{.Svc}} error", zap.String("name", req.Name), zap.Error(err))
 
-		err := &{{.Service}}_api.Error{}
-		err.Message = "创建{{.Svc}}失败"
-		rsp.Error = err
+		rsp.SetCode(status.CommunicationFailed, "创建{{.Svc}}失败")
 		return rsp, nil
 	}
 
-	rsp.Success = resp.Success
-	rsp.Error = ErrorSrv2Gw(resp.Error)
+	rsp.SetCode(status.Code(resp.Code), resp.Message)
 	return rsp, nil
 }
 
@@ -178,9 +160,7 @@ func (svc *{{.Svc}}Service) Get{{.Svc}}ById(ctx context.Context, req *{{.Service
 	if err != nil {
 		logger.Error("{{.Service}}Client.New error", zap.Any("{{.Service}}Cli", {{.Service}}Cli), zap.Error(err))
 
-		err := &{{.Service}}_api.Error{}
-		err.Message = "服务器繁忙，请稍候再试"
-		rsp.Error = err
+		rsp.SetCode(status.SystemError, "服务器繁忙，请稍候再试")
 		return rsp, nil
 	}
 
@@ -188,9 +168,7 @@ func (svc *{{.Svc}}Service) Get{{.Svc}}ById(ctx context.Context, req *{{.Service
 	if blockError != nil {
 		logger.Error("触发熔断降级", zap.Any("TriggeredRule", blockError.TriggeredRule()), zap.Any("TriggeredValue", blockError.TriggeredValue()))
 
-		err := &{{.Service}}_api.Error{}
-		err.Message = "获取{{.Svc}}失败"
-		rsp.Error = err
+		rsp.SetCode(status.SystemError, "触发熔断降级")
 		return rsp, nil
 	}
 	defer sentinelEntry.Exit()
@@ -204,16 +182,17 @@ func (svc *{{.Svc}}Service) Get{{.Svc}}ById(ctx context.Context, req *{{.Service
 
 		sentinelEntry.SetError(err)
 
-		err := &{{.Service}}_api.Error{}
-		err.Message = "获取{{.Svc}}失败"
-		rsp.Error = err
+		rsp.SetCode(status.CommunicationFailed, "获取{{.Svc}}失败")
 		return rsp, nil
 	}
 
-	rsp.Success = resp.Success
-	rsp.Dto = {{.Svc}}Srv2Gw(resp.Dto)
-	rsp.Error = ErrorSrv2Gw(resp.Error)
-
+	fmt.Println(resp.Code, resp.Message, resp.Data)
+	state := status.Code(resp.Code)
+	if state == status.Success {
+		rsp.SetBody(state, {{.Svc}}Srv2Api(resp.Data))
+	} else {
+		rsp.SetCode(state, resp.Message)
+	}
 	return rsp, nil
 }
 
@@ -249,9 +228,8 @@ func (svc *{{.Svc}}Service) Get{{.Svc}}List(ctx context.Context, req *{{.Service
 	rateEntry, rateError := sentinel.Entry("abcd", sentinel.WithTrafficType(base.Inbound))
 	if rateError != nil {
 		ctxzap.Debug(ctx, "Get{{.Svc}}List限流了")
-		err := &{{.Service}}_api.Error{}
-		err.Message = "服务器繁忙，请稍候再试"
-		rsp.Error = err
+
+		rsp.SetCode(status.SystemError, "Get{{.Svc}}List限流了")
 		return rsp, nil
 	}
 	defer rateEntry.Exit()
@@ -271,29 +249,29 @@ func (svc *{{.Svc}}Service) Get{{.Svc}}List(ctx context.Context, req *{{.Service
 	if err != nil {
 		logger.Error("{{.Service}}Client.New error", zap.Any("{{.Service}}Cli", {{.Service}}Cli), zap.Error(err))
 
-		err := &{{.Service}}_api.Error{}
-		err.Message = "服务器繁忙，请稍候再试"
-		rsp.Error = err
+		rsp.SetCode(status.SystemError, "服务器繁忙，请稍候再试")
 		return rsp, nil
 	}
 
 	resp, err := {{.Service}}Cli.Get{{.Svc}}List(ctx, &{{.Service}}.Get{{.Svc}}ListRequest{
 		Status:   req.Status,
 		Lastid:   req.Lastid,
-		Pagesize: req.Pagesize,
-		Page:     req.Page,
+		PageSize: req.PageSize,
+		PageNum:  req.PageNum,
 	})
 	if err != nil {
 		logger.Error("{{.Service}}Cli.Get{{.Svc}}List error", zap.Any("resp", resp), zap.Error(err))
-		err := &{{.Service}}_api.Error{}
-		err.Message = "获取{{.Svc}}List失败"
-		rsp.Error = err
+
+		rsp.SetCode(status.CommunicationFailed, "获取{{.Svc}}List失败")
 		return rsp, nil
 	}
 
-	rsp.Success = resp.Success
-	rsp.Data = {{.Svc}}ListSrv2Gw(resp.Data)
-	rsp.Error = ErrorSrv2Gw(resp.Error)
+	state := status.Code(resp.Code)
+	if state == status.Success {
+		rsp.SetBody(state, {{.Svc}}ListSrv2Api(resp.Data))
+	} else {
+		rsp.SetCode(state, resp.Message)
+	}
 	return rsp, nil
 }
 
@@ -319,9 +297,7 @@ func (svc *{{.Svc}}Service) Update{{.Svc}}Status(ctx context.Context, req *{{.Se
 	if err != nil {
 		logger.Error("{{.Service}}Client.New error", zap.Any("{{.Service}}Cli", {{.Service}}Cli), zap.Error(err))
 
-		err := &{{.Service}}_api.Error{}
-		err.Message = "服务器繁忙，请稍候再试"
-		rsp.Error = err
+		rsp.SetCode(status.SystemError, "服务器繁忙，请稍候再试")
 		return rsp, nil
 	}
 
@@ -332,63 +308,11 @@ func (svc *{{.Svc}}Service) Update{{.Svc}}Status(ctx context.Context, req *{{.Se
 	if err != nil {
 		logger.Error("{{.Service}}Cli.Update{{.Svc}}Status error", zap.Any("resp", resp), zap.Error(err))
 
-		err := &{{.Service}}_api.Error{}
-		err.Message = "更新{{.Svc}}失败"
-		rsp.Error = err
+		rsp.SetCode(status.CommunicationFailed, "更新{{.Svc}}失败")
 		return rsp, nil
 	}
 
-	rsp.Success = resp.Success
-	rsp.Error = ErrorSrv2Gw(resp.Error)
-
-	return rsp, nil
-}
-
-func (svc *{{.Svc}}Service) Update{{.Svc}}Count(ctx context.Context, req *{{.Service}}_api.Update{{.Svc}}CountRequest) (*{{.Service}}_api.Update{{.Svc}}CountResponse, error) {
-	logger := ctxzap.Extract(ctx).With(zap.String("layer", "{{.Svc}}Service"), zap.String("func", "Update{{.Svc}}Count"))
-	logger.Debug("Receive Update{{.Svc}}Count request")
-
-	rsp := &{{.Service}}_api.Update{{.Svc}}CountResponse{}
-
-	uid := 0
-	meta, ok := metadata.FromIncomingContext(ctx)
-	if ok {
-		uids := meta.Get("uid")
-		if len(uids) > 0 {
-			uid, _ = strconv.Atoi(uids[0])
-		}
-	}
-	ctxzap.Debug(ctx, "Update{{.Svc}}Count Metadata", zap.Any("meta", meta), zap.Int("uid", uid), zap.Bool("ok", ok))
-
-	ctx = metadata.NewOutgoingContext(ctx, meta)
-
-	{{.Service}}Cli, err := {{.Service}}Client.New(ctx)
-	if err != nil {
-		logger.Error("{{.Service}}Client.New error", zap.Any("{{.Service}}Cli", {{.Service}}Cli), zap.Error(err))
-
-		err := &{{.Service}}_api.Error{}
-		err.Message = "服务器繁忙，请稍候再试"
-		rsp.Error = err
-		return rsp, nil
-	}
-
-	resp, err := {{.Service}}Cli.Update{{.Svc}}Count(ctx, &{{.Service}}.Update{{.Svc}}CountRequest{
-		Id:     req.Id,
-		Num:    req.Num,
-		Column: req.Column,
-	})
-	if err != nil {
-		logger.Error("{{.Service}}Cli.Update{{.Svc}}Count error", zap.Any("resp", resp), zap.Error(err))
-
-		err := &{{.Service}}_api.Error{}
-		err.Message = "更新{{.Svc}}失败"
-		rsp.Error = err
-		return rsp, nil
-	}
-
-	rsp.Success = resp.Success
-	rsp.Error = ErrorSrv2Gw(resp.Error)
-
+	rsp.SetCode(status.Code(resp.Code), resp.Message)
 	return rsp, nil
 }
 
@@ -414,9 +338,7 @@ func (svc *{{.Svc}}Service) Delete{{.Svc}}ById(ctx context.Context, req *{{.Serv
 	if err != nil {
 		logger.Error("{{.Service}}Client.New error", zap.Any("{{.Service}}Cli", {{.Service}}Cli), zap.Error(err))
 
-		err := &{{.Service}}_api.Error{}
-		err.Message = "服务器繁忙，请稍候再试"
-		rsp.Error = err
+		rsp.SetCode(status.SystemError, "服务器繁忙，请稍候再试")
 		return rsp, nil
 	}
 
@@ -426,15 +348,11 @@ func (svc *{{.Svc}}Service) Delete{{.Svc}}ById(ctx context.Context, req *{{.Serv
 	if err != nil {
 		logger.Error("{{.Service}}Cli.Delete{{.Svc}}ById error", zap.Any("resp", resp), zap.Error(err))
 
-		err := &{{.Service}}_api.Error{}
-		err.Message = "删除{{.Svc}}失败"
-		rsp.Error = err
+		rsp.SetCode(status.CommunicationFailed, "删除{{.Svc}}失败")
 		return rsp, nil
 	}
 
-	rsp.Success = resp.Success
-	rsp.Error = ErrorSrv2Gw(resp.Error)
-
+	rsp.SetCode(status.Code(resp.Code), resp.Message)
 	return rsp, nil
 }
 func (svc *{{.Svc}}Service) Get{{.Svc}}ListByIds(ctx context.Context, req *{{.Service}}_api.Get{{.Svc}}ListByIdsRequest) (*{{.Service}}_api.Get{{.Svc}}ListByIdsResponse, error) {
@@ -459,9 +377,7 @@ func (svc *{{.Svc}}Service) Get{{.Svc}}ListByIds(ctx context.Context, req *{{.Se
 	if err != nil {
 		logger.Error("{{.Service}}Client.New error", zap.Any("{{.Service}}Cli", {{.Service}}Cli), zap.Error(err))
 
-		err := &{{.Service}}_api.Error{}
-		err.Message = "服务器繁忙，请稍候再试"
-		rsp.Error = err
+		rsp.SetCode(status.SystemError, "服务器繁忙，请稍候再试")
 		return rsp, nil
 	}
 
@@ -471,9 +387,7 @@ func (svc *{{.Svc}}Service) Get{{.Svc}}ListByIds(ctx context.Context, req *{{.Se
 	if err != nil {
 		logger.Error("{{.Service}}Cli.Get{{.Svc}}ListByStream error", zap.Any("streamClient", streamClient), zap.Error(err))
 
-		err := &{{.Service}}_api.Error{}
-		err.Message = "服务器繁忙，请稍候再试"
-		rsp.Error = err
+		rsp.SetCode(status.SystemError, "服务器繁忙，请稍候再试")
 		return rsp, nil
 	}
 
@@ -492,7 +406,7 @@ func (svc *{{.Svc}}Service) Get{{.Svc}}ListByIds(ctx context.Context, req *{{.Se
 				return
 			}
 			fmt.Println("Recv", resp.Index, resp.Result)
-			data[resp.Index] = {{.Svc}}Srv2Gw(resp.Result)
+			data[resp.Index] = {{.Svc}}Srv2Api(resp.Result)
 		}
 	}()
 
@@ -510,9 +424,7 @@ func (svc *{{.Svc}}Service) Get{{.Svc}}ListByIds(ctx context.Context, req *{{.Se
 			rsp.Data = append(rsp.Data, m)
 		}
 	}
-
-	rsp.Success = true
-
+	rsp.SetCode(status.Success)
 	return rsp, nil
 }
 
@@ -523,13 +435,13 @@ func (svc *{{.Svc}}Service) Close() {
 }
 `
 
-	t, err := template.New("service").Parse(tpl)
+	t, err := template.New("application_service").Parse(tpl)
 	if err != nil {
 		return err
 	}
 
 	t.Option()
-	dir := "./" + data.Domain + "/" + data.Project + "/" + data.Service + "-api/application/" + data.Service + "-api/service/"
+	dir := "./" + data.Domain + "/" + data.Project + "/" + data.Service + "-api/application/" + data.Service + "/service/"
 
 	err = os.MkdirAll(dir, os.ModePerm)
 	if err != nil {
@@ -539,106 +451,6 @@ func (svc *{{.Svc}}Service) Close() {
 	fileName := dir + data.Service + ".go"
 
 	f, err := os.Create(fileName)
-	if err != nil {
-		return err
-	}
-	err = t.Execute(f, data)
-	if err != nil {
-		return err
-	}
-	f.Close()
-
-	tpl = `/**
- *  {{.Project}}
- *
- *  Create by songli on {{.Date}}
- *  Copyright © {{.Year}} imind.tech All rights reserved.
- */
-
-package service
-
-import (
-        "{{.Domain}}/{{.Project}}/{{.Service}}-api/application/{{.Service}}-api/proto"
-        "{{.Domain}}/{{.Project}}/{{.Service}}/application/{{.Service}}/proto"
-)
-
-func {{.Svc}}Map(pos []*{{.Service}}.{{.Svc}}, fn func(*{{.Service}}.{{.Svc}}) *{{.Service}}_api.{{.Svc}}) []*{{.Service}}_api.{{.Svc}} {
-        var dtos []*{{.Service}}_api.{{.Svc}}
-        for _, po := range pos {
-                dtos = append(dtos, fn(po))
-        }
-        return dtos
-}
-
-func {{.Svc}}Gw2Srv(po *{{.Service}}_api.{{.Svc}}) *{{.Service}}.{{.Svc}} {
-        if po == nil {
-                return nil
-        }
-
-        dto := &{{.Service}}.{{.Svc}}{}
-        dto.Id = po.Id
-        dto.Name = po.Name
-        dto.ViewNum = po.ViewNum
-        dto.Status = po.Status
-        dto.CreateTime = po.CreateTime
-        dto.UpdateDatetime = po.UpdateDatetime
-        dto.CreateDatetime = po.CreateDatetime
-
-        return dto
-}
-
-func {{.Svc}}Srv2Gw(dto *{{.Service}}.{{.Svc}}) *{{.Service}}_api.{{.Svc}} {
-        if dto == nil {
-                return nil
-        }
-
-        po := &{{.Service}}_api.{{.Svc}}{}
-        po.Id = dto.Id
-        po.Name = dto.Name
-        po.ViewNum = dto.ViewNum
-        po.Status = dto.Status
-        po.CreateTime = dto.CreateTime
-        po.UpdateDatetime = dto.UpdateDatetime
-        po.CreateDatetime = dto.CreateDatetime
-
-        return po
-}
-
-func {{.Svc}}ListSrv2Gw(dto *{{.Service}}.{{.Svc}}List) *{{.Service}}_api.{{.Svc}}List {
-        if dto == nil {
-                return nil
-        }
-
-        po := &{{.Service}}_api.{{.Svc}}List{}
-        po.Total = dto.Total
-        po.TotalPage = dto.TotalPage
-        po.CurPage = dto.CurPage
-        po.Datalist = {{.Svc}}Map(dto.Datalist, {{.Svc}}Srv2Gw)
-
-        return po
-}
-
-func ErrorSrv2Gw(err *{{.Service}}.Error) *{{.Service}}_api.Error {
-        if err == nil {
-                return nil
-        }
-
-        po := &{{.Service}}_api.Error{}
-        po.Message = err.Message
-        po.Code = err.Code
-
-        return po
-}
-`
-
-	t, err = template.New("gw-convert").Parse(tpl)
-	if err != nil {
-		return err
-	}
-
-	fileName = dir + "convert.go"
-
-	f, err = os.Create(fileName)
 	if err != nil {
 		return err
 	}

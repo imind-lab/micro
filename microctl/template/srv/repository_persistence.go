@@ -92,7 +92,7 @@ func (repo {{.Service}}Repository) Update{{.Svc}}WithSelect(ctx context.Context,
 	if err := repo.DB().Select(columns).Save(&m).Error; err != nil {
 		return errorsx.Wrap(err, "{{.Service}}Repository.Update{{.Svc}}WithSelect")
 	}
-	repo.DelCache{{.Svc}}(ctx, int(m.Id))
+	repo.DelCache{{.Svc}}(ctx, m.Id)
 	return nil
 }
 
@@ -101,13 +101,13 @@ func (repo {{.Service}}Repository) Cache{{.Svc}}(ctx context.Context, m model.{{
 	defer span.Finish()
 
 	logger := log.GetLogger(ctx, "{{.Service}}Repository", "Cache{{.Svc}}")
-	key := utilx.CacheKey(constant.Cache{{.Svc}}, strconv.Itoa(int(m.Id)))
+	key := utilx.CacheKey(constant.Cache{{.Svc}}, strconv.Itoa(m.Id))
 	expire := constant.CacheMinute5
 	err := repo.Redis().HashTableSet(ctx, key, m, expire)
 	if err != nil {
 		logger.Warn("SetHashTable.error", zap.Error(err))
 	}
-	keys := utilx.CacheKey(constant.Cache{{.Svc}}Keys, strconv.Itoa(int(m.Id)))
+	keys := utilx.CacheKey(constant.Cache{{.Svc}}Keys, strconv.Itoa(m.Id))
 	err = repo.Redis().SAdd(ctx, keys, key).Err()
 	if err != nil {
 		logger.Warn("SAdd.error", zap.Error(err))
@@ -129,15 +129,11 @@ func (repo {{.Service}}Repository) DelCache{{.Svc}}(ctx context.Context, id int)
 }
 
 // 根据Id获取{{.Svc}}(有缓存)
-func (repo {{.Service}}Repository) Get{{.Svc}}ById(ctx context.Context, id int, opt ...{{.Service}}.ObjectByIdOption) (model.{{.Svc}}, error) {
+func (repo {{.Service}}Repository) Get{{.Svc}}ById(ctx context.Context, id int) (model.{{.Svc}}, error) {
 	span, ctx := tracing.StartSpan(ctx, "{{.Service}}Repository.Get{{.Svc}}ById")
 	defer span.Finish()
 
 	logger := log.GetLogger(ctx, "{{.Service}}Repository", "Get{{.Svc}}ById")
-	opts := {{.Service}}.NewObjectByIdOptions(util.RandDuration(120))
-	for _, o := range opt {
-		o(opts)
-	}
 
 	var m model.{{.Svc}}
 	key := utilx.CacheKey(constant.Cache{{.Svc}}, strconv.Itoa(id))
@@ -152,7 +148,8 @@ func (repo {{.Service}}Repository) Get{{.Svc}}ById(ctx context.Context, id int, 
 		return m, errorsx.WithMessage(err, "{{.Service}}Repository.Get{{.Svc}}ById")
 	}
 
-	expire := constant.CacheMinute5 + opts.RandExpire
+	tool := util.NewCacheTool()
+	expire := constant.CacheMinute5 + tool.RandExpire(120)
 	if m.IsEmpty() {
 		expire = constant.CacheMinute1
 	}
@@ -314,10 +311,10 @@ func (repo {{.Service}}Repository) Find{{.Svc}}ListIds(ctx context.Context, stat
 	return ids, args, nil
 }
 
-func (repo {{.Service}}Repository) Get{{.Svc}}List4Concurrent(ctx context.Context, ids []int, fn func(context.Context, int, ...{{.Service}}.ObjectByIdOption) (model.{{.Svc}}, error)) ([]model.{{.Svc}}, error) {
+func (repo {{.Service}}Repository) Get{{.Svc}}List4Concurrent(ctx context.Context, ids []int, fn func(context.Context, int) (model.{{.Svc}}, error)) ([]model.{{.Svc}}, error) {
 	logger := log.GetLogger(ctx, "{{.Service}}Repository", "Get{{.Svc}}List4Concurrent")
 
-	limiter := sentinel.GetLimiter()
+	limiter := sentinel.GetHighLimiter()
 
 	var wg sync.WaitGroup
 
@@ -364,7 +361,7 @@ func (repo {{.Service}}Repository) Update{{.Svc}}Status(ctx context.Context, id,
 	if tx.Error != nil {
 		return 0, errorsx.Wrap(tx.Error, "{{.Service}}Repository.Update{{.Svc}}Status")
 	}
-	key := utilx.CacheKey(constant.Cache{{.Svc}}, strconv.Itoa(int(id)))
+	key := utilx.CacheKey(constant.Cache{{.Svc}}, strconv.Itoa(id))
 	reply, err := repo.Redis().Del(ctx, key).Result()
 	if err != nil {
 		logger.Warn("Del Cache", zap.String("key", key), zap.Int64("reply", reply), zap.Error(err))

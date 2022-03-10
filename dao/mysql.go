@@ -47,8 +47,8 @@ func NewDatabase() Database {
 		dbClient = &database{
 			dbs: make(map[string]*MySQL),
 		}
-		limit := viper.GetFloat64("db.concurrence.limit")
-		capacity := viper.GetInt("db.concurrence.capacity")
+		limit := viper.GetFloat64("db.rate.limit")
+		capacity := viper.GetInt("db.rate.capacity")
 		limiter = rate.NewLimiter(rate.Limit(limit), capacity)
 	})
 	return dbClient

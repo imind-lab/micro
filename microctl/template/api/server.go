@@ -1,14 +1,21 @@
+/**
+ *  MindLab
+ *
+ *  Create by songli on {{.Year}}/02/27
+ *  Copyright © {{.Year}} imind.tech All rights reserved.
+ */
+
 package api
 
 import (
 	"os"
 	"text/template"
 
-	tp "github.com/imind-lab/micro/microctl/template"
+	tpl "github.com/imind-lab/micro/microctl/template"
 )
 
-// 生成server
-func CreateServer(data *tp.Data) error {
+// 生成server/server.go
+func CreateServer(data *tpl.Data) error {
 	var tpl = `package server
 
 import (
@@ -17,8 +24,8 @@ import (
 	"github.com/spf13/viper"
 	"google.golang.org/grpc"
 
-	"{{.Domain}}/{{.Project}}/{{.Service}}-api/application/{{.Service}}-api/proto"
-	"{{.Domain}}/{{.Project}}/{{.Service}}-api/application/{{.Service}}-api/service"
+	"{{.Domain}}/{{.Project}}/{{.Service}}-api/application/{{.Service}}/proto"
+	"{{.Domain}}/{{.Project}}/{{.Service}}-api/application/{{.Service}}/service"
 	"github.com/imind-lab/micro"
 	grpcx "github.com/imind-lab/micro/grpc"
 )
@@ -49,7 +56,7 @@ func Serve() error {
 }
 `
 
-	t, err := template.New("server").Parse(tpl)
+	t, err := template.New("main").Parse(tpl)
 	if err != nil {
 		return err
 	}
