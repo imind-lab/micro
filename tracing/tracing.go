@@ -8,47 +8,44 @@
 package tracing
 
 import (
-	"context"
-	"io"
-
-	"github.com/opentracing/opentracing-go/log"
-
-	"github.com/opentracing/opentracing-go"
 	"github.com/spf13/viper"
-	"github.com/uber/jaeger-client-go"
-	"github.com/uber/jaeger-client-go/config"
-	"github.com/uber/jaeger-lib/metrics"
+	"go.opentelemetry.io/otel"
+	"go.opentelemetry.io/otel/exporters/jaeger"
+	"go.opentelemetry.io/otel/sdk/resource"
+	tracesdk "go.opentelemetry.io/otel/sdk/trace"
+	semconv "go.opentelemetry.io/otel/semconv/v1.7.0"
+	"go.opentelemetry.io/otel/trace"
+	"os"
 )
 
-func InitTracer(service string) (opentracing.Tracer, io.Closer, error) {
-	tracingAgent := viper.GetString("tracing.agent")
-	tracingType := viper.GetString("tracing.type")
-	tracingParam := viper.GetFloat64("tracing.param")
+func InitTracer() (*tracesdk.TracerProvider, error) {
+	service := viper.GetString("service.name")
+	namespace := viper.GetString("service.namespace")
+	version := viper.GetString("service.version")
+	host := viper.GetString("tracing.agent.host")
+	port := viper.GetString("tracing.agent.port")
 
-	cfg := &config.Configuration{
-		ServiceName: service,
-		Sampler: &config.SamplerConfig{
-			Type:  tracingType,
-			Param: tracingParam,
-		},
-		Reporter: &config.ReporterConfig{
-			LocalAgentHostPort: tracingAgent,
-		},
+	hostname, _ := os.Hostname()
+	// Create the Jaeger exporter
+	exp, err := jaeger.New(jaeger.WithAgentEndpoint(jaeger.WithAgentHost(host), jaeger.WithAgentPort(port)))
+	if err != nil {
+		return nil, err
 	}
-
-	jLogger := jaeger.StdLogger
-	jMetricsFactory := metrics.NullFactory
-
-	tracer, closer, err := cfg.NewTracer(config.Logger(jLogger), config.Metrics(jMetricsFactory))
-
-	opentracing.SetGlobalTracer(tracer)
-
-	return tracer, closer, err
+	tp := tracesdk.NewTracerProvider(
+		// Always be sure to batch in production.
+		tracesdk.WithBatcher(exp),
+		// Record information about this application in a Resource.
+		tracesdk.WithResource(resource.NewWithAttributes(
+			semconv.SchemaURL,
+			semconv.ServiceNameKey.String(service),
+			semconv.ServiceNamespaceKey.String(namespace),
+			semconv.ServiceVersionKey.String(version),
+			semconv.ServiceInstanceIDKey.String(hostname),
+		)),
+	)
+	return tp, nil
 }
 
-func StartSpan(ctx context.Context, name string, fields ...log.Field) (opentracing.Span, context.Context) {
-	span, ctx := opentracing.StartSpanFromContext(ctx, name)
-	span.LogFields(fields...)
-
-	return span, ctx
+func GetTrace(name string) trace.Tracer {
+	return otel.Tracer(name)
 }
