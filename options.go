@@ -2,25 +2,24 @@ package micro
 
 import (
 	"context"
+
 	"github.com/grpc-ecosystem/go-grpc-middleware/logging/zap/ctxzap"
 	"github.com/imind-lab/micro/broker"
 	"github.com/imind-lab/micro/log"
 	"github.com/imind-lab/micro/tracing"
-	"github.com/opentracing/opentracing-go"
 	"github.com/spf13/viper"
+	tracesdk "go.opentelemetry.io/otel/sdk/trace"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
 	"google.golang.org/grpc/credentials"
-	"io"
 )
 
 type Options struct {
 	Name   string
 	Broker broker.Broker
 
-	Context context.Context
-	Tracer  opentracing.Tracer
-	Closer  io.Closer
+	Context        context.Context
+	TracerProvider *tracesdk.TracerProvider
 
 	Logger *zap.Logger
 
@@ -50,17 +49,15 @@ func newOptions(opts ...Option) Options {
 	logger := log.NewLogger(logPath, zapcore.Level(logLevel), logSize, logBackup, logAge, logCompress, logFormat, zap.Fields(zap.String("namespace", namespace), zap.String("service", name)))
 	ctx := ctxzap.ToContext(context.Background(), logger)
 
-	traceName := viper.GetString("tracing.name.server")
 	// 初始化调用链追踪
-	tracer, closer, _ := tracing.InitTracer(traceName)
+	provider, _ := tracing.InitTracer()
 
 	opt := Options{
-		Name:    name,
-		Context: ctx,
-		Logger:  logger,
-		Tracer:  tracer,
-		Closer:  closer,
-		Signal:  true,
+		Name:           name,
+		Context:        ctx,
+		Logger:         logger,
+		TracerProvider: provider,
+		Signal:         true,
 	}
 
 	for _, o := range opts {

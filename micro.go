@@ -3,14 +3,19 @@ package micro
 import (
 	"context"
 	"fmt"
+	"net"
+	"net/http"
+	"runtime/debug"
+	"sync"
+
 	grpc_middleware "github.com/grpc-ecosystem/go-grpc-middleware"
 	grpc_zap "github.com/grpc-ecosystem/go-grpc-middleware/logging/zap"
 	grpc_recovery "github.com/grpc-ecosystem/go-grpc-middleware/recovery"
 	grpc_ctxtags "github.com/grpc-ecosystem/go-grpc-middleware/tags"
-	grpc_opentracing "github.com/grpc-ecosystem/go-grpc-middleware/tracing/opentracing"
 	"github.com/grpc-ecosystem/grpc-gateway/v2/runtime"
 	grpcx "github.com/imind-lab/micro/grpc"
 	"github.com/spf13/viper"
+	"go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc"
 	"go.uber.org/zap"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
@@ -19,10 +24,6 @@ import (
 	"google.golang.org/grpc/reflection"
 	"google.golang.org/grpc/status"
 	"gopkg.in/tomb.v2"
-	"net"
-	"net/http"
-	"runtime/debug"
-	"sync"
 )
 
 type Service interface {
@@ -158,7 +159,7 @@ func (s service) Stop() error {
 	}
 
 	s.cancel()
-	s.opts.Closer.Close()
+	s.opts.TracerProvider.Shutdown(s.opts.Context)
 
 	if s.opts.Broker != nil {
 		s.opts.Broker.Close()
@@ -214,18 +215,10 @@ func (s service) newGrpcServer() *grpc.Server {
 		streamInterceptors = append(streamInterceptors, grpc_zap.StreamServerInterceptor(s.opts.Logger, opts...))
 	}
 
-	if s.opts.Tracer == nil {
+	if s.opts.TracerProvider == nil {
 
-		filterFunc := grpc_opentracing.WithFilterFunc(func(ctx context.Context, fullMethodName string) bool {
-			// will not log gRPC calls if it was a call to healthcheck and no error was raised
-			if fullMethodName == "/grpc.health.v1.Health/Check" {
-				return false
-			}
-			// by default everything will be logged
-			return true
-		})
-		unaryInterceptors = append(unaryInterceptors, grpc_opentracing.UnaryServerInterceptor(grpc_opentracing.WithTracer(s.opts.Tracer), filterFunc))
-		streamInterceptors = append(streamInterceptors, grpc_opentracing.StreamServerInterceptor(grpc_opentracing.WithTracer(s.opts.Tracer), filterFunc))
+		unaryInterceptors = append(unaryInterceptors, otelgrpc.UnaryServerInterceptor())
+		streamInterceptors = append(streamInterceptors, otelgrpc.StreamServerInterceptor())
 	}
 
 	var serverOpt []grpc.ServerOption
