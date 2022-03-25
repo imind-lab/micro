@@ -215,8 +215,7 @@ func (s service) newGrpcServer() *grpc.Server {
 		streamInterceptors = append(streamInterceptors, grpc_zap.StreamServerInterceptor(s.opts.Logger, opts...))
 	}
 
-	if s.opts.TracerProvider == nil {
-
+	if s.opts.TracerProvider != nil {
 		unaryInterceptors = append(unaryInterceptors, otelgrpc.UnaryServerInterceptor())
 		streamInterceptors = append(streamInterceptors, otelgrpc.StreamServerInterceptor())
 	}

@@ -8,18 +8,22 @@
 package tracing
 
 import (
+	"context"
 	"fmt"
+	"os"
+
+	"github.com/imind-lab/micro/util"
 	"github.com/spf13/viper"
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/exporters/jaeger"
+	"go.opentelemetry.io/otel/propagation"
 	"go.opentelemetry.io/otel/sdk/resource"
-	tracesdk "go.opentelemetry.io/otel/sdk/trace"
+	sdktrace "go.opentelemetry.io/otel/sdk/trace"
 	semconv "go.opentelemetry.io/otel/semconv/v1.7.0"
 	"go.opentelemetry.io/otel/trace"
-	"os"
 )
 
-func InitTracer() (*tracesdk.TracerProvider, error) {
+func InitTracer() (*sdktrace.TracerProvider, error) {
 	service := viper.GetString("service.name")
 	namespace := viper.GetString("service.namespace")
 	version := viper.GetString("service.version")
@@ -34,21 +38,71 @@ func InitTracer() (*tracesdk.TracerProvider, error) {
 	if err != nil {
 		return nil, err
 	}
-	tp := tracesdk.NewTracerProvider(
+	tp := sdktrace.NewTracerProvider(
 		// Always be sure to batch in production.
-		tracesdk.WithBatcher(exp),
+		sdktrace.WithBatcher(exp),
 		// Record information about this application in a Resource.
-		tracesdk.WithResource(resource.NewWithAttributes(
+		sdktrace.WithResource(resource.NewWithAttributes(
 			semconv.SchemaURL,
 			semconv.ServiceNameKey.String(service),
 			semconv.ServiceNamespaceKey.String(namespace),
 			semconv.ServiceVersionKey.String(version),
 			semconv.ServiceInstanceIDKey.String(hostname),
 		)),
+		sdktrace.WithSampler(filterHealthSampler{}),
 	)
+	otel.SetTracerProvider(tp)
+	otel.SetTextMapPropagator(propagation.NewCompositeTextMapPropagator(propagation.TraceContext{}, propagation.Baggage{}))
 	return tp, nil
 }
 
-func GetTrace(name string) trace.Tracer {
-	return otel.Tracer(name)
+func StartSpan(ctx context.Context, layer, name string, opts ...trace.SpanStartOption) (context.Context, trace.Span) {
+	return otel.Tracer(layer).Start(ctx, util.AppendString(layer, ".", name), opts...)
+}
+
+type filterHealthSampler struct{}
+
+func (as filterHealthSampler) ShouldSample(p sdktrace.SamplingParameters) sdktrace.SamplingResult {
+	if p.Name == "grpc.health.v1.Health/Check" {
+		return sdktrace.SamplingResult{
+			Decision:   sdktrace.Drop,
+			Tracestate: trace.SpanContextFromContext(p.ParentContext).TraceState(),
+		}
+	}
+	return sdktrace.SamplingResult{
+		Decision:   sdktrace.RecordAndSample,
+		Tracestate: trace.SpanContextFromContext(p.ParentContext).TraceState(),
+	}
+}
+
+func (as filterHealthSampler) Description() string {
+	return "filterHealthSampler"
+}
+
+func InitProvider(service, namespace string) (*sdktrace.TracerProvider, error) {
+	host := viper.GetString("tracing.agent.host")
+	port := viper.GetString("tracing.agent.port")
+
+	hostname, _ := os.Hostname()
+	fmt.Println(service, namespace, host, port)
+	// Create the Jaeger exporter
+	exp, err := jaeger.New(jaeger.WithAgentEndpoint(jaeger.WithAgentHost(host), jaeger.WithAgentPort(port)))
+	fmt.Println(exp, err)
+	if err != nil {
+		return nil, err
+	}
+	tp := sdktrace.NewTracerProvider(
+		// Always be sure to batch in production.
+		sdktrace.WithBatcher(exp),
+		// Record information about this application in a Resource.
+		sdktrace.WithResource(resource.NewWithAttributes(
+			semconv.SchemaURL,
+			semconv.ServiceNameKey.String(service),
+			semconv.ServiceNamespaceKey.String(namespace),
+			semconv.ServiceInstanceIDKey.String(hostname),
+		)),
+		sdktrace.WithSampler(filterHealthSampler{}),
+	)
+	otel.SetTextMapPropagator(propagation.NewCompositeTextMapPropagator(propagation.TraceContext{}, propagation.Baggage{}))
+	return tp, nil
 }

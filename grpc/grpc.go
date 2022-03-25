@@ -52,6 +52,7 @@ func EnableGatewayJsonTag() runtime.ServeMuxOption {
 
 func ClientConn(ctx context.Context, name string, tls bool) (*grpc.ClientConn, *tracesdk.TracerProvider, error) {
 	service := viper.GetString("rpc." + name + ".service")
+	namespace := viper.GetString("rpc." + name + ".namespace")
 	port := viper.GetInt("rpc." + name + ".port")
 	addr := fmt.Sprintf("%s:%d", service, port)
 
@@ -73,10 +74,10 @@ func ClientConn(ctx context.Context, name string, tls bool) (*grpc.ClientConn, *
 	unaryInterceptors = append(unaryInterceptors, grpc_retry.UnaryClientInterceptor(retryOpts...), grpc_zap.UnaryClientInterceptor(ctxzap.Extract(ctx), zapOpts...))
 	streamInterceptors = append(streamInterceptors, grpc_zap.StreamClientInterceptor(ctxzap.Extract(ctx), zapOpts...))
 
-	provider, err := tracing.InitTracer()
+	provider, err := tracing.InitProvider(service+"-cli", namespace)
 	if err == nil {
-		unaryInterceptors = append(unaryInterceptors, otelgrpc.UnaryClientInterceptor())
-		streamInterceptors = append(streamInterceptors, otelgrpc.StreamClientInterceptor())
+		unaryInterceptors = append(unaryInterceptors, otelgrpc.UnaryClientInterceptor(otelgrpc.WithTracerProvider(provider)))
+		streamInterceptors = append(streamInterceptors, otelgrpc.StreamClientInterceptor(otelgrpc.WithTracerProvider(provider)))
 	}
 
 	var dialOpt []grpc.DialOption
@@ -92,5 +93,5 @@ func ClientConn(ctx context.Context, name string, tls bool) (*grpc.ClientConn, *
 
 	conn, err := grpc.Dial(addr, dialOpt...)
 
-	return conn, provider, nil
+	return conn, provider, err
 }

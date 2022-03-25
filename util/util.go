@@ -24,6 +24,7 @@ import (
 	"net/http"
 	"reflect"
 	"regexp"
+	"runtime"
 	"sort"
 	"strconv"
 	"strings"
@@ -31,53 +32,11 @@ import (
 	"unicode/utf8"
 	"unsafe"
 
-	"google.golang.org/grpc/metadata"
-
+	"golang.org/x/text/cases"
 	"golang.org/x/text/encoding/simplifiedchinese"
+	"golang.org/x/text/language"
+	"google.golang.org/grpc/metadata"
 )
-
-func StringToInt(str string, def int) int {
-	val, err := strconv.Atoi(str)
-	if err != nil {
-		val = def
-	}
-	return val
-}
-
-func StringToInt64(str string, def int64) int64 {
-	val, err := strconv.ParseInt(str, 10, 64)
-	if err != nil {
-		val = def
-	}
-	return val
-}
-
-func InterfaceToInt(str interface{}) (int, error) {
-	if str != nil {
-		if val, ok := str.(int); ok {
-			return val, nil
-		}
-	}
-	return 0, errors.New("cant't convert to int")
-}
-
-func InterfaceToInt64(str interface{}) (int64, error) {
-	if str != nil {
-		if val, ok := str.(int64); ok {
-			return val, nil
-		}
-	}
-	return int64(0), errors.New("cant't convert to int64")
-}
-
-func InterfaceToString(str interface{}) (string, error) {
-	if str != nil {
-		if val, ok := str.(string); ok {
-			return val, nil
-		}
-	}
-	return "", errors.New("cant't convert to string")
-}
 
 func GzipResponse(w http.ResponseWriter, buffer []byte) {
 
@@ -92,51 +51,10 @@ func GzipResponse(w http.ResponseWriter, buffer []byte) {
 	gz.Flush()
 }
 
-func HasElem(s interface{}, elem interface{}) bool {
-	arrV := reflect.ValueOf(s)
-	if arrV.Kind() == reflect.Slice {
-		for i := 0; i < arrV.Len(); i++ {
-			if arrV.Index(i).Interface() == elem {
-				return true
-			}
-		}
-	}
-	return false
-}
-
-func ReverseInts(ints []int) {
-	for i, j := 0, len(ints)-1; i < j; i, j = i+1, j-1 {
-		ints[i], ints[j] = ints[j], ints[i]
-	}
-}
-
-func SqlString(src interface{}) string {
-	switch v := src.(type) {
-	case string:
-		return v
-	case []byte:
-		return string(v)
-	}
-	rv := reflect.ValueOf(src)
-	switch rv.Kind() {
-	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
-		return strconv.FormatInt(rv.Int(), 10)
-	case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64:
-		return strconv.FormatUint(rv.Uint(), 10)
-	case reflect.Float64:
-		return strconv.FormatFloat(rv.Float(), 'g', -1, 64)
-	case reflect.Float32:
-		return strconv.FormatFloat(rv.Float(), 'g', -1, 32)
-	case reflect.Bool:
-		return strconv.FormatBool(rv.Bool())
-	}
-	return fmt.Sprintf("%v", src)
-}
-
 func MapFillStruct(data map[string]interface{}, result interface{}) {
 	t := reflect.ValueOf(result).Elem()
 	for k, v := range data {
-		key := strings.Title(k)
+		key := cases.Title(language.Und, cases.NoLower).String(k)
 		val := t.FieldByName(key)
 		if val.IsValid() {
 			val.Set(reflect.ValueOf(v))
@@ -329,44 +247,6 @@ func HttpDo(ctx context.Context, params map[string]string, url string) (string, 
 	return string(body), nil
 }
 
-func MapValue(data map[string]interface{}, key string, def interface{}) interface{} {
-	value, ok := data[key]
-	if ok {
-		return value
-	}
-	return def
-}
-
-func MapIntValue(data map[string]interface{}, key string, def int) int {
-	value, ok := data[key]
-	if ok {
-		if val, ok := value.(int); ok {
-			return val
-		}
-	}
-	return def
-}
-
-func MapStringValue(data map[string]interface{}, key string, def string) string {
-	value, ok := data[key]
-	if ok {
-		if val, ok := value.(string); ok {
-			return val
-		}
-	}
-	return def
-}
-
-func MapBoolValue(data map[string]interface{}, key string, def bool) bool {
-	value, ok := data[key]
-	if ok {
-		if val, ok := value.(bool); ok {
-			return val
-		}
-	}
-	return def
-}
-
 func PostJSON(ctx context.Context, jsonBody []byte, url string) (map[string]interface{}, error) {
 	client := &http.Client{}
 	req, err := http.NewRequestWithContext(ctx, "POST", url, bytes.NewReader(jsonBody))
@@ -401,38 +281,6 @@ func MapMerge(to map[string]interface{}, from ...map[string]interface{}) map[str
 		}
 	}
 	return to
-}
-
-func FormatTime(atime int64, format string, isMIndex bool) string {
-	if format == "f" {
-		diffTime := time.Now().Unix() - atime
-		if isMIndex && diffTime >= 15552000 {
-			return time.Unix(atime, 0).Format("2006-01-02")
-		} else if isMIndex && diffTime >= 86400*7 {
-			return time.Unix(atime, 0).Format("01-02")
-		} else if diffTime >= 86400*7 {
-			return time.Unix(atime, 0).Format("2006-01-02")
-		} else if diffTime >= 86400 {
-			return fmt.Sprintf("%d天前", diffTime/86400)
-		} else if diffTime >= 3600 {
-			return fmt.Sprintf("%d小时前", diffTime/3600)
-		} else if diffTime >= 60 {
-			return fmt.Sprintf("%d分钟前", diffTime/60)
-		} else if diffTime >= 10 {
-			return fmt.Sprintf("%d秒前", diffTime)
-		} else if diffTime >= 0 {
-			return "刚刚"
-		}
-		return ""
-	}
-	if format == "-1" {
-		return time.Unix(atime, 0).Format("2006-01-02 15:04")
-	} else if format == "-2" {
-		return time.Unix(atime, 0).Format("2006-01-02 15")
-	} else if format == "-3" {
-		return time.Unix(atime, 0).Format("2006-01-02")
-	}
-	return time.Unix(atime, 0).Format("2006-01-02 15:04:05")
 }
 
 func JoinIntSlice(ids []int) string {
@@ -645,9 +493,9 @@ func DurationNewFormat(duration int) string {
 	return buf.String()
 }
 
-func ReplaceAll(special string, strs ...string) string {
-	for _, str := range strs {
-		special = strings.ReplaceAll(special, str, "")
+func ReplaceAll(special string, str ...string) string {
+	for _, v := range str {
+		special = strings.ReplaceAll(special, v, "")
 	}
 	return special
 }
@@ -747,4 +595,30 @@ func AppendString(keys ...string) string {
 		result = append(result, key...)
 	}
 	return string(result)
+}
+
+func GetPtrFuncName() (string, string) {
+	pc := make([]uintptr, 1)
+	runtime.Callers(2, pc)
+	f := runtime.FuncForPC(pc[0])
+
+	info := strings.Split(f.Name(), ".")
+	cnt := len(info)
+
+	layer := info[cnt-2]
+	layer = strings.Replace(layer, "(*", "", 1)
+	layer = strings.Replace(layer, ")", "", 1)
+
+	return layer, info[cnt-1]
+}
+
+func GetFuncName() (string, string) {
+	pc := make([]uintptr, 1)
+	runtime.Callers(2, pc)
+	f := runtime.FuncForPC(pc[0])
+
+	info := strings.Split(f.Name(), ".")
+	cnt := len(info)
+
+	return info[cnt-2], info[cnt-1]
 }

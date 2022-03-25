@@ -17,6 +17,8 @@ import (
 	"gopkg.in/natefinch/lumberjack.v2"
 )
 
+var debugEnabled bool
+
 func NewLogger(filePath string, level zapcore.Level, maxSize int, maxBackups int, maxAge int, compress bool, format string, options ...zap.Option) *zap.Logger {
 	core := newCore(filePath, level, maxSize, maxBackups, maxAge, compress, format)
 
@@ -25,7 +27,7 @@ func NewLogger(filePath string, level zapcore.Level, maxSize int, maxBackups int
 	return zap.New(core, opts...)
 }
 
-func newCore(filePath string, level zapcore.Level, maxSize int, maxBackups int, maxAge int, compress bool, format string) zapcore.Core {
+func newCore(filePath string, initLevel zapcore.Level, maxSize int, maxBackups int, maxAge int, compress bool, format string) zapcore.Core {
 	// 日志文件路径配置
 	hook := lumberjack.Logger{
 		Filename:   filePath,   // 日志文件路径
@@ -36,8 +38,11 @@ func newCore(filePath string, level zapcore.Level, maxSize int, maxBackups int, 
 	}
 
 	// 设置日志级别
-	atomicLevel := zap.NewAtomicLevel()
-	atomicLevel.SetLevel(level)
+	//atomicLevel := zap.NewAtomicLevel()
+	//atomicLevel.SetLevel(level)
+	atomicLevel := zap.LevelEnablerFunc(func(level zapcore.Level) bool {
+		return level >= initLevel || debugEnabled
+	})
 
 	// 公用编码器
 	encoderConfig := zapcore.EncoderConfig{
@@ -70,4 +75,12 @@ func newCore(filePath string, level zapcore.Level, maxSize int, maxBackups int, 
 
 func GetLogger(ctx context.Context, layer, fn string) *zap.Logger {
 	return ctxzap.Extract(ctx).With(zap.String("layer", layer), zap.String("func", fn))
+}
+
+func EnableDebug() {
+	debugEnabled = true
+}
+
+func DisableDebug() {
+	debugEnabled = false
 }
