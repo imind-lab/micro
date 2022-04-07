@@ -507,9 +507,9 @@ func clusterClient(addrs []string) *redis.ClusterClient {
 		MinIdleConns: 10,  //在启动阶段创建指定数量的Idle连接，并长期维持idle状态的连接数不少于指定数量；。
 
 		//超时
-		DialTimeout:  5 * time.Second, //连接建立超时时间，默认5秒。
-		ReadTimeout:  3 * time.Second, //读超时，默认3秒， -1表示取消读超时
-		WriteTimeout: 3 * time.Second, //写超时，默认等于读超时
+		DialTimeout:  8 * time.Second, //连接建立超时时间，默认5秒。
+		ReadTimeout:  6 * time.Second, //读超时，默认3秒， -1表示取消读超时
+		WriteTimeout: 6 * time.Second, //写超时，默认等于读超时
 		PoolTimeout:  4 * time.Second, //当所有连接都处在繁忙状态时，客户端等待可用连接的最大等待时长，默认为读超时+1秒。
 
 		//闲置连接检查包括IdleTimeout，MaxConnAge
@@ -525,7 +525,7 @@ func clusterClient(addrs []string) *redis.ClusterClient {
 		//可自定义连接函数
 		Dialer: func(ctx context.Context, network, addr string) (conn net.Conn, e error) {
 			netDialer := &net.Dialer{
-				Timeout:   5 * time.Second,
+				Timeout:   8 * time.Second,
 				KeepAlive: 5 * time.Minute,
 			}
 			return netDialer.Dial(network, addr)
