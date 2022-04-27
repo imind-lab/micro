@@ -56,7 +56,8 @@ func InitTracer() (*sdktrace.TracerProvider, error) {
 	return tp, nil
 }
 
-func StartSpan(ctx context.Context, layer, name string, opts ...trace.SpanStartOption) (context.Context, trace.Span) {
+func StartSpan(ctx context.Context, opts ...trace.SpanStartOption) (context.Context, trace.Span) {
+	layer, name := util.GetPtrFuncName()
 	return otel.Tracer(layer).Start(ctx, util.AppendString(layer, ".", name), opts...)
 }
 

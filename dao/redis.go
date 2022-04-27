@@ -10,6 +10,7 @@ package dao
 import (
 	"context"
 	"errors"
+	"fmt"
 	redisx "github.com/imind-lab/micro/redis"
 	"net"
 	"strconv"
@@ -37,10 +38,10 @@ func NewCache() Cache {
 	cacheOnce.Do(func() {
 		var client Redis
 		model := viper.GetString("redis.model")
-		if model == "cluster" {
-			client = NewRedisCluster()
-		} else {
+		if model == "node" {
 			client = NewRedisNode()
+		} else {
+			client = NewRedisCluster()
 		}
 
 		cacheClient = &cache{}
@@ -77,17 +78,21 @@ type Redis interface {
 
 type redisNode struct {
 	*redis.Client
+	timeout time.Duration
 }
 
 func NewRedisNode() redisNode {
 	addr := viper.GetString("redis.addr")
 	pass := viper.GetString("redis.pass")
 	db := viper.GetInt("redis.db")
-	rdb := redisClient(addr, pass, db)
-	return redisNode{rdb}
+	timeout := viper.GetDuration("redis.timeout")
+	rdb := redisClient(addr, pass, db, timeout)
+	return redisNode{Client: rdb, timeout: timeout * time.Second}
 }
 
 func (cli redisNode) GetNumber(ctx context.Context, key string) (int64, error) {
+	ctx, _ = context.WithTimeout(ctx, cli.timeout)
+
 	reply := cli.Get(ctx, key)
 	if reply.Err() != nil {
 		return 0, reply.Err()
@@ -100,6 +105,8 @@ func (cli redisNode) GetNumber(ctx context.Context, key string) (int64, error) {
 }
 
 func (cli redisNode) HashTableGet(ctx context.Context, key string, value interface{}, fields ...string) error {
+	ctx, _ = context.WithTimeout(ctx, cli.timeout)
+
 	if len(fields) > 0 {
 		reply := cli.HMGet(ctx, key, fields...)
 		v, err := reply.Result()
@@ -129,6 +136,8 @@ func (cli redisNode) HashTableGet(ctx context.Context, key string, value interfa
 }
 
 func (cli redisNode) HashTableGetAll(ctx context.Context, key string, value interface{}) error {
+	ctx, _ = context.WithTimeout(ctx, cli.timeout)
+
 	reply := cli.HGetAll(ctx, key)
 	v, err := reply.Result()
 	if err != nil {
@@ -144,6 +153,8 @@ func (cli redisNode) HashTableGetAll(ctx context.Context, key string, value inte
 }
 
 func (cli redisNode) HashTableSet(ctx context.Context, key string, m interface{}, expire time.Duration) error {
+	ctx, _ = context.WithTimeout(ctx, cli.timeout)
+
 	err := cli.HMSet(ctx, key, redisx.FlatStruct(m)).Err()
 	if err != nil {
 		return err
@@ -158,10 +169,11 @@ func (cli redisNode) HashTableSet(ctx context.Context, key string, m interface{}
 }
 
 func (cli redisNode) SetSet(ctx context.Context, key string, args []interface{}, expire time.Duration) error {
+	ctx, _ = context.WithTimeout(ctx, cli.timeout)
+
 	if len(args) == 0 {
 		err := cli.Set(ctx, key, "", expire).Err()
 		return err
-
 	}
 	err := cli.SAdd(ctx, key, args...).Err()
 	if err != nil {
@@ -174,6 +186,8 @@ func (cli redisNode) SetSet(ctx context.Context, key string, args []interface{},
 	return nil
 }
 func (cli redisNode) SetDelKeys(ctx context.Context, key string) error {
+	ctx, _ = context.WithTimeout(ctx, cli.timeout)
+
 	keys, err := cli.SMembers(ctx, key).Result()
 	if err != nil {
 		return err
@@ -186,6 +200,8 @@ func (cli redisNode) SetDelKeys(ctx context.Context, key string) error {
 }
 
 func (cli redisNode) SortedSetRange(ctx context.Context, key string, pageNum, pageSize int64, desc bool) ([]int, int, error) {
+	ctx, _ = context.WithTimeout(ctx, cli.timeout)
+
 	rtype, err := cli.Type(ctx, key).Result()
 	if err == nil {
 		switch rtype {
@@ -218,6 +234,8 @@ func (cli redisNode) SortedSetRange(ctx context.Context, key string, pageNum, pa
 }
 
 func (cli redisNode) SortedSetRangeByScore(ctx context.Context, key string, lastId, pageSize int64, desc bool) ([]int, int, error) {
+	ctx, _ = context.WithTimeout(ctx, cli.timeout)
+
 	rtype, err := cli.Type(ctx, key).Result()
 	if err == nil {
 		switch rtype {
@@ -248,6 +266,8 @@ func (cli redisNode) SortedSetRangeByScore(ctx context.Context, key string, last
 }
 
 func (cli redisNode) SortedSetSet(ctx context.Context, key string, args []*redis.Z, expire time.Duration) error {
+	ctx, _ = context.WithTimeout(ctx, cli.timeout)
+
 	if len(args) == 0 {
 		err := cli.Set(ctx, key, "", expire).Err()
 		return err
@@ -263,7 +283,38 @@ func (cli redisNode) SortedSetSet(ctx context.Context, key string, args []*redis
 	return nil
 }
 
-func redisClient(addr, pass string, db int) *redis.Client {
+func (cli redisNode) Del(ctx context.Context, keys ...string) *redis.IntCmd {
+	ctx, _ = context.WithTimeout(ctx, cli.timeout)
+
+	return cli.Client.Del(ctx, keys...)
+}
+
+func (cli redisNode) Get(ctx context.Context, key string) *redis.StringCmd {
+	ctx, _ = context.WithTimeout(ctx, cli.timeout)
+
+	return cli.Client.Get(ctx, key)
+}
+
+func (cli redisNode) SAdd(ctx context.Context, key string, members ...interface{}) *redis.IntCmd {
+	ctx, _ = context.WithTimeout(ctx, cli.timeout)
+
+	return cli.Client.SAdd(ctx, key, members...)
+}
+
+func (cli redisNode) Set(ctx context.Context, key string, value interface{}, expiration time.Duration) *redis.StatusCmd {
+	ctx, _ = context.WithTimeout(ctx, cli.timeout)
+
+	return cli.Client.Set(ctx, key, value, expiration)
+}
+
+func (cli redisNode) ZRem(ctx context.Context, key string, members ...interface{}) *redis.IntCmd {
+	ctx, _ = context.WithTimeout(ctx, cli.timeout)
+
+	return cli.Client.ZRem(ctx, key, members...)
+}
+
+func redisClient(addr, pass string, db int, timeout time.Duration) *redis.Client {
+	fmt.Println(addr, pass, db)
 	return redis.NewClient(&redis.Options{
 		//连接信息
 		Network:  "tcp", //网络类型，tcp or unix，默认tcp
@@ -276,10 +327,8 @@ func redisClient(addr, pass string, db int) *redis.Client {
 		MinIdleConns: 10, //在启动阶段创建指定数量的Idle连接，并长期维持idle状态的连接数不少于指定数量；。
 
 		//超时
-		DialTimeout:  5 * time.Second, //连接建立超时时间，默认5秒。
-		ReadTimeout:  3 * time.Second, //读超时，默认3秒， -1表示取消读超时
-		WriteTimeout: 3 * time.Second, //写超时，默认等于读超时
-		PoolTimeout:  4 * time.Second, //当所有连接都处在繁忙状态时，客户端等待可用连接的最大等待时长，默认为读超时+1秒。
+		DialTimeout: 5 * time.Second,       //连接建立超时时间，默认5秒。
+		ReadTimeout: timeout * time.Second, //读超时，默认3秒， -1表示取消读超时
 
 		//闲置连接检查包括IdleTimeout，MaxConnAge
 		IdleCheckFrequency: 60 * time.Second, //闲置连接检查的周期，默认为1分钟，-1表示不做周期性检查，只在客户端获取连接时对闲置连接进行处理。
@@ -301,7 +350,7 @@ func redisClient(addr, pass string, db int) *redis.Client {
 		},
 		//钩子函数
 		OnConnect: func(ctx context.Context, cn *redis.Conn) error {
-			//fmt.Printf("conn=%v\n", cn)
+			fmt.Printf("conn=%v\n", cn)
 			return nil
 		},
 	})
@@ -309,15 +358,19 @@ func redisClient(addr, pass string, db int) *redis.Client {
 
 type redisCluster struct {
 	*redis.ClusterClient
+	timeout time.Duration
 }
 
 func NewRedisCluster() redisCluster {
-	addr := viper.GetStringSlice("redis.addr")
-	rdb := clusterClient(addr)
-	return redisCluster{rdb}
+	addr := viper.GetString("redis.addr")
+	timeout := viper.GetDuration("redis.timeout")
+	rdb := clusterClient(timeout, addr)
+	return redisCluster{rdb, timeout * time.Second}
 }
 
 func (cli redisCluster) GetNumber(ctx context.Context, key string) (int64, error) {
+	ctx, _ = context.WithTimeout(ctx, cli.timeout)
+
 	reply := cli.Get(ctx, key)
 	if reply.Err() != nil {
 		return 0, reply.Err()
@@ -330,6 +383,8 @@ func (cli redisCluster) GetNumber(ctx context.Context, key string) (int64, error
 }
 
 func (cli redisCluster) HashTableGet(ctx context.Context, key string, value interface{}, fields ...string) error {
+	ctx, _ = context.WithTimeout(ctx, cli.timeout)
+
 	if len(fields) > 0 {
 		reply := cli.HMGet(ctx, key, fields...)
 		v, err := reply.Result()
@@ -359,6 +414,8 @@ func (cli redisCluster) HashTableGet(ctx context.Context, key string, value inte
 }
 
 func (cli redisCluster) HashTableGetAll(ctx context.Context, key string, value interface{}) error {
+	ctx, _ = context.WithTimeout(ctx, cli.timeout)
+
 	reply := cli.HGetAll(ctx, key)
 	v, err := reply.Result()
 	if err != nil {
@@ -374,6 +431,8 @@ func (cli redisCluster) HashTableGetAll(ctx context.Context, key string, value i
 }
 
 func (cli redisCluster) HashTableSet(ctx context.Context, key string, m interface{}, expire time.Duration) error {
+	ctx, _ = context.WithTimeout(ctx, cli.timeout)
+
 	err := cli.HMSet(ctx, key, redisx.FlatStruct(m)).Err()
 	if err != nil {
 		return err
@@ -388,6 +447,8 @@ func (cli redisCluster) HashTableSet(ctx context.Context, key string, m interfac
 }
 
 func (cli redisCluster) SetSet(ctx context.Context, key string, args []interface{}, expire time.Duration) error {
+	ctx, _ = context.WithTimeout(ctx, cli.timeout)
+
 	if len(args) == 0 {
 		err := cli.Set(ctx, key, "", expire).Err()
 		return err
@@ -404,6 +465,8 @@ func (cli redisCluster) SetSet(ctx context.Context, key string, args []interface
 	return nil
 }
 func (cli redisCluster) SetDelKeys(ctx context.Context, key string) error {
+	ctx, _ = context.WithTimeout(ctx, cli.timeout)
+
 	keys, err := cli.SMembers(ctx, key).Result()
 	if err != nil {
 		return err
@@ -416,6 +479,8 @@ func (cli redisCluster) SetDelKeys(ctx context.Context, key string) error {
 }
 
 func (cli redisCluster) SortedSetRange(ctx context.Context, key string, pageNum, pageSize int64, desc bool) ([]int, int, error) {
+	ctx, _ = context.WithTimeout(ctx, cli.timeout)
+
 	rtype, err := cli.Type(ctx, key).Result()
 	if err == nil {
 		switch rtype {
@@ -448,6 +513,8 @@ func (cli redisCluster) SortedSetRange(ctx context.Context, key string, pageNum,
 }
 
 func (cli redisCluster) SortedSetRangeByScore(ctx context.Context, key string, lastId, pageSize int64, desc bool) ([]int, int, error) {
+	ctx, _ = context.WithTimeout(ctx, cli.timeout)
+
 	rtype, err := cli.Type(ctx, key).Result()
 	if err == nil {
 		switch rtype {
@@ -478,6 +545,8 @@ func (cli redisCluster) SortedSetRangeByScore(ctx context.Context, key string, l
 }
 
 func (cli redisCluster) SortedSetSet(ctx context.Context, key string, args []*redis.Z, expire time.Duration) error {
+	ctx, _ = context.WithTimeout(ctx, cli.timeout)
+
 	if len(args) == 0 {
 		err := cli.Set(ctx, key, "", expire).Err()
 		return err
@@ -493,7 +562,31 @@ func (cli redisCluster) SortedSetSet(ctx context.Context, key string, args []*re
 	return nil
 }
 
-func clusterClient(addrs []string) *redis.ClusterClient {
+func (cli redisCluster) Del(ctx context.Context, keys ...string) *redis.IntCmd {
+	ctx, _ = context.WithTimeout(ctx, cli.timeout)
+
+	return cli.ClusterClient.Del(ctx, keys...)
+}
+
+func (cli redisCluster) Get(ctx context.Context, key string) *redis.StringCmd {
+	ctx, _ = context.WithTimeout(ctx, cli.timeout)
+
+	return cli.ClusterClient.Get(ctx, key)
+}
+
+func (cli redisCluster) SAdd(ctx context.Context, key string, members ...interface{}) *redis.IntCmd {
+	ctx, _ = context.WithTimeout(ctx, cli.timeout)
+
+	return cli.ClusterClient.SAdd(ctx, key, members...)
+}
+
+func (cli redisCluster) Set(ctx context.Context, key string, value interface{}, expiration time.Duration) *redis.StatusCmd {
+	ctx, _ = context.WithTimeout(ctx, cli.timeout)
+
+	return cli.ClusterClient.Set(ctx, key, value, expiration)
+}
+
+func clusterClient(timeout time.Duration, addrs ...string) *redis.ClusterClient {
 	return redis.NewClusterClient(&redis.ClusterOptions{
 		Addrs:          addrs,
 		MaxRedirects:   0,
@@ -507,10 +600,8 @@ func clusterClient(addrs []string) *redis.ClusterClient {
 		MinIdleConns: 10,  //在启动阶段创建指定数量的Idle连接，并长期维持idle状态的连接数不少于指定数量；。
 
 		//超时
-		DialTimeout:  8 * time.Second, //连接建立超时时间，默认5秒。
-		ReadTimeout:  6 * time.Second, //读超时，默认3秒， -1表示取消读超时
-		WriteTimeout: 6 * time.Second, //写超时，默认等于读超时
-		PoolTimeout:  4 * time.Second, //当所有连接都处在繁忙状态时，客户端等待可用连接的最大等待时长，默认为读超时+1秒。
+		DialTimeout: 8 * time.Second,       //连接建立超时时间，默认5秒。
+		ReadTimeout: timeout * time.Second, //读超时，默认3秒， -1表示取消读超时
 
 		//闲置连接检查包括IdleTimeout，MaxConnAge
 		IdleCheckFrequency: 60 * time.Second, //闲置连接检查的周期，默认为1分钟，-1表示不做周期性检查，只在客户端获取连接时对闲置连接进行处理。

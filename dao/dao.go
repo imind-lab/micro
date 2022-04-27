@@ -8,12 +8,15 @@
 package dao
 
 import (
+	"context"
+	"github.com/spf13/viper"
 	"gorm.io/gorm"
+	"time"
 )
 
 type Dao interface {
-	DB() *gorm.DB
-	ExtraDB(name string) *gorm.DB
+	DB(ctx context.Context) *gorm.DB
+	ExtraDB(ctx context.Context, name string) *gorm.DB
 	SetDBMock(db *gorm.DB)
 
 	Redis() Redis
@@ -28,29 +31,35 @@ type dao struct {
 	dbMock *gorm.DB
 
 	//redisMock *redis.ClusterClient
+
+	timeout time.Duration
 }
 
 func NewDao(dbName string) Dao {
+	timeout := viper.GetDuration("db.timeout")
 	rep := &dao{
 		Cache:    NewCache(),
 		Database: NewDatabase(),
 		dbName:   dbName,
+		timeout:  timeout,
 	}
 	return rep
 }
 
-func (d *dao) DB() *gorm.DB {
+func (d *dao) DB(ctx context.Context) *gorm.DB {
 	if d.dbMock != nil {
 		return d.dbMock
 	}
-	return d.Database.DB(d.dbName)
+	ctx, _ = context.WithTimeout(ctx, d.timeout)
+	return d.Database.DB(d.dbName).WithContext(ctx)
 }
 
-func (d *dao) ExtraDB(name string) *gorm.DB {
+func (d *dao) ExtraDB(ctx context.Context, name string) *gorm.DB {
 	if d.dbMock != nil {
 		return d.dbMock
 	}
-	return d.Database.DB(name)
+	ctx, _ = context.WithTimeout(ctx, d.timeout)
+	return d.Database.DB(name).WithContext(ctx)
 }
 
 func (d *dao) SetDBMock(db *gorm.DB) {

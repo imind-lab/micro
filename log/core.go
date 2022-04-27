@@ -10,6 +10,7 @@ package log
 import (
 	"context"
 	"github.com/grpc-ecosystem/go-grpc-middleware/logging/zap/ctxzap"
+	"github.com/imind-lab/micro/util"
 	"os"
 
 	"go.uber.org/zap"
@@ -73,8 +74,9 @@ func newCore(filePath string, initLevel zapcore.Level, maxSize int, maxBackups i
 	)
 }
 
-func GetLogger(ctx context.Context, layer, fn string) *zap.Logger {
-	return ctxzap.Extract(ctx).With(zap.String("layer", layer), zap.String("func", fn))
+func GetLogger(ctx context.Context) *zap.Logger {
+	layer, name := util.GetPtrFuncName()
+	return ctxzap.Extract(ctx).With(zap.String("layer", layer), zap.String("func", name))
 }
 
 func EnableDebug() {

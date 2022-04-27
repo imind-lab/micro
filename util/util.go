@@ -599,7 +599,7 @@ func AppendString(keys ...string) string {
 
 func GetPtrFuncName() (string, string) {
 	pc := make([]uintptr, 1)
-	runtime.Callers(2, pc)
+	runtime.Callers(3, pc)
 	f := runtime.FuncForPC(pc[0])
 
 	info := strings.Split(f.Name(), ".")
@@ -614,7 +614,7 @@ func GetPtrFuncName() (string, string) {
 
 func GetFuncName() (string, string) {
 	pc := make([]uintptr, 1)
-	runtime.Callers(2, pc)
+	runtime.Callers(3, pc)
 	f := runtime.FuncForPC(pc[0])
 
 	info := strings.Split(f.Name(), ".")

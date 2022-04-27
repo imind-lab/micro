@@ -92,11 +92,9 @@ func openDB(name string) (*gorm.DB, error) {
 	if logMode < 1 || logMode > 4 {
 		logMode = 1
 	}
-	tablePrefix := viper.GetString("db." + name + ".tablePrefix")
 	db, err := gorm.Open(mysql.Open(dsn), &gorm.Config{
 		Logger: logger.Default.LogMode(logger.LogLevel(logMode)),
 		NamingStrategy: schema.NamingStrategy{
-			TablePrefix:   tablePrefix,
 			SingularTable: true,
 		},
 	})
