@@ -27,37 +27,33 @@ package server
 
 import (
 	"fmt"
-
-	"github.com/imind-lab/micro"
-	"github.com/imind-lab/micro/broker"
-	grpcx "github.com/imind-lab/micro/grpc"
-	"github.com/spf13/viper"
 	"google.golang.org/grpc"
 
-	"{{.Domain}}/{{.Project}}/{{.Service}}/application/{{.Service}}/event/subscriber"
 	"{{.Domain}}/{{.Project}}/{{.Service}}/application/{{.Service}}/proto"
 	"{{.Domain}}/{{.Project}}/{{.Service}}/application/{{.Service}}/service"
-	"{{.Domain}}/{{.Project}}/{{.Service}}/pkg/constant"
+	"github.com/imind-lab/micro"
+	grpcx "github.com/imind-lab/micro/grpc"
+	"github.com/spf13/viper"
 )
 
 func Serve() error {
 	svc := micro.NewService()
 
 	// 初始化kafka代理
-	endpoint, err := broker.NewBroker(constant.MQName)
-	if err != nil {
-		return err
-	}
-	// 设置消息队列事件处理器（可选）
-	mqHandler := subscriber.New{{.Svc}}(svc.Options().Context)
-	endpoint.Subscribe(
-		broker.Processor{Topic: endpoint.Options().Topics["create{{.Service}}"], Handler: mqHandler.CreateHandle, Retry: 1},
-	)
+	//endpoint, err := broker.NewBroker(constant.MQName)
+	//if err != nil {
+	//	return err
+	//}
+	//// 设置消息队列事件处理器（可选）
+	//mqHandler := subscriber.New{{.Svc}}(svc.Options().Context)
+	//endpoint.Subscribe(
+	//	broker.Processor{Topic: endpoint.Options().Topics["create{{.Service}}"], Handler: mqHandler.CreateHandle, Retry: 1},
+	//)
 
 	grpcCred := grpcx.NewGrpcCred()
 
 	svc.Init(
-		micro.Broker(endpoint),
+		//micro.Broker(endpoint),
 		micro.ServerCred(grpcCred.ServerCred()),
 		micro.ClientCred(grpcCred.ClientCred()))
 
@@ -70,10 +66,13 @@ func Serve() error {
 
 	mux := svc.ServeMux()
 	opts := []grpc.DialOption{grpc.WithTransportCredentials(grpcCred.ClientCred())}
-	err = {{.Service}}.Register{{.Svc}}ServiceHandlerFromEndpoint(svc.Options().Context, mux, endPoint, opts)
+	err := {{.Service}}.Register{{.Svc}}ServiceHandlerFromEndpoint(svc.Options().Context, mux, endPoint, opts)
 	if err != nil {
 		return err
 	}
+
+	// This commentary is for scaffolding. Do not modify or delete it
+
 	return svc.Run()
 }
 `

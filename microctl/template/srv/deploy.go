@@ -550,14 +550,17 @@ spec:
   version: latest
   logLevel: -2
   port: #监听端口
-    http: 88
+    http: 80
     grpc: 50051
-  concurrence:
-    limit: 10
-    capacity: 10
+  rate:
+    high:
+      limit: 10
+      capacity: 10
+    low:
+      limit: 10
+      capacity: 10
   profile:
     rate: 1
-
 
 db:
   logLevel: 4
@@ -565,11 +568,8 @@ db:
     open: 10
     idle: 5
     life: 30
-  concurrence:
-    limit: 10
-    capacity: 10
+  timeout: 5s
   imind:
-    tablePrefix: tbl
     master:
       host: mysql.infra
       port: 3306
@@ -584,6 +584,8 @@ db:
       name: imind
 
 redis:
+  model: node
+  timeout: 5s
   addr: 'redis-master.infra:6379'
   pass: imind456
   db: 0
@@ -599,12 +601,9 @@ kafka:
       {{.Service}}Update: {{.Service}}_update
 
 tracing:
-  agent: '172.16.50.50:6831'
-  type: const
-  param: 1
-  name:
-    client: imind-{{.Service}}-cli
-    server: imind-{{.Service}}-srv
+  agent:
+    host: 'jaeger'
+    port: 6831
 
 log:
   path: './logs/ms.log'

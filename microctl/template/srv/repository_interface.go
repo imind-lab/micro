@@ -33,11 +33,15 @@ import (
 
 type {{.Svc}}Repository interface {
 	Create{{.Svc}}(ctx context.Context, m model.{{.Svc}}) (model.{{.Svc}}, error)
-	Get{{.Svc}}ById(ctx context.Context, id int, opt ...ObjectByIdOption) (model.{{.Svc}}, error)
-	Get{{.Svc}}List(ctx context.Context, status, lastId, pageSize, pageNum int, desc bool) ([]model.{{.Svc}}, int, error)
-	Get{{.Svc}}ListIds(ctx context.Context, status, lastId, pageSize, pageNum int, desc bool) ([]int, int, error)
+	Get{{.Svc}}ById(ctx context.Context, id int) (model.{{.Svc}}, error)
+	Get{{.Svc}}List0(ctx context.Context, status, pageSize, pageNum int, desc bool) ([]model.{{.Svc}}, int, error)
+	Get{{.Svc}}List1(ctx context.Context, status, pageSize, lastId int, desc bool) ([]model.{{.Svc}}, int, error)
+	Get{{.Svc}}List0Ids(ctx context.Context, status, pageSize, pageNum int, desc bool) ([]int, int, error)
+	Get{{.Svc}}List1Ids(ctx context.Context, status, pageSize, lastId int, desc bool) ([]int, int, error)
 	Update{{.Svc}}Status(ctx context.Context, id, status int) (int8, error)
 	Delete{{.Svc}}ById(ctx context.Context, id int) (int8, error)
+
+	// This commentary is for scaffolding. Do not modify or delete it
 }
 `
 

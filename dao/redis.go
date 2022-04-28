@@ -11,7 +11,10 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"github.com/imind-lab/micro/log"
 	redisx "github.com/imind-lab/micro/redis"
+	"github.com/imind-lab/micro/status"
+	"go.uber.org/zap"
 	"net"
 	"strconv"
 	"sync"
@@ -65,15 +68,15 @@ type Redis interface {
 	SetSet(ctx context.Context, key string, args []interface{}, expire time.Duration) error
 	SetDelKeys(ctx context.Context, key string) error
 
-	SortedSetRange(ctx context.Context, key string, pageNum, pageSize int64, desc bool) ([]int, int, error)
-	SortedSetRangeByScore(ctx context.Context, key string, lastId, pageSize int64, desc bool) ([]int, int, error)
+	SortedSetRange(ctx context.Context, key string, pageSize, pageNum int64, desc bool) ([]int, int, error)
+	SortedSetRangeByScore(ctx context.Context, key string, pageSize, lastId int64, desc bool) ([]int, int, error)
 	SortedSetSet(ctx context.Context, key string, args []*redis.Z, expire time.Duration) error
 
-	Del(ctx context.Context, keys ...string) *redis.IntCmd
-	Get(ctx context.Context, key string) *redis.StringCmd
-	SAdd(ctx context.Context, key string, members ...interface{}) *redis.IntCmd
-	Set(ctx context.Context, key string, value interface{}, expiration time.Duration) *redis.StatusCmd
-	ZRem(ctx context.Context, key string, members ...interface{}) *redis.IntCmd
+	Del(ctx context.Context, keys ...string) error
+	//Get(ctx context.Context, key string) *redis.StringCmd
+	SAdd(ctx context.Context, key string, members ...interface{}) error
+	Set(ctx context.Context, key string, value interface{}, expiration time.Duration) error
+	ZRem(ctx context.Context, key string, members ...interface{}) error
 }
 
 type redisNode struct {
@@ -94,8 +97,9 @@ func (cli redisNode) GetNumber(ctx context.Context, key string) (int64, error) {
 	ctx, _ = context.WithTimeout(ctx, cli.timeout)
 
 	reply := cli.Get(ctx, key)
-	if reply.Err() != nil {
-		return 0, reply.Err()
+	if err := reply.Err(); err != nil {
+		err = CheckDeadline(ctx, err)
+		return 0, err
 	}
 	cnt, err := reply.Int64()
 	if err != nil {
@@ -111,7 +115,7 @@ func (cli redisNode) HashTableGet(ctx context.Context, key string, value interfa
 		reply := cli.HMGet(ctx, key, fields...)
 		v, err := reply.Result()
 		if err != nil {
-			return err
+			return CheckDeadline(ctx, err)
 		}
 		if len(v) > 0 {
 			err := reply.Scan(value)
@@ -123,7 +127,7 @@ func (cli redisNode) HashTableGet(ctx context.Context, key string, value interfa
 		reply := cli.HGetAll(ctx, key)
 		v, err := reply.Result()
 		if err != nil {
-			return err
+			return CheckDeadline(ctx, err)
 		}
 		if len(v) > 0 {
 			err := reply.Scan(value)
@@ -132,7 +136,7 @@ func (cli redisNode) HashTableGet(ctx context.Context, key string, value interfa
 			}
 		}
 	}
-	return errors.New("HashTable data does not exist")
+	return status.ErrRedisDataNotExist
 }
 
 func (cli redisNode) HashTableGetAll(ctx context.Context, key string, value interface{}) error {
@@ -141,7 +145,7 @@ func (cli redisNode) HashTableGetAll(ctx context.Context, key string, value inte
 	reply := cli.HGetAll(ctx, key)
 	v, err := reply.Result()
 	if err != nil {
-		return err
+		return CheckDeadline(ctx, err)
 	}
 	if len(v) > 0 {
 		err := reply.Scan(value)
@@ -149,7 +153,7 @@ func (cli redisNode) HashTableGetAll(ctx context.Context, key string, value inte
 			return nil
 		}
 	}
-	return errors.New("HashTable data does not exist")
+	return status.ErrRedisDataNotExist
 }
 
 func (cli redisNode) HashTableSet(ctx context.Context, key string, m interface{}, expire time.Duration) error {
@@ -157,12 +161,12 @@ func (cli redisNode) HashTableSet(ctx context.Context, key string, m interface{}
 
 	err := cli.HMSet(ctx, key, redisx.FlatStruct(m)).Err()
 	if err != nil {
-		return err
+		return CheckDeadline(ctx, err)
 	}
 
 	err = cli.Expire(ctx, key, expire).Err()
 	if err != nil {
-		return err
+		return CheckDeadline(ctx, err)
 	}
 
 	return nil
@@ -172,16 +176,15 @@ func (cli redisNode) SetSet(ctx context.Context, key string, args []interface{},
 	ctx, _ = context.WithTimeout(ctx, cli.timeout)
 
 	if len(args) == 0 {
-		err := cli.Set(ctx, key, "", expire).Err()
-		return err
+		return cli.Set(ctx, key, "", expire)
 	}
-	err := cli.SAdd(ctx, key, args...).Err()
+	err := cli.SAdd(ctx, key, args...)
 	if err != nil {
 		return err
 	}
 	err = cli.Expire(ctx, key, expire).Err()
 	if err != nil {
-		return err
+		return CheckDeadline(ctx, err)
 	}
 	return nil
 }
@@ -190,18 +193,15 @@ func (cli redisNode) SetDelKeys(ctx context.Context, key string) error {
 
 	keys, err := cli.SMembers(ctx, key).Result()
 	if err != nil {
-		return err
+		return CheckDeadline(ctx, err)
 	}
-	err = cli.Del(ctx, keys...).Err()
-	if err != nil {
-		return err
-	}
-	return nil
+	return cli.Del(ctx, keys...)
 }
 
-func (cli redisNode) SortedSetRange(ctx context.Context, key string, pageNum, pageSize int64, desc bool) ([]int, int, error) {
+func (cli redisNode) SortedSetRange(ctx context.Context, key string, pageSize, pageNum int64, desc bool) ([]int, int, error) {
 	ctx, _ = context.WithTimeout(ctx, cli.timeout)
 
+	logger := log.GetLogger(ctx)
 	rtype, err := cli.Type(ctx, key).Result()
 	if err == nil {
 		switch rtype {
@@ -223,19 +223,26 @@ func (cli redisNode) SortedSetRange(ctx context.Context, key string, pageNum, pa
 						return ids, int(reply.Val()), nil
 					}
 				}
+			} else if errors.Is(reply.Err(), context.DeadlineExceeded) {
+				logger.Error("RedisDeadlineExceeded", zap.Error(err))
+				return nil, 0, status.ErrRedisDeadlineExceeded
 			}
 		case "none":
 		default:
 			return []int{}, 0, nil
 		}
-		return nil, 0, errors.New("SortedSet data does not exist")
+		return nil, 0, status.ErrRedisDataNotExist
+	} else if errors.Is(err, context.DeadlineExceeded) {
+		logger.Error("RedisDeadlineExceeded", zap.Error(err))
+		return nil, 0, status.ErrRedisDeadlineExceeded
 	}
 	return nil, 0, err
 }
 
-func (cli redisNode) SortedSetRangeByScore(ctx context.Context, key string, lastId, pageSize int64, desc bool) ([]int, int, error) {
+func (cli redisNode) SortedSetRangeByScore(ctx context.Context, key string, pageSize, lastId int64, desc bool) ([]int, int, error) {
 	ctx, _ = context.WithTimeout(ctx, cli.timeout)
 
+	logger := log.GetLogger(ctx)
 	rtype, err := cli.Type(ctx, key).Result()
 	if err == nil {
 		switch rtype {
@@ -255,12 +262,18 @@ func (cli redisNode) SortedSetRangeByScore(ctx context.Context, key string, last
 						return ids, int(reply.Val()), nil
 					}
 				}
+			} else if errors.Is(reply.Err(), context.DeadlineExceeded) {
+				logger.Error("RedisDeadlineExceeded", zap.Error(err))
+				return nil, 0, status.ErrRedisDeadlineExceeded
 			}
 		case "none":
 		default:
 			return []int{}, 0, nil
 		}
-		return nil, 0, errors.New("SortedSet data does not exist")
+		return nil, 0, status.ErrRedisDataNotExist
+	} else if errors.Is(err, context.DeadlineExceeded) {
+		logger.Error("RedisDeadlineExceeded", zap.Error(err))
+		return nil, 0, status.ErrRedisDeadlineExceeded
 	}
 	return nil, 0, err
 }
@@ -269,12 +282,11 @@ func (cli redisNode) SortedSetSet(ctx context.Context, key string, args []*redis
 	ctx, _ = context.WithTimeout(ctx, cli.timeout)
 
 	if len(args) == 0 {
-		err := cli.Set(ctx, key, "", expire).Err()
-		return err
+		return cli.Set(ctx, key, "", expire)
 	}
 	err := cli.ZAdd(ctx, key, args...).Err()
 	if err != nil {
-		return err
+		return CheckDeadline(ctx, err)
 	}
 	err = cli.Expire(ctx, key, expire).Err()
 	if err != nil {
@@ -283,34 +295,38 @@ func (cli redisNode) SortedSetSet(ctx context.Context, key string, args []*redis
 	return nil
 }
 
-func (cli redisNode) Del(ctx context.Context, keys ...string) *redis.IntCmd {
+func (cli redisNode) Del(ctx context.Context, keys ...string) error {
 	ctx, _ = context.WithTimeout(ctx, cli.timeout)
 
-	return cli.Client.Del(ctx, keys...)
+	err := cli.Client.Del(ctx, keys...).Err()
+	return CheckDeadline(ctx, err)
 }
 
-func (cli redisNode) Get(ctx context.Context, key string) *redis.StringCmd {
+//func (cli redisNode) Get(ctx context.Context, key string) *redis.StringCmd {
+//	ctx, _ = context.WithTimeout(ctx, cli.timeout)
+//
+//	return cli.Client.Get(ctx, key)
+//}
+
+func (cli redisNode) SAdd(ctx context.Context, key string, members ...interface{}) error {
 	ctx, _ = context.WithTimeout(ctx, cli.timeout)
 
-	return cli.Client.Get(ctx, key)
+	err := cli.Client.SAdd(ctx, key, members...).Err()
+	return CheckDeadline(ctx, err)
 }
 
-func (cli redisNode) SAdd(ctx context.Context, key string, members ...interface{}) *redis.IntCmd {
+func (cli redisNode) Set(ctx context.Context, key string, value interface{}, expiration time.Duration) error {
 	ctx, _ = context.WithTimeout(ctx, cli.timeout)
 
-	return cli.Client.SAdd(ctx, key, members...)
+	err := cli.Client.Set(ctx, key, value, expiration).Err()
+	return CheckDeadline(ctx, err)
 }
 
-func (cli redisNode) Set(ctx context.Context, key string, value interface{}, expiration time.Duration) *redis.StatusCmd {
+func (cli redisNode) ZRem(ctx context.Context, key string, members ...interface{}) error {
 	ctx, _ = context.WithTimeout(ctx, cli.timeout)
 
-	return cli.Client.Set(ctx, key, value, expiration)
-}
-
-func (cli redisNode) ZRem(ctx context.Context, key string, members ...interface{}) *redis.IntCmd {
-	ctx, _ = context.WithTimeout(ctx, cli.timeout)
-
-	return cli.Client.ZRem(ctx, key, members...)
+	err := cli.Client.ZRem(ctx, key, members...).Err()
+	return CheckDeadline(ctx, err)
 }
 
 func redisClient(addr, pass string, db int, timeout time.Duration) *redis.Client {
@@ -372,8 +388,9 @@ func (cli redisCluster) GetNumber(ctx context.Context, key string) (int64, error
 	ctx, _ = context.WithTimeout(ctx, cli.timeout)
 
 	reply := cli.Get(ctx, key)
-	if reply.Err() != nil {
-		return 0, reply.Err()
+	if err := reply.Err(); err != nil {
+		err = CheckDeadline(ctx, err)
+		return 0, err
 	}
 	cnt, err := reply.Int64()
 	if err != nil {
@@ -389,7 +406,7 @@ func (cli redisCluster) HashTableGet(ctx context.Context, key string, value inte
 		reply := cli.HMGet(ctx, key, fields...)
 		v, err := reply.Result()
 		if err != nil {
-			return err
+			return CheckDeadline(ctx, err)
 		}
 		if len(v) > 0 {
 			err := reply.Scan(value)
@@ -401,7 +418,7 @@ func (cli redisCluster) HashTableGet(ctx context.Context, key string, value inte
 		reply := cli.HGetAll(ctx, key)
 		v, err := reply.Result()
 		if err != nil {
-			return err
+			return CheckDeadline(ctx, err)
 		}
 		if len(v) > 0 {
 			err := reply.Scan(value)
@@ -410,7 +427,7 @@ func (cli redisCluster) HashTableGet(ctx context.Context, key string, value inte
 			}
 		}
 	}
-	return errors.New("HashTable data does not exist")
+	return status.ErrRedisDataNotExist
 }
 
 func (cli redisCluster) HashTableGetAll(ctx context.Context, key string, value interface{}) error {
@@ -419,7 +436,7 @@ func (cli redisCluster) HashTableGetAll(ctx context.Context, key string, value i
 	reply := cli.HGetAll(ctx, key)
 	v, err := reply.Result()
 	if err != nil {
-		return err
+		return CheckDeadline(ctx, err)
 	}
 	if len(v) > 0 {
 		err := reply.Scan(value)
@@ -427,7 +444,7 @@ func (cli redisCluster) HashTableGetAll(ctx context.Context, key string, value i
 			return nil
 		}
 	}
-	return errors.New("HashTable data does not exist")
+	return status.ErrRedisDataNotExist
 }
 
 func (cli redisCluster) HashTableSet(ctx context.Context, key string, m interface{}, expire time.Duration) error {
@@ -435,12 +452,12 @@ func (cli redisCluster) HashTableSet(ctx context.Context, key string, m interfac
 
 	err := cli.HMSet(ctx, key, redisx.FlatStruct(m)).Err()
 	if err != nil {
-		return err
+		return CheckDeadline(ctx, err)
 	}
 
 	err = cli.Expire(ctx, key, expire).Err()
 	if err != nil {
-		return err
+		return CheckDeadline(ctx, err)
 	}
 
 	return nil
@@ -450,17 +467,15 @@ func (cli redisCluster) SetSet(ctx context.Context, key string, args []interface
 	ctx, _ = context.WithTimeout(ctx, cli.timeout)
 
 	if len(args) == 0 {
-		err := cli.Set(ctx, key, "", expire).Err()
-		return err
-
+		return cli.Set(ctx, key, "", expire)
 	}
-	err := cli.SAdd(ctx, key, args...).Err()
+	err := cli.SAdd(ctx, key, args...)
 	if err != nil {
 		return err
 	}
 	err = cli.Expire(ctx, key, expire).Err()
 	if err != nil {
-		return err
+		return CheckDeadline(ctx, err)
 	}
 	return nil
 }
@@ -469,18 +484,15 @@ func (cli redisCluster) SetDelKeys(ctx context.Context, key string) error {
 
 	keys, err := cli.SMembers(ctx, key).Result()
 	if err != nil {
-		return err
+		return CheckDeadline(ctx, err)
 	}
-	err = cli.Del(ctx, keys...).Err()
-	if err != nil {
-		return err
-	}
-	return nil
+	return cli.Del(ctx, keys...)
 }
 
-func (cli redisCluster) SortedSetRange(ctx context.Context, key string, pageNum, pageSize int64, desc bool) ([]int, int, error) {
+func (cli redisCluster) SortedSetRange(ctx context.Context, key string, pageSize, pageNum int64, desc bool) ([]int, int, error) {
 	ctx, _ = context.WithTimeout(ctx, cli.timeout)
 
+	logger := log.GetLogger(ctx)
 	rtype, err := cli.Type(ctx, key).Result()
 	if err == nil {
 		switch rtype {
@@ -502,19 +514,26 @@ func (cli redisCluster) SortedSetRange(ctx context.Context, key string, pageNum,
 						return ids, int(reply.Val()), nil
 					}
 				}
+			} else if errors.Is(reply.Err(), context.DeadlineExceeded) {
+				logger.Error("RedisDeadlineExceeded", zap.Error(err))
+				return nil, 0, status.ErrRedisDeadlineExceeded
 			}
 		case "none":
 		default:
 			return []int{}, 0, nil
 		}
-		return nil, 0, errors.New("SortedSet data does not exist")
+		return nil, 0, status.ErrRedisDataNotExist
+	} else if errors.Is(err, context.DeadlineExceeded) {
+		logger.Error("RedisDeadlineExceeded", zap.Error(err))
+		return nil, 0, status.ErrRedisDeadlineExceeded
 	}
 	return nil, 0, err
 }
 
-func (cli redisCluster) SortedSetRangeByScore(ctx context.Context, key string, lastId, pageSize int64, desc bool) ([]int, int, error) {
+func (cli redisCluster) SortedSetRangeByScore(ctx context.Context, key string, pageSize, lastId int64, desc bool) ([]int, int, error) {
 	ctx, _ = context.WithTimeout(ctx, cli.timeout)
 
+	logger := log.GetLogger(ctx)
 	rtype, err := cli.Type(ctx, key).Result()
 	if err == nil {
 		switch rtype {
@@ -534,12 +553,18 @@ func (cli redisCluster) SortedSetRangeByScore(ctx context.Context, key string, l
 						return ids, int(reply.Val()), nil
 					}
 				}
+			} else if errors.Is(reply.Err(), context.DeadlineExceeded) {
+				logger.Error("RedisDeadlineExceeded", zap.Error(err))
+				return nil, 0, status.ErrRedisDeadlineExceeded
 			}
 		case "none":
 		default:
 			return []int{}, 0, nil
 		}
-		return nil, 0, errors.New("SortedSet data does not exist")
+		return nil, 0, status.ErrRedisDataNotExist
+	} else if errors.Is(err, context.DeadlineExceeded) {
+		logger.Error("RedisDeadlineExceeded", zap.Error(err))
+		return nil, 0, status.ErrRedisDeadlineExceeded
 	}
 	return nil, 0, err
 }
@@ -548,12 +573,11 @@ func (cli redisCluster) SortedSetSet(ctx context.Context, key string, args []*re
 	ctx, _ = context.WithTimeout(ctx, cli.timeout)
 
 	if len(args) == 0 {
-		err := cli.Set(ctx, key, "", expire).Err()
-		return err
+		return cli.Set(ctx, key, "", expire)
 	}
 	err := cli.ZAdd(ctx, key, args...).Err()
 	if err != nil {
-		return err
+		return CheckDeadline(ctx, err)
 	}
 	err = cli.Expire(ctx, key, expire).Err()
 	if err != nil {
@@ -562,28 +586,38 @@ func (cli redisCluster) SortedSetSet(ctx context.Context, key string, args []*re
 	return nil
 }
 
-func (cli redisCluster) Del(ctx context.Context, keys ...string) *redis.IntCmd {
+func (cli redisCluster) Del(ctx context.Context, keys ...string) error {
 	ctx, _ = context.WithTimeout(ctx, cli.timeout)
 
-	return cli.ClusterClient.Del(ctx, keys...)
+	err := cli.ClusterClient.Del(ctx, keys...).Err()
+	return CheckDeadline(ctx, err)
 }
 
-func (cli redisCluster) Get(ctx context.Context, key string) *redis.StringCmd {
+//func (cli redisNode) Get(ctx context.Context, key string) *redis.StringCmd {
+//	ctx, _ = context.WithTimeout(ctx, cli.timeout)
+//
+//	return cli.ClusterClient.Get(ctx, key)
+//}
+
+func (cli redisCluster) SAdd(ctx context.Context, key string, members ...interface{}) error {
 	ctx, _ = context.WithTimeout(ctx, cli.timeout)
 
-	return cli.ClusterClient.Get(ctx, key)
+	err := cli.ClusterClient.SAdd(ctx, key, members...).Err()
+	return CheckDeadline(ctx, err)
 }
 
-func (cli redisCluster) SAdd(ctx context.Context, key string, members ...interface{}) *redis.IntCmd {
+func (cli redisCluster) Set(ctx context.Context, key string, value interface{}, expiration time.Duration) error {
 	ctx, _ = context.WithTimeout(ctx, cli.timeout)
 
-	return cli.ClusterClient.SAdd(ctx, key, members...)
+	err := cli.ClusterClient.Set(ctx, key, value, expiration).Err()
+	return CheckDeadline(ctx, err)
 }
 
-func (cli redisCluster) Set(ctx context.Context, key string, value interface{}, expiration time.Duration) *redis.StatusCmd {
+func (cli redisCluster) ZRem(ctx context.Context, key string, members ...interface{}) error {
 	ctx, _ = context.WithTimeout(ctx, cli.timeout)
 
-	return cli.ClusterClient.Set(ctx, key, value, expiration)
+	err := cli.ClusterClient.ZRem(ctx, key, members...).Err()
+	return CheckDeadline(ctx, err)
 }
 
 func clusterClient(timeout time.Duration, addrs ...string) *redis.ClusterClient {
@@ -627,4 +661,13 @@ func clusterClient(timeout time.Duration, addrs ...string) *redis.ClusterClient 
 			return nil
 		},
 	})
+}
+
+func CheckDeadline(ctx context.Context, err error) error {
+	if errors.Is(err, context.DeadlineExceeded) {
+		logger := log.GetLogger(ctx)
+		logger.Error("RedisDeadlineExceeded", zap.Error(err))
+		return status.ErrRedisDeadlineExceeded
+	}
+	return err
 }

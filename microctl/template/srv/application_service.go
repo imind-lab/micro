@@ -27,6 +27,7 @@ package service
 
 import (
 	"context"
+	"github.com/imind-lab/micro/tracing"
 	"io"
 
 	"github.com/go-playground/validator/v10"
@@ -58,7 +59,7 @@ func New{{.Svc}}Service() *{{.Svc}}Service {
 
 // Create{{.Svc}} 创建{{.Svc}}
 func (svc *{{.Svc}}Service) Create{{.Svc}}(ctx context.Context, req *{{.Service}}.Create{{.Svc}}Request) (*{{.Service}}.Create{{.Svc}}Response, error) {
-	logger := log.GetLogger(ctx, "{{.Svc}}Service", "Create{{.Svc}}")
+	logger := log.GetLogger(ctx)
 	logger.Debug("Receive Create{{.Svc}} request")
 
 	rsp := &{{.Service}}.Create{{.Svc}}Response{}
@@ -71,7 +72,10 @@ func (svc *{{.Svc}}Service) Create{{.Svc}}(ctx context.Context, req *{{.Service}
 
 // Get{{.Svc}}ById 根据Id获取{{.Svc}}
 func (svc *{{.Svc}}Service) Get{{.Svc}}ById(ctx context.Context, req *{{.Service}}.Get{{.Svc}}ByIdRequest) (*{{.Service}}.Get{{.Svc}}ByIdResponse, error) {
-	logger := log.GetLogger(ctx, "{{.Svc}}Service", "Get{{.Svc}}ById")
+	ctx, span := tracing.StartSpan(ctx)
+	span.End()
+
+	logger := log.GetLogger(ctx)
 	logger.Debug("Receive Get{{.Svc}}ById request")
 
 	rsp := &{{.Service}}.Get{{.Svc}}ByIdResponse{}
@@ -85,12 +89,12 @@ func (svc *{{.Svc}}Service) Get{{.Svc}}ById(ctx context.Context, req *{{.Service
 	return rsp, nil
 }
 
-func (svc *{{.Svc}}Service) Get{{.Svc}}List(ctx context.Context, req *{{.Service}}.Get{{.Svc}}ListRequest) (*{{.Service}}.Get{{.Svc}}ListResponse, error) {
-	logger := log.GetLogger(ctx, "{{.Svc}}Service", "Get{{.Svc}}List")
-	logger.Debug("Receive Get{{.Svc}}List request", zap.Any("req", req))
+func (svc *{{.Svc}}Service) Get{{.Svc}}List0(ctx context.Context, req *{{.Service}}.Get{{.Svc}}List0Request) (*{{.Service}}.Get{{.Svc}}ListResponse, error) {
+	logger := log.GetLogger(ctx)
+	logger.Debug("Receive Get{{.Svc}}List0 request", zap.Any("req", req))
 	rsp := &{{.Service}}.Get{{.Svc}}ListResponse{}
 	pageNum := int(req.PageNum)
-	if pageNum < 0 {
+	if pageNum <= 0 {
 		pageNum = 1
 	}
 	pageSize := int(req.PageSize)
@@ -99,17 +103,36 @@ func (svc *{{.Svc}}Service) Get{{.Svc}}List(ctx context.Context, req *{{.Service
 	} else if pageSize > 50 {
 		pageSize = 20
 	}
-	//list, err := svc.dm.Get{{.Svc}}List(ctx, int(req.{{.Svc}}Id), req.{{.Svc}}Uid, req.CountryCode, req.SortBy, int(req.LastId), pageSize, pageNum, req.SortOrder)
-	//if err != nil {
-	//	rsp.SetCode(status.InternalError, "服务器内部错误")
-	//	return rsp, nil
-	//}
-	//rsp.SetBody(status.Success, list)
+	list, err := svc.dm.Get{{.Svc}}List0(ctx, int(req.Status), pageSize, pageNum, req.Order)
+	if err != nil {
+		rsp.SetCode(status.InternalError, "服务器内部错误")
+		return rsp, nil
+	}
+	rsp.SetBody(status.Success, list)
+	return rsp, nil
+}
+
+func (svc *{{.Svc}}Service) Get{{.Svc}}List1(ctx context.Context, req *{{.Service}}.Get{{.Svc}}List1Request) (*{{.Service}}.Get{{.Svc}}ListResponse, error) {
+	logger := log.GetLogger(ctx)
+	logger.Debug("Receive Get{{.Svc}}List0 request", zap.Any("req", req))
+	rsp := &{{.Service}}.Get{{.Svc}}ListResponse{}
+	pageSize := int(req.PageSize)
+	if pageSize <= 0 {
+		pageSize = 20
+	} else if pageSize > 50 {
+		pageSize = 20
+	}
+	list, err := svc.dm.Get{{.Svc}}List1(ctx, int(req.Status), pageSize, int(req.LastId), req.Order)
+	if err != nil {
+		rsp.SetCode(status.InternalError, "服务器内部错误")
+		return rsp, nil
+	}
+	rsp.SetBody(status.Success, list)
 	return rsp, nil
 }
 
 func (svc *{{.Svc}}Service) Update{{.Svc}}Status(ctx context.Context, req *{{.Service}}.Update{{.Svc}}StatusRequest) (*{{.Service}}.Update{{.Svc}}StatusResponse, error) {
-	logger := log.GetLogger(ctx, "{{.Svc}}Service", "Update{{.Svc}}Status")
+	logger := log.GetLogger(ctx)
 	logger.Debug("Receive Update{{.Svc}}Status request")
 
 	rsp := &{{.Service}}.Update{{.Svc}}StatusResponse{}
@@ -118,14 +141,14 @@ func (svc *{{.Svc}}Service) Update{{.Svc}}Status(ctx context.Context, req *{{.Se
 }
 
 func (svc *{{.Svc}}Service) Delete{{.Svc}}ById(ctx context.Context, req *{{.Service}}.Delete{{.Svc}}ByIdRequest) (*{{.Service}}.Delete{{.Svc}}ByIdResponse, error) {
-	logger := ctxzap.Extract(ctx).With(zap.String("layer", "{{.Svc}}Service"), zap.String("func", "Create{{.Svc}}"))
+	logger := log.GetLogger(ctx)
 	logger.Debug("Receive Delete{{.Svc}}ById request")
 
 	rsp := &{{.Service}}.Delete{{.Svc}}ByIdResponse{}
 	affected, err := svc.dm.Delete{{.Svc}}ById(ctx, int(req.Id))
 	if err != nil || affected <= 0 {
 		logger.Error("更新{{.Svc}}失败", zap.Int8("affected", affected), zap.Error(err))
-		rsp.SetCode(status.DBSaveFailed, "更新{{.Svc}}失败")
+		rsp.SetCode(status.DBUpdateFailed, "更新{{.Svc}}失败")
 		return rsp, nil
 	}
 	rsp.SetCode(status.Success, "")
@@ -133,7 +156,7 @@ func (svc *{{.Svc}}Service) Delete{{.Svc}}ById(ctx context.Context, req *{{.Serv
 }
 
 func (svc *{{.Svc}}Service) Get{{.Svc}}ListByStream(stream {{.Service}}.{{.Svc}}Service_Get{{.Svc}}ListByStreamServer) error {
-	logger := log.GetLogger(stream.Context(), "{{.Svc}}Service", "Get{{.Svc}}ListByStream")
+	logger := log.GetLogger(stream.Context())
 	logger.Debug("Receive Get{{.Svc}}ListByStream request")
 
 	for {

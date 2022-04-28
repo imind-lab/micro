@@ -27,42 +27,15 @@ package {{.Service}}
 
 import (
 	"context"
+	"github.com/imind-lab/micro/tracing"
 	"math"
 
-	"github.com/imind-lab/micro/dao"
 	"github.com/imind-lab/micro/log"
 	"github.com/pkg/errors"
 
 	"{{.Domain}}/{{.Project}}/{{.Service}}/application/{{.Service}}/proto"
-	repository "{{.Domain}}/{{.Project}}/{{.Service}}/repository/{{.Service}}"
 	"{{.Domain}}/{{.Project}}/{{.Service}}/repository/{{.Service}}/model"
-	"{{.Domain}}/{{.Project}}/{{.Service}}/repository/{{.Service}}/persistence"
 )
-
-type {{.Svc}}Domain interface {
-	Create{{.Svc}}(ctx context.Context, m model.{{.Svc}}) error
-
-	Get{{.Svc}}ById(ctx context.Context, id int) (*{{.Service}}.{{.Svc}}, error)
-	Get{{.Svc}}List(ctx context.Context, status, lastId, pageSize, pageNum int, desc bool) (*{{.Service}}.{{.Svc}}List, error)
-
-	Update{{.Svc}}Status(ctx context.Context, id, status int) (int8, error)
-
-	Delete{{.Svc}}ById(ctx context.Context, id int) (int8, error)
-}
-
-type {{.Service}}Domain struct {
-	dao.Cache
-
-	repo repository.{{.Svc}}Repository
-}
-
-func New{{.Svc}}Domain() {{.Svc}}Domain {
-	repo := persistence.New{{.Svc}}Repository()
-	dm := {{.Service}}Domain{
-		Cache: dao.NewCache(),
-		repo:  repo}
-	return dm
-}
 
 func (dm {{.Service}}Domain) Create{{.Svc}}(ctx context.Context, m model.{{.Svc}}) error {
 	_, err := dm.repo.Create{{.Svc}}(ctx, m)
@@ -70,7 +43,10 @@ func (dm {{.Service}}Domain) Create{{.Svc}}(ctx context.Context, m model.{{.Svc}
 }
 
 func (dm {{.Service}}Domain) Get{{.Svc}}ById(ctx context.Context, id int) (*{{.Service}}.{{.Svc}}, error) {
-	logger := log.GetLogger(ctx, "{{.Service}}Domain", "Get{{.Svc}}ById")
+	ctx, span := tracing.StartSpan(ctx)
+	span.End()
+
+	logger := log.GetLogger(ctx)
 	logger.Info("{{.Service}}Domain.Get{{.Svc}}ById invoke")
 
 	m, err := dm.repo.Get{{.Svc}}ById(ctx, id)
@@ -80,8 +56,8 @@ func (dm {{.Service}}Domain) Get{{.Svc}}ById(ctx context.Context, id int) (*{{.S
 	return {{.Svc}}Out(m), nil
 }
 
-func (dm {{.Service}}Domain) Get{{.Svc}}List(ctx context.Context, status, lastId, pageSize, pageNum int, desc bool) (*{{.Service}}.{{.Svc}}List, error) {
-	list, total, err := dm.repo.Get{{.Svc}}List(ctx, status, lastId, pageSize, pageNum, desc)
+func (dm {{.Service}}Domain) Get{{.Svc}}List0(ctx context.Context, status, pageSize, pageNum int, desc bool) (*{{.Service}}.{{.Svc}}List, error) {
+	list, total, err := dm.repo.Get{{.Svc}}List0(ctx, status, pageSize, pageNum, desc)
 	if err != nil {
 		return nil, err
 	}
@@ -98,6 +74,27 @@ func (dm {{.Service}}Domain) Get{{.Svc}}List(ctx context.Context, status, lastId
 	{{.Service}}List.Total = int32(total)
 	{{.Service}}List.TotalPage = totalPage
 	{{.Service}}List.CurPage = int32(pageNum)
+
+	return {{.Service}}List, nil
+}
+
+// 疑问：中间时翻上一页
+func (dm {{.Service}}Domain) Get{{.Svc}}List1(ctx context.Context, status, pageSize, lastId int, desc bool) (*{{.Service}}.{{.Svc}}List, error) {
+	list, total, err := dm.repo.Get{{.Svc}}List1(ctx, status, pageSize, lastId, desc)
+	if err != nil {
+		return nil, err
+	}
+	{{.Service}}s := {{.Svc}}OutMap(list, {{.Svc}}Out)
+
+	var totalPage int32 = 0
+	if total > 0 {
+		totalPage = int32(math.Ceil(float64(total) / float64(pageSize)))
+	}
+	{{.Service}}List := &{{.Service}}.{{.Svc}}List{}
+	{{.Service}}List.Datalist = {{.Service}}s
+	{{.Service}}List.Total = int32(total)
+	{{.Service}}List.TotalPage = totalPage
+	{{.Service}}List.CurPage = 1
 
 	return {{.Service}}List, nil
 }

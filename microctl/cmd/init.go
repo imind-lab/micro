@@ -232,6 +232,13 @@ var serverCmd = &cobra.Command{
 				fmt.Println("生成DomainConvert出错", err)
 			}
 
+			err = srv.CreateDomainDomain(data)
+			if err == nil {
+				fmt.Println("生成DomainDomain成功")
+			} else {
+				fmt.Println("生成DomainDomain出错", err)
+			}
+
 			err = srv.CreateDomainService(data)
 			if err == nil {
 				fmt.Println("生成DomainService成功")
@@ -307,6 +314,13 @@ var serverCmd = &cobra.Command{
 				fmt.Println("生成RepositoryPersistence成功")
 			} else {
 				fmt.Println("生成RepositoryPersistence出错", err)
+			}
+
+			err = srv.CreateRepositoryPersistenceService(data)
+			if err == nil {
+				fmt.Println("生成RepositoryPersistenceService成功")
+			} else {
+				fmt.Println("生成RepositoryPersistenceService出错", err)
 			}
 
 			err = srv.CreateServer(data)
