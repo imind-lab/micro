@@ -22,7 +22,7 @@ func CreateConf(data *tpl.Data) error {
   version: latest
   logLevel: -2
   port: #监听端口
-    http: 88
+    http: 80
     grpc: 50051
   rate:
     high:
@@ -35,12 +35,9 @@ func CreateConf(data *tpl.Data) error {
     rate: 1
 
 tracing:
-  agent: '172.16.50.50:6831'
-  type: const
-  param: 1
-  name:
-    client: {{.Project}}-{{.Service}}-api-cli
-    server: {{.Project}}-{{.Service}}-api-srv
+  agent:
+    host: '127.0.0.1'
+    port: 6831
 
 log:
   path: './logs/ms.log'

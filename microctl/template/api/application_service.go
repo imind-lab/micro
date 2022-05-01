@@ -28,7 +28,8 @@ package service
 import (
 	"context"
 	"fmt"
-	{{.Service}}_api "{{.Domain}}/{{.Project}}/{{.Service}}-api/application/{{.Service}}/proto"
+	"github.com/imind-lab/micro/log"
+	"github.com/imind-lab/micro/tracing"
 	"io"
 	"strconv"
 	"sync"
@@ -36,11 +37,11 @@ import (
 	sentinel "github.com/alibaba/sentinel-golang/api"
 	"github.com/alibaba/sentinel-golang/core/base"
 	"github.com/go-playground/validator/v10"
-	"github.com/grpc-ecosystem/go-grpc-middleware/logging/zap/ctxzap"
 	"github.com/imind-lab/micro/status"
 	"go.uber.org/zap"
 	"google.golang.org/grpc/metadata"
 
+	{{.Service}}_api "{{.Domain}}/{{.Project}}/{{.Service}}-api/application/{{.Service}}/proto"
 	"{{.Domain}}/{{.Project}}/{{.Service}}/application/{{.Service}}/proto"
 	{{.Service}}Client "{{.Domain}}/{{.Project}}/{{.Service}}/client"
 	sentinelx "github.com/imind-lab/micro/sentinel"
@@ -49,8 +50,7 @@ import (
 type {{.Svc}}Service struct {
 	{{.Service}}_api.Unimplemented{{.Svc}}ServiceServer
 
-	validate *validator.Validate
-
+	vd *validator.Validate
 	ds *sentinelx.Sentinel
 }
 
@@ -58,20 +58,20 @@ type {{.Svc}}Service struct {
 func New{{.Svc}}Service(logger *zap.Logger) *{{.Svc}}Service {
 	ds, _ := sentinelx.NewSentinel(logger)
 	svc := &{{.Svc}}Service{
-		ds:       ds,
-		validate: validator.New(),
+		ds: ds,
+		vd: validator.New(),
 	}
 	return svc
 }
 
 // Create{{.Svc}} 创建{{.Svc}}
 func (svc *{{.Svc}}Service) Create{{.Svc}}(ctx context.Context, req *{{.Service}}_api.Create{{.Svc}}Request) (*{{.Service}}_api.Create{{.Svc}}Response, error) {
-	logger := ctxzap.Extract(ctx).With(zap.String("layer", "{{.Svc}}Service"), zap.String("func", "Create{{.Svc}}"))
+	logger := log.GetLogger(ctx)
 	logger.Debug("Receive Create{{.Svc}} request")
 
 	rsp := &{{.Service}}_api.Create{{.Svc}}Response{}
 
-	err := svc.validate.Struct(req)
+	err := svc.vd.Struct(req)
 	if err != nil {
 
 		if _, ok := err.(*validator.InvalidValidationError); ok {
@@ -95,8 +95,8 @@ func (svc *{{.Svc}}Service) Create{{.Svc}}(ctx context.Context, req *{{.Service}
 
 	}
 
-	err = svc.validate.Var(req.Name, "required,email")
-	fmt.Println("validate", req.Name, err)
+	err = svc.vd.Var(req.Name, "required,email")
+	fmt.Println("vd", req.Name, err)
 	if err != nil {
 		logger.Error("无效的Name", zap.Any("name", req.Name))
 
@@ -112,7 +112,7 @@ func (svc *{{.Svc}}Service) Create{{.Svc}}(ctx context.Context, req *{{.Service}
 			uid, _ = strconv.Atoi(uids[0])
 		}
 	}
-	ctxzap.Debug(ctx, "Create{{.Svc}} Metadata", zap.Any("meta", meta), zap.Int("uid", uid), zap.Bool("ok", ok))
+	logger.Debug("Create{{.Svc}} Metadata", zap.Any("meta", meta), zap.Int("uid", uid), zap.Bool("ok", ok))
 
 	ctx = metadata.NewOutgoingContext(ctx, meta)
 
@@ -134,13 +134,16 @@ func (svc *{{.Svc}}Service) Create{{.Svc}}(ctx context.Context, req *{{.Service}
 		return rsp, nil
 	}
 
-	rsp.SetCode(status.Code(resp.Code), resp.Message)
+	rsp.SetCode(status.Code(resp.Code), resp.Msg)
 	return rsp, nil
 }
 
 // Get{{.Svc}}ById 根据Id获取{{.Svc}}
 func (svc *{{.Svc}}Service) Get{{.Svc}}ById(ctx context.Context, req *{{.Service}}_api.Get{{.Svc}}ByIdRequest) (*{{.Service}}_api.Get{{.Svc}}ByIdResponse, error) {
-	logger := ctxzap.Extract(ctx).With(zap.String("layer", "{{.Svc}}Service"), zap.String("func", "Get{{.Svc}}ById"))
+	ctx, span := tracing.StartSpan(ctx)
+	span.End()
+
+	logger := log.GetLogger(ctx)
 	logger.Debug("Receive Get{{.Svc}}ById request")
 
 	rsp := &{{.Service}}_api.Get{{.Svc}}ByIdResponse{}
@@ -153,16 +156,7 @@ func (svc *{{.Svc}}Service) Get{{.Svc}}ById(ctx context.Context, req *{{.Service
 			uid, _ = strconv.Atoi(uids[0])
 		}
 	}
-	ctxzap.Debug(ctx, "Get{{.Svc}}ById Metadata", zap.Any("meta", meta), zap.Int("uid", uid), zap.Bool("ok", ok))
-
-	ctx = metadata.NewOutgoingContext(ctx, meta)
-	{{.Service}}Cli, err := {{.Service}}Client.New(ctx)
-	if err != nil {
-		logger.Error("{{.Service}}Client.New error", zap.Any("{{.Service}}Cli", {{.Service}}Cli), zap.Error(err))
-
-		rsp.SetCode(status.SystemError, "服务器繁忙，请稍候再试")
-		return rsp, nil
-	}
+	logger.Debug("Get{{.Svc}}ById Metadata", zap.Any("meta", meta), zap.Int("uid", uid), zap.Bool("ok", ok))
 
 	sentinelEntry, blockError := sentinel.Entry("test1")
 	if blockError != nil {
@@ -173,10 +167,19 @@ func (svc *{{.Svc}}Service) Get{{.Svc}}ById(ctx context.Context, req *{{.Service
 	}
 	defer sentinelEntry.Exit()
 
+	ctx = metadata.NewOutgoingContext(ctx, meta)
+	{{.Service}}Cli, err := {{.Service}}Client.New(ctx)
+	if err != nil {
+		logger.Error("{{.Service}}Client.New error", zap.Any("{{.Service}}Cli", {{.Service}}Cli), zap.Error(err))
+
+		rsp.SetCode(status.SystemError, "服务器繁忙，请稍候再试")
+		return rsp, nil
+	}
+
 	resp, err := {{.Service}}Cli.Get{{.Svc}}ById(ctx, &{{.Service}}.Get{{.Svc}}ByIdRequest{
 		Id: req.Id,
 	})
-	ctxzap.Debug(ctx, "{{.Service}}Cli.Get{{.Svc}}ById", zap.Any("resp", resp), zap.Error(err))
+	logger.Debug("{{.Service}}Cli.Get{{.Svc}}ById", zap.Any("resp", resp), zap.Error(err))
 	if err != nil {
 		logger.Error("{{.Service}}Cli.Get{{.Svc}}ById error", zap.Any("resp", resp), zap.Error(err))
 
@@ -186,23 +189,23 @@ func (svc *{{.Svc}}Service) Get{{.Svc}}ById(ctx context.Context, req *{{.Service
 		return rsp, nil
 	}
 
-	fmt.Println(resp.Code, resp.Message, resp.Data)
+	fmt.Println(resp.Code, resp.Msg, resp.Data)
 	state := status.Code(resp.Code)
 	if state == status.Success {
 		rsp.SetBody(state, {{.Svc}}Srv2Api(resp.Data))
 	} else {
-		rsp.SetCode(state, resp.Message)
+		rsp.SetCode(state, resp.Msg)
 	}
 	return rsp, nil
 }
 
-func (svc *{{.Svc}}Service) Get{{.Svc}}List(ctx context.Context, req *{{.Service}}_api.Get{{.Svc}}ListRequest) (*{{.Service}}_api.Get{{.Svc}}ListResponse, error) {
-	logger := ctxzap.Extract(ctx).With(zap.String("layer", "{{.Svc}}Service"), zap.String("func", "Get{{.Svc}}List"))
-	logger.Debug("Receive Get{{.Svc}}List request")
+func (svc *{{.Svc}}Service) Get{{.Svc}}List0(ctx context.Context, req *{{.Service}}_api.Get{{.Svc}}List0Request) (*{{.Service}}_api.Get{{.Svc}}ListResponse, error) {
+	logger := log.GetLogger(ctx)
+	logger.Debug("Receive Get{{.Svc}}List0 request")
 
 	rsp := &{{.Service}}_api.Get{{.Svc}}ListResponse{}
 
-	err := svc.validate.Struct(req)
+	err := svc.vd.Struct(req)
 	if err != nil {
 
 		if _, ok := err.(*validator.InvalidValidationError); ok {
@@ -227,7 +230,7 @@ func (svc *{{.Svc}}Service) Get{{.Svc}}List(ctx context.Context, req *{{.Service
 
 	rateEntry, rateError := sentinel.Entry("abcd", sentinel.WithTrafficType(base.Inbound))
 	if rateError != nil {
-		ctxzap.Debug(ctx, "Get{{.Svc}}List限流了")
+		logger.Debug("Get{{.Svc}}List限流了")
 
 		rsp.SetCode(status.SystemError, "Get{{.Svc}}List限流了")
 		return rsp, nil
@@ -241,7 +244,7 @@ func (svc *{{.Svc}}Service) Get{{.Svc}}List(ctx context.Context, req *{{.Service
 			uid, _ = strconv.Atoi(uids[0])
 		}
 	}
-	ctxzap.Debug(ctx, "Get{{.Svc}}List Metadata", zap.Any("meta", meta), zap.Int("uid", uid), zap.Bool("ok", ok))
+	logger.Debug("Get{{.Svc}}List0 Metadata", zap.Any("meta", meta), zap.Int("uid", uid), zap.Bool("ok", ok))
 
 	ctx = metadata.NewOutgoingContext(ctx, meta)
 
@@ -253,14 +256,13 @@ func (svc *{{.Svc}}Service) Get{{.Svc}}List(ctx context.Context, req *{{.Service
 		return rsp, nil
 	}
 
-	resp, err := {{.Service}}Cli.Get{{.Svc}}List(ctx, &{{.Service}}.Get{{.Svc}}ListRequest{
+	resp, err := {{.Service}}Cli.Get{{.Svc}}List0(ctx, &{{.Service}}.Get{{.Svc}}List0Request{
 		Status:   req.Status,
-		Lastid:   req.Lastid,
 		PageSize: req.PageSize,
 		PageNum:  req.PageNum,
 	})
 	if err != nil {
-		logger.Error("{{.Service}}Cli.Get{{.Svc}}List error", zap.Any("resp", resp), zap.Error(err))
+		logger.Error("{{.Service}}Cli.Get{{.Svc}}List0 error", zap.Any("resp", resp), zap.Error(err))
 
 		rsp.SetCode(status.CommunicationFailed, "获取{{.Svc}}List失败")
 		return rsp, nil
@@ -270,13 +272,91 @@ func (svc *{{.Svc}}Service) Get{{.Svc}}List(ctx context.Context, req *{{.Service
 	if state == status.Success {
 		rsp.SetBody(state, {{.Svc}}ListSrv2Api(resp.Data))
 	} else {
-		rsp.SetCode(state, resp.Message)
+		rsp.SetCode(state, resp.Msg)
+	}
+	return rsp, nil
+}
+
+func (svc *{{.Svc}}Service) Get{{.Svc}}List1(ctx context.Context, req *{{.Service}}_api.Get{{.Svc}}List1Request) (*{{.Service}}_api.Get{{.Svc}}ListResponse, error) {
+	logger := log.GetLogger(ctx)
+	logger.Debug("Receive Get{{.Svc}}List0 request")
+
+	rsp := &{{.Service}}_api.Get{{.Svc}}ListResponse{}
+
+	err := svc.vd.Struct(req)
+	if err != nil {
+
+		if _, ok := err.(*validator.InvalidValidationError); ok {
+			fmt.Println(err)
+		}
+
+		for _, err := range err.(validator.ValidationErrors) {
+			fmt.Println(err.Namespace())
+			fmt.Println(err.Field())
+			fmt.Println(err.StructNamespace())
+			fmt.Println(err.StructField())
+			fmt.Println(err.Tag())
+			fmt.Println(err.ActualTag())
+			fmt.Println(err.Kind())
+			fmt.Println(err.Type())
+			fmt.Println(err.Value())
+			fmt.Println(err.Param())
+			fmt.Println()
+		}
+
+	}
+
+	rateEntry, rateError := sentinel.Entry("abcd", sentinel.WithTrafficType(base.Inbound))
+	if rateError != nil {
+		logger.Debug("Get{{.Svc}}List限流了")
+
+		rsp.SetCode(status.SystemError, "Get{{.Svc}}List限流了")
+		return rsp, nil
+	}
+	defer rateEntry.Exit()
+	uid := 0
+	meta, ok := metadata.FromIncomingContext(ctx)
+	if ok {
+		uids := meta.Get("uid")
+		if len(uids) > 0 {
+			uid, _ = strconv.Atoi(uids[0])
+		}
+	}
+	logger.Debug("Get{{.Svc}}List0 Metadata", zap.Any("meta", meta), zap.Int("uid", uid), zap.Bool("ok", ok))
+
+	ctx = metadata.NewOutgoingContext(ctx, meta)
+
+	{{.Service}}Cli, err := {{.Service}}Client.New(ctx)
+	if err != nil {
+		logger.Error("{{.Service}}Client.New error", zap.Any("{{.Service}}Cli", {{.Service}}Cli), zap.Error(err))
+
+		rsp.SetCode(status.SystemError, "服务器繁忙，请稍候再试")
+		return rsp, nil
+	}
+
+	resp, err := {{.Service}}Cli.Get{{.Svc}}List1(ctx, &{{.Service}}.Get{{.Svc}}List1Request{
+		Status:   req.Status,
+		PageSize: req.PageSize,
+		LastId:   req.LastId,
+	})
+	if err != nil {
+		logger.Error("{{.Service}}Cli.Get{{.Svc}}List0 error", zap.Any("resp", resp), zap.Error(err))
+
+		rsp.SetCode(status.CommunicationFailed, "获取{{.Svc}}List失败")
+		return rsp, nil
+	}
+
+	state := status.Code(resp.Code)
+	if state == status.Success {
+		rsp.SetBody(state, {{.Svc}}ListSrv2Api(resp.Data))
+	} else {
+		rsp.SetCode(state, resp.Msg)
 	}
 	return rsp, nil
 }
 
 func (svc *{{.Svc}}Service) Update{{.Svc}}Status(ctx context.Context, req *{{.Service}}_api.Update{{.Svc}}StatusRequest) (*{{.Service}}_api.Update{{.Svc}}StatusResponse, error) {
-	logger := ctxzap.Extract(ctx).With(zap.String("layer", "{{.Svc}}Service"), zap.String("func", "Update{{.Svc}}Status"))
+	logger := log.GetLogger(ctx)
 	logger.Debug("Receive Update{{.Svc}}Status request")
 
 	rsp := &{{.Service}}_api.Update{{.Svc}}StatusResponse{}
@@ -289,7 +369,7 @@ func (svc *{{.Svc}}Service) Update{{.Svc}}Status(ctx context.Context, req *{{.Se
 			uid, _ = strconv.Atoi(uids[0])
 		}
 	}
-	ctxzap.Debug(ctx, "Update{{.Svc}}Status Metadata", zap.Any("meta", meta), zap.Int("uid", uid), zap.Bool("ok", ok))
+	logger.Debug("Update{{.Svc}}Status Metadata", zap.Any("meta", meta), zap.Int("uid", uid), zap.Bool("ok", ok))
 
 	ctx = metadata.NewOutgoingContext(ctx, meta)
 
@@ -312,12 +392,12 @@ func (svc *{{.Svc}}Service) Update{{.Svc}}Status(ctx context.Context, req *{{.Se
 		return rsp, nil
 	}
 
-	rsp.SetCode(status.Code(resp.Code), resp.Message)
+	rsp.SetCode(status.Code(resp.Code), resp.Msg)
 	return rsp, nil
 }
 
 func (svc *{{.Svc}}Service) Delete{{.Svc}}ById(ctx context.Context, req *{{.Service}}_api.Delete{{.Svc}}ByIdRequest) (*{{.Service}}_api.Delete{{.Svc}}ByIdResponse, error) {
-	logger := ctxzap.Extract(ctx).With(zap.String("layer", "{{.Svc}}Service"), zap.String("func", "Delete{{.Svc}}ById"))
+	logger := log.GetLogger(ctx)
 	logger.Debug("Receive Delete{{.Svc}}ById request")
 
 	rsp := &{{.Service}}_api.Delete{{.Svc}}ByIdResponse{}
@@ -330,7 +410,7 @@ func (svc *{{.Svc}}Service) Delete{{.Svc}}ById(ctx context.Context, req *{{.Serv
 			uid, _ = strconv.Atoi(uids[0])
 		}
 	}
-	ctxzap.Debug(ctx, "Delete{{.Svc}}ById Metadata", zap.Any("meta", meta), zap.Int("uid", uid), zap.Bool("ok", ok))
+	logger.Debug("Delete{{.Svc}}ById Metadata", zap.Any("meta", meta), zap.Int("uid", uid), zap.Bool("ok", ok))
 
 	ctx = metadata.NewOutgoingContext(ctx, meta)
 
@@ -352,11 +432,11 @@ func (svc *{{.Svc}}Service) Delete{{.Svc}}ById(ctx context.Context, req *{{.Serv
 		return rsp, nil
 	}
 
-	rsp.SetCode(status.Code(resp.Code), resp.Message)
+	rsp.SetCode(status.Code(resp.Code), resp.Msg)
 	return rsp, nil
 }
 func (svc *{{.Svc}}Service) Get{{.Svc}}ListByIds(ctx context.Context, req *{{.Service}}_api.Get{{.Svc}}ListByIdsRequest) (*{{.Service}}_api.Get{{.Svc}}ListByIdsResponse, error) {
-	logger := ctxzap.Extract(ctx).With(zap.String("layer", "{{.Svc}}Service"), zap.String("func", "Get{{.Svc}}ListByIds"))
+	logger := log.GetLogger(ctx)
 	logger.Debug("Receive Get{{.Svc}}ListByIds request")
 
 	rsp := &{{.Service}}_api.Get{{.Svc}}ListByIdsResponse{}
@@ -369,7 +449,7 @@ func (svc *{{.Svc}}Service) Get{{.Svc}}ListByIds(ctx context.Context, req *{{.Se
 			uid, _ = strconv.Atoi(uids[0])
 		}
 	}
-	ctxzap.Debug(ctx, "Get{{.Svc}}ListByIds Metadata", zap.Any("meta", meta), zap.Int("uid", uid), zap.Bool("ok", ok))
+	logger.Debug("Get{{.Svc}}ListByIds Metadata", zap.Any("meta", meta), zap.Int("uid", uid), zap.Bool("ok", ok))
 
 	ctx = metadata.NewOutgoingContext(ctx, meta)
 
@@ -402,7 +482,7 @@ func (svc *{{.Svc}}Service) Get{{.Svc}}ListByIds(ctx context.Context, req *{{.Se
 				return
 			}
 			if err != nil {
-				ctxzap.Error(ctx, "Get{{.Svc}}ListByStream Recv error", zap.Error(err))
+				logger.Error("Get{{.Svc}}ListByStream Recv error", zap.Error(err))
 				return
 			}
 			fmt.Println("Recv", resp.Index, resp.Result)

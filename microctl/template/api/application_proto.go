@@ -31,22 +31,32 @@ service {{.Svc}}Service {
            body: "*"
         };
     }
+
     rpc Get{{.Svc}}ById (Get{{.Svc}}ByIdRequest) returns (Get{{.Svc}}ByIdResponse) {
         option (google.api.http) = {
            get: "/v1/{{.Service}}/one/{id}"
         };
     }
-    rpc Get{{.Svc}}List (Get{{.Svc}}ListRequest) returns (Get{{.Svc}}ListResponse) {
+
+    rpc Get{{.Svc}}List0 (Get{{.Svc}}List0Request) returns (Get{{.Svc}}ListResponse) {
         option (google.api.http) = {
-           get: "/v1/{{.Service}}/list/{status}"
+            get: "/v1/{{.Service}}/list/0/{status}"
         };
     }
+
+    rpc Get{{.Svc}}List1 (Get{{.Svc}}List1Request) returns (Get{{.Svc}}ListResponse) {
+        option (google.api.http) = {
+            get: "/v1/{{.Service}}/list/1/{status}"
+        };
+    }
+
     rpc Update{{.Svc}}Status (Update{{.Svc}}StatusRequest) returns (Update{{.Svc}}StatusResponse) {
         option (google.api.http) = {
            post: "/v1/{{.Service}}/status"
            body: "*"
         };
     }
+
     rpc Delete{{.Svc}}ById (Delete{{.Svc}}ByIdRequest) returns (Delete{{.Svc}}ByIdResponse) {
         option (google.api.http) = {
            post: "/v1/{{.Service}}/del"
@@ -72,7 +82,7 @@ message Create{{.Svc}}Request {
 // @inject_response Create{{.Svc}}Response
 message Create{{.Svc}}Response {
     int32 code = 1;
-    string message = 2;
+    string msg = 2;
 }
 
 message Get{{.Svc}}ByIdRequest {
@@ -82,23 +92,32 @@ message Get{{.Svc}}ByIdRequest {
 // @inject_response Get{{.Svc}}ByIdResponse *{{.Svc}} data
 message Get{{.Svc}}ByIdResponse {
     int32 code = 1;
-    string message = 2;
+    string msg = 2;
     {{.Svc}} data = 3;
 }
 
-message Get{{.Svc}}ListRequest {
+message Get{{.Svc}}List0Request {
     // @inject_tag: validate:"gte=0,lte=3"
     int32 status = 1;
-    int32 lastid = 2;
     // @inject_tag: validate:"gte=5,lte=20"
-    int32 page_size = 3;
-    int32 page_num = 4;
+    int32 page_size = 2;
+    int32 page_num = 3;
+    bool order = 4;
+}
+
+message Get{{.Svc}}List1Request {
+    // @inject_tag: validate:"gte=0,lte=3"
+    int32 status = 1;
+    // @inject_tag: validate:"gte=5,lte=20"
+    int32 page_size = 2;
+    int32 last_id = 3;
+    bool order = 4;
 }
 
 // @inject_response Get{{.Svc}}ListResponse *{{.Svc}}List data
 message Get{{.Svc}}ListResponse {
     int32 code = 1;
-    string message = 2;
+    string msg = 2;
     {{.Svc}}List data = 3;
 }
 
@@ -110,7 +129,7 @@ message Update{{.Svc}}StatusRequest {
 // @inject_response Update{{.Svc}}StatusResponse
 message Update{{.Svc}}StatusResponse {
     int32 code = 1;
-    string message = 2;
+    string msg = 2;
 }
 
 message Delete{{.Svc}}ByIdRequest {
@@ -120,7 +139,7 @@ message Delete{{.Svc}}ByIdRequest {
 // @inject_response Delete{{.Svc}}ByIdResponse
 message Delete{{.Svc}}ByIdResponse {
     int32 code = 1;
-    string message = 2;
+    string msg = 2;
 }
 
 message {{.Svc}} {
@@ -149,7 +168,7 @@ message Get{{.Svc}}ListByIdsRequest {
 // @inject_response Get{{.Svc}}ListByIdsResponse []*{{.Svc}} data
 message Get{{.Svc}}ListByIdsResponse {
     int32 code = 1;
-    string message = 2;
+    string msg = 2;
     repeated {{.Svc}} data = 3;
 }
 `

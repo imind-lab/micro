@@ -27,31 +27,31 @@ package client
 
 import (
 	"context"
-	"io"
-
-	"github.com/imind-lab/micro/grpc"
-
 	"{{.Domain}}/{{.Project}}/{{.Service}}/application/{{.Service}}/proto"
+	"github.com/imind-lab/micro"
+	tracesdk "go.opentelemetry.io/otel/sdk/trace"
 )
 
 type {{.Service}}Client struct {
 	{{.Service}}.{{.Svc}}ServiceClient
-	closer io.Closer
+	context  context.Context
+	provider *tracesdk.TracerProvider
 }
 
 func New{{.Svc}}Client(ctx context.Context, name string, tls bool) (*{{.Service}}Client, error) {
-	conn, closer, err := grpc.ClientConn(ctx, name, tls)
+	conn, provider, err := micro.ClientConn(ctx, name, tls)
 	if err != nil {
 		return nil, err
 	}
 	return &{{.Service}}Client{
 		{{.Svc}}ServiceClient: {{.Service}}.New{{.Svc}}ServiceClient(conn),
-		closer:              closer,
+		context:             ctx,
+		provider:            provider,
 	}, nil
 }
 
-func (tc *{{.Service}}Client) Close() error {
-	return tc.closer.Close()
+func (cli *{{.Service}}Client) Close() error {
+	return cli.provider.Shutdown(cli.context)
 }
 `
 

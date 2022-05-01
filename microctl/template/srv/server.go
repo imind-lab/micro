@@ -62,7 +62,6 @@ func Serve() error {
 
 	// 注册gRPC-Gateway
 	endPoint := fmt.Sprintf(":%d", viper.GetInt("service.port.grpc"))
-	fmt.Println(endPoint)
 
 	mux := svc.ServeMux()
 	opts := []grpc.DialOption{grpc.WithTransportCredentials(grpcCred.ClientCred())}

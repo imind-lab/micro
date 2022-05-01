@@ -20,22 +20,18 @@ func CreateMod(data *tpl.Data) error {
 
 go 1.16
 
-replace (
-	github.com/imind-lab/micro => ../../../github.com/imind-lab/micro
-)
-
 require (
-	github.com/go-playground/validator/v10 v10.10.0
-	github.com/go-redis/redis/v8 v8.11.3
-	github.com/grpc-ecosystem/go-grpc-middleware v1.3.0
-	github.com/grpc-ecosystem/grpc-gateway/v2 v2.6.0
-	github.com/imind-lab/micro v0.0.0-20220224071238-db0be8430c34
+	github.com/go-playground/validator/v10 v10.10.1
+	github.com/go-redis/redis/v8 v8.11.4
+	github.com/grpc-ecosystem/grpc-gateway/v2 v2.8.0
+	github.com/imind-lab/micro v0.0.0-20220325124738-6a28cd56f635
 	github.com/pkg/errors v0.9.1
-	github.com/spf13/cobra v1.2.1
-	github.com/spf13/viper v1.9.0
-	go.uber.org/zap v1.19.1
-	google.golang.org/genproto v0.0.0-20210903162649-d08c68adba83
-	google.golang.org/grpc v1.44.0
+	github.com/spf13/cobra v1.4.0
+	github.com/spf13/viper v1.10.1
+	go.opentelemetry.io/otel/sdk v1.5.0
+	go.uber.org/zap v1.21.0
+	google.golang.org/genproto v0.0.0-20220314164441-57ef72a4c106
+	google.golang.org/grpc v1.45.0
 	google.golang.org/protobuf v1.27.1
 	gorm.io/gorm v1.23.3
 )

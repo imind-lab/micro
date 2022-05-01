@@ -38,7 +38,7 @@ type {{.Svc}}Repository struct {
 	dao.Dao
 }
 
-//New{{.Svc}}Repository 创建用户仓库实例
+// New{{.Svc}}Repository create a {{.Service}} repository instance
 func New{{.Svc}}Repository() {{.Service}}.{{.Svc}}Repository {
 	rep := dao.NewDao(constant.DBName)
 	repo := {{.Svc}}Repository{
@@ -47,8 +47,8 @@ func New{{.Svc}}Repository() {{.Service}}.{{.Svc}}Repository {
 	return repo
 }
 
+// CreateModel store the model object in the database
 func (repo {{.Svc}}Repository) CreateModel(ctx context.Context, m interface{}) error {
-
 	if err := repo.DB(ctx).Create(m).Error; err != nil {
 		logger := log.GetLogger(ctx)
 		logger.Error("Data insert failed", zap.Error(err))
@@ -60,7 +60,7 @@ func (repo {{.Svc}}Repository) CreateModel(ctx context.Context, m interface{}) e
 	return nil
 }
 
-// 忽略部分字段的更新
+// UpdateWithOmit updates the other fields of the model to the database in addition to the specified fields
 func (repo {{.Svc}}Repository) UpdateWithOmit(ctx context.Context, m interface{}, columns ...string) error {
 	if err := repo.DB(ctx).Omit(columns...).Save(m).Error; err != nil {
 		logger := log.GetLogger(ctx)
@@ -73,7 +73,7 @@ func (repo {{.Svc}}Repository) UpdateWithOmit(ctx context.Context, m interface{}
 	return nil
 }
 
-// 只更新指定的部分字段
+// UpdateWithSelect update the fields specified by the model to the database
 func (repo {{.Svc}}Repository) UpdateWithSelect(ctx context.Context, m interface{}, columns ...string) error {
 	if err := repo.DB(ctx).Select(columns).Save(m).Error; err != nil {
 		logger := log.GetLogger(ctx)
@@ -86,6 +86,7 @@ func (repo {{.Svc}}Repository) UpdateWithSelect(ctx context.Context, m interface
 	return nil
 }
 
+// CacheModel
 func (repo {{.Svc}}Repository) CacheModel(ctx context.Context, m interface{}, preKey string, id int, expire time.Duration) error {
 	key := utilx.CacheKey(preKey, strconv.Itoa(id))
 	err := repo.Redis().HashTableSet(ctx, key, m, expire)

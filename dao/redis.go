@@ -330,7 +330,6 @@ func (cli redisNode) ZRem(ctx context.Context, key string, members ...interface{
 }
 
 func redisClient(addr, pass string, db int, timeout time.Duration) *redis.Client {
-	fmt.Println(addr, pass, db)
 	return redis.NewClient(&redis.Options{
 		//连接信息
 		Network:  "tcp", //网络类型，tcp or unix，默认tcp

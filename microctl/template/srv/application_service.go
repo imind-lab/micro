@@ -31,7 +31,6 @@ import (
 	"io"
 
 	"github.com/go-playground/validator/v10"
-	"github.com/grpc-ecosystem/go-grpc-middleware/logging/zap/ctxzap"
 	"github.com/imind-lab/micro/log"
 	"github.com/imind-lab/micro/status"
 	"go.uber.org/zap"
@@ -161,7 +160,7 @@ func (svc *{{.Svc}}Service) Get{{.Svc}}ListByStream(stream {{.Service}}.{{.Svc}}
 
 	for {
 		r, err := stream.Recv()
-		ctxzap.Debug(stream.Context(), "stream.Recv", zap.Any("r", r), zap.Error(err))
+		logger.Debug("stream.Recv", zap.Any("r", r), zap.Error(err))
 		if err == io.EOF {
 			return nil
 		}

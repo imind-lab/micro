@@ -27,8 +27,8 @@ package subscriber
 
 import (
 	"context"
+	"github.com/imind-lab/micro/log"
 
-	"github.com/grpc-ecosystem/go-grpc-middleware/logging/zap/ctxzap"
 	"github.com/imind-lab/micro/broker"
 	"go.uber.org/zap"
 )
@@ -43,13 +43,13 @@ func New{{.Svc}}(ctx context.Context) *{{.Svc}} {
 }
 
 func (svc *{{.Svc}}) CreateHandle(msg *broker.Message) error {
-	logger := ctxzap.Extract(svc.ctx).With(zap.String("layer", "{{.Service}}Subscriber"), zap.String("func", "CreateHandle"))
+	logger := log.GetLogger(svc.ctx)
 	logger.Debug("{{.Service}}_create", zap.String("key", msg.Key), zap.String("body", string(msg.Body)))
 	return nil
 }
 
 func (svc *{{.Svc}}) UpdateCountHandle(msg *broker.Message) error {
-	logger := ctxzap.Extract(svc.ctx).With(zap.String("layer", "{{.Service}}Subscriber"), zap.String("func", "UpdateCountHandle"))
+	logger := log.GetLogger(svc.ctx)
 	logger.Debug("{{.Service}}_update_count", zap.String("key", msg.Key), zap.String("body", string(msg.Body)))
 	return nil
 }

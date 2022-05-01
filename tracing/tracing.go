@@ -9,7 +9,6 @@ package tracing
 
 import (
 	"context"
-	"fmt"
 	"os"
 
 	"github.com/imind-lab/micro/util"
@@ -31,10 +30,8 @@ func InitTracer() (*sdktrace.TracerProvider, error) {
 	port := viper.GetString("tracing.agent.port")
 
 	hostname, _ := os.Hostname()
-	fmt.Println(service, namespace, version, host, port)
 	// Create the Jaeger exporter
 	exp, err := jaeger.New(jaeger.WithAgentEndpoint(jaeger.WithAgentHost(host), jaeger.WithAgentPort(port)))
-	fmt.Println(exp, err)
 	if err != nil {
 		return nil, err
 	}
@@ -85,10 +82,8 @@ func InitProvider(service, namespace string) (*sdktrace.TracerProvider, error) {
 	port := viper.GetString("tracing.agent.port")
 
 	hostname, _ := os.Hostname()
-	fmt.Println(service, namespace, host, port)
 	// Create the Jaeger exporter
 	exp, err := jaeger.New(jaeger.WithAgentEndpoint(jaeger.WithAgentHost(host), jaeger.WithAgentPort(port)))
-	fmt.Println(exp, err)
 	if err != nil {
 		return nil, err
 	}

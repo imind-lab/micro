@@ -9,8 +9,13 @@ package log
 
 import (
 	"context"
+	"github.com/google/uuid"
+	grpc_middleware "github.com/grpc-ecosystem/go-grpc-middleware"
 	"github.com/grpc-ecosystem/go-grpc-middleware/logging/zap/ctxzap"
+	grpc_ctxtags "github.com/grpc-ecosystem/go-grpc-middleware/tags"
 	"github.com/imind-lab/micro/util"
+	"google.golang.org/grpc"
+	"google.golang.org/grpc/metadata"
 	"os"
 
 	"go.uber.org/zap"
@@ -85,4 +90,62 @@ func EnableDebug() {
 
 func DisableDebug() {
 	debugEnabled = false
+}
+
+// ServerInterceptor returns a new unary server interceptors that adds trace-id to the context
+func UnaryServerInterceptor() grpc.UnaryServerInterceptor {
+	return func(ctx context.Context, req interface{}, info *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (interface{}, error) {
+		ctx = newContextForCall(ctx)
+		return handler(ctx, req)
+	}
+}
+
+// StreamServerInterceptor returns a new streaming server that adds trace-id to the context
+func StreamServerInterceptor() grpc.StreamServerInterceptor {
+	return func(srv interface{}, stream grpc.ServerStream, info *grpc.StreamServerInfo, handler grpc.StreamHandler) error {
+		ctx := newContextForCall(stream.Context())
+		wrapped := grpc_middleware.WrapServerStream(stream)
+		wrapped.WrappedContext = ctx
+		return handler(srv, wrapped)
+	}
+}
+
+// UnaryClientInterceptor returns a new unary client interceptor that adds trace-id to the context of external gRPC calls.
+func UnaryClientInterceptor() grpc.UnaryClientInterceptor {
+	return func(ctx context.Context, method string, req, reply interface{}, cc *grpc.ClientConn, invoker grpc.UnaryInvoker, opts ...grpc.CallOption) error {
+		ctx = newContextForCall(ctx)
+		return invoker(ctx, method, req, reply, cc, opts...)
+	}
+}
+
+// StreamClientInterceptor returns a new streaming client interceptor that adds trace-id to the context of external gRPC calls.
+func StreamClientInterceptor() grpc.StreamClientInterceptor {
+	return func(ctx context.Context, desc *grpc.StreamDesc, cc *grpc.ClientConn, method string, streamer grpc.Streamer, opts ...grpc.CallOption) (grpc.ClientStream, error) {
+		ctx = newContextForCall(ctx)
+		return streamer(ctx, desc, cc, method, opts...)
+	}
+}
+
+func newContextForCall(ctx context.Context) context.Context {
+	traceId := ""
+	md, ok := metadata.FromIncomingContext(ctx)
+	if ok {
+		if tid := md.Get("trace-id"); len(tid) > 0 {
+			traceId = tid[0]
+		}
+	} else {
+		md = metadata.MD{}
+	}
+
+	if traceId == "" {
+		traceId = uuid.New().String()
+	}
+
+	md.Set("trace-id", traceId)
+
+	tags := grpc_ctxtags.NewTags()
+	tags = tags.Set("traceId", traceId)
+	ctx = grpc_ctxtags.SetInContext(ctx, tags)
+
+	return metadata.NewIncomingContext(ctx, md)
 }
