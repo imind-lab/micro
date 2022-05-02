@@ -715,7 +715,7 @@ enum Code {
 		return err
 	}
 
-	dir = "./" + data.Domain + "/" + data.Project + "/" + data.Service + "/pkg/proto/google/rpc/"
+	dir = "./" + data.Domain + "/" + data.Project + "/" + data.Service + "-api/pkg/proto/google/rpc/"
 
 	err = os.MkdirAll(dir, os.ModePerm)
 	if err != nil {

@@ -52,6 +52,9 @@ func Serve() error {
 	if err != nil {
 		return err
 	}
+
+	// This commentary is for scaffolding. Do not modify or delete it
+
 	return svc.Run()
 }
 `
