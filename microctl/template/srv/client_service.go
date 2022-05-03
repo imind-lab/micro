@@ -27,8 +27,9 @@ package client
 
 import (
 	"context"
-	"{{.Domain}}/{{.Project}}/{{.Service}}/application/{{.Service}}/proto"
+
 	"github.com/imind-lab/micro"
+	{{.Service}} "{{.Domain}}/{{.Project}}/{{.Service}}/application/{{.Service}}/proto"
 	tracesdk "go.opentelemetry.io/otel/sdk/trace"
 )
 

@@ -27,11 +27,13 @@ package {{.Service}}
 
 import (
 	"context"
-	"{{.Domain}}/{{.Project}}/{{.Service}}/application/{{.Service}}/proto"
+
+	"github.com/imind-lab/micro/dao"
+	
+	{{.Service}} "{{.Domain}}/{{.Project}}/{{.Service}}/application/{{.Service}}/proto"
 	repository "{{.Domain}}/{{.Project}}/{{.Service}}/repository/{{.Service}}"
 	"{{.Domain}}/{{.Project}}/{{.Service}}/repository/{{.Service}}/model"
 	"{{.Domain}}/{{.Project}}/{{.Service}}/repository/{{.Service}}/persistence"
-	"github.com/imind-lab/micro/dao"
 )
 
 type {{.Svc}}Domain interface {

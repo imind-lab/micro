@@ -21,17 +21,19 @@ func CreateRepositoryPersistence(data *tpl.Data) error {
 import (
 	"context"
 	"errors"
-	"{{.Domain}}/{{.Project}}/{{.Service}}/pkg/constant"
-	utilx "{{.Domain}}/{{.Project}}/{{.Service}}/pkg/util"
-	"{{.Domain}}/{{.Project}}/{{.Service}}/repository/{{.Service}}"
+	"strconv"
+	"time"
+
 	"github.com/go-redis/redis/v8"
 	"github.com/imind-lab/micro/dao"
 	"github.com/imind-lab/micro/log"
 	"github.com/imind-lab/micro/status"
 	"go.uber.org/zap"
 	"gorm.io/gorm"
-	"strconv"
-	"time"
+
+	"{{.Domain}}/{{.Project}}/{{.Service}}/pkg/constant"
+	utilx "{{.Domain}}/{{.Project}}/{{.Service}}/pkg/util"
+	"{{.Domain}}/{{.Project}}/{{.Service}}/repository/{{.Service}}"
 )
 
 type {{.Svc}}Repository struct {

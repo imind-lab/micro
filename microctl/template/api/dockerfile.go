@@ -14,19 +14,9 @@ import (
 	tpl "github.com/imind-lab/micro/microctl/template"
 )
 
-// 生成build/Dockerfile
-func CreateBuildDockerfile(data *tpl.Data) error {
-	var tpl = `FROM golang:alpine as builder
-RUN sed -i 's/dl-cdn.alpinelinux.org/mirrors.ustc.edu.cn/g' /etc/apk/repositories
-RUN apk --no-cache add build-base gcc git openssh binutils-gold
-WORKDIR /go/src/github.com/imind-lab/{{.Service}}-api/
-COPY . .
-ENV GOPROXY=https://goproxy.cn,direct
-RUN go get ./...
-RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -a -installsuffix cgo -o {{.Service}}-api main.go
-RUN go get github.com/grpc-ecosystem/grpc-health-probe
-
-FROM alpine:latest
+// 生成Dockerfile
+func CreateDockerfile(data *tpl.Data) error {
+	var tpl = `FROM alpine:latest
 RUN sed -i 's/dl-cdn.alpinelinux.org/mirrors.ustc.edu.cn/g' /etc/apk/repositories
 RUN apk add --no-cache tzdata \
     && ln -sf /usr/share/zoneinfo/Asia/Shanghai /etc/localtime \
@@ -34,19 +24,20 @@ RUN apk add --no-cache tzdata \
     && rm -rf /var/cache/apk/* /tmp/* /var/tmp/* $HOME/.cache
 
 WORKDIR .
+ADD cicd/.aws /root/.aws
+RUN chmod 600 -R /root/.aws
 ADD conf /conf
-COPY --from=builder /go/src/github.com/imind-lab/{{.Service}}-api/{{.Service}}-api /go/bin/grpc-health-probe /bin/
+COPY {{.Service}}-api /bin/
 ENTRYPOINT [ "/bin/{{.Service}}-api", "server" ]
-
 `
 
-	t, err := template.New("build_dockerfile").Parse(tpl)
+	t, err := template.New("dockerfile").Parse(tpl)
 	if err != nil {
 		return err
 	}
 
 	t.Option()
-	dir := "./" + data.Domain + "/" + data.Project + "/" + data.Service + "-api/build/"
+	dir := "./" + data.Domain + "/" + data.Project + "/" + data.Service + "-api/"
 
 	err = os.MkdirAll(dir, os.ModePerm)
 	if err != nil {

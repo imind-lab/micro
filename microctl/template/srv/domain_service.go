@@ -27,13 +27,13 @@ package {{.Service}}
 
 import (
 	"context"
-	"github.com/imind-lab/micro/tracing"
 	"math"
 
 	"github.com/imind-lab/micro/log"
+	"github.com/imind-lab/micro/tracing"
 	"github.com/pkg/errors"
 
-	"{{.Domain}}/{{.Project}}/{{.Service}}/application/{{.Service}}/proto"
+	{{.Service}} "{{.Domain}}/{{.Project}}/{{.Service}}/application/{{.Service}}/proto"
 	"{{.Domain}}/{{.Project}}/{{.Service}}/repository/{{.Service}}/model"
 )
 

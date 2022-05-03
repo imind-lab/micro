@@ -28,8 +28,6 @@ package service
 import (
 	"context"
 	"fmt"
-	"github.com/imind-lab/micro/log"
-	"github.com/imind-lab/micro/tracing"
 	"io"
 	"strconv"
 	"sync"
@@ -37,14 +35,16 @@ import (
 	sentinel "github.com/alibaba/sentinel-golang/api"
 	"github.com/alibaba/sentinel-golang/core/base"
 	"github.com/go-playground/validator/v10"
+	"github.com/imind-lab/micro/log"
 	"github.com/imind-lab/micro/status"
+	"github.com/imind-lab/micro/tracing"
 	"go.uber.org/zap"
 	"google.golang.org/grpc/metadata"
 
-	{{.Service}}_api "{{.Domain}}/{{.Project}}/{{.Service}}-api/application/{{.Service}}/proto"
-	"{{.Domain}}/{{.Project}}/{{.Service}}/application/{{.Service}}/proto"
-	{{.Service}}Client "{{.Domain}}/{{.Project}}/{{.Service}}/client"
 	sentinelx "github.com/imind-lab/micro/sentinel"
+	{{.Service}}_api "{{.Domain}}/{{.Project}}/{{.Service}}-api/application/{{.Service}}/proto"
+	{{.Service}} "{{.Domain}}/{{.Project}}/{{.Service}}/application/{{.Service}}/proto"
+	{{.Service}}Client "{{.Domain}}/{{.Project}}/{{.Service}}/client"
 )
 
 type {{.Svc}}Service struct {

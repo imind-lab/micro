@@ -27,15 +27,15 @@ package service
 
 import (
 	"context"
-	"github.com/imind-lab/micro/tracing"
 	"io"
 
 	"github.com/go-playground/validator/v10"
 	"github.com/imind-lab/micro/log"
 	"github.com/imind-lab/micro/status"
+	"github.com/imind-lab/micro/tracing"
 	"go.uber.org/zap"
 
-	"{{.Domain}}/{{.Project}}/{{.Service}}/application/{{.Service}}/proto"
+	{{.Service}} "{{.Domain}}/{{.Project}}/{{.Service}}/application/{{.Service}}/proto"
 	service "{{.Domain}}/{{.Project}}/{{.Service}}/domain/{{.Service}}"
 )
 

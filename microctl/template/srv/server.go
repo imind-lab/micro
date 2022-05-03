@@ -27,13 +27,13 @@ package server
 
 import (
 	"fmt"
+	{{.Service}} "{{.Domain}}/{{.Project}}/{{.Service}}/application/{{.Service}}/proto"
 	"google.golang.org/grpc"
 
-	"{{.Domain}}/{{.Project}}/{{.Service}}/application/{{.Service}}/proto"
-	"{{.Domain}}/{{.Project}}/{{.Service}}/application/{{.Service}}/service"
 	"github.com/imind-lab/micro"
 	grpcx "github.com/imind-lab/micro/grpc"
 	"github.com/spf13/viper"
+	"{{.Domain}}/{{.Project}}/{{.Service}}/application/{{.Service}}/service"
 )
 
 func Serve() error {

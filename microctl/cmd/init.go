@@ -57,14 +57,14 @@ var serverCmd = &cobra.Command{
 				fmt.Println("生成API-ApplicationService出错", err)
 			}
 
-			err = api.CreateBuildDockerfile(data)
+			err = api.CreateDockerfile(data)
 			if err == nil {
 				fmt.Println("生成API-BuildDockerfile成功")
 			} else {
 				fmt.Println("生成API-BuildDockerfile出错", err)
 			}
 
-			err = api.CreateBuildMakefile(data)
+			err = api.CreateMakefile(data)
 			if err == nil {
 				fmt.Println("生成API-BuildMakefile成功")
 			} else {
@@ -176,14 +176,14 @@ var serverCmd = &cobra.Command{
 				fmt.Println("生成ApplicationSubscriber出错", err)
 			}
 
-			err = srv.CreateBuildDockerfile(data)
+			err = srv.CreateDockerfile(data)
 			if err == nil {
 				fmt.Println("生成BuildDockerfile成功")
 			} else {
 				fmt.Println("生成BuildDockerfile出错", err)
 			}
 
-			err = srv.CreateBuildMakefile(data)
+			err = srv.CreateMakefile(data)
 			if err == nil {
 				fmt.Println("生成BuildMakefile成功")
 			} else {

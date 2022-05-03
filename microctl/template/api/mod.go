@@ -25,13 +25,13 @@ replace {{.Domain}}/{{.Project}}/{{.Service}} => ../../../{{.Domain}}/{{.Project
 replace github.com/imind-lab/micro => ../../../github.com/imind-lab/micro
 
 require (
-	{{.Domain}}/{{.Project}}/{{.Service}} v0.0.0-00010101000000-000000000000
 	github.com/alibaba/sentinel-golang v1.0.4
 	github.com/go-playground/validator/v10 v10.10.1
 	github.com/grpc-ecosystem/grpc-gateway/v2 v2.8.0
-	github.com/imind-lab/micro v0.0.0-{{.Year}}0325124738-6a28cd56f635
+	github.com/imind-lab/micro v0.0.0-{{.Year}}0502151153-ee574a04d410
 	github.com/spf13/cobra v1.4.0
 	github.com/spf13/viper v1.10.1
+	{{.Domain}}/{{.Project}}/{{.Service}} v0.0.0-00010101000000-000000000000
 	go.uber.org/zap v1.21.0
 	golang.org/x/net v0.0.0-{{.Year}}0127200216-cd36cc0744dd
 	google.golang.org/genproto v0.0.0-{{.Year}}0314164441-57ef72a4c106
