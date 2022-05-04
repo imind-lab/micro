@@ -11,7 +11,6 @@ import (
 	"context"
 	"os"
 
-	"github.com/imind-lab/micro/util"
 	"github.com/spf13/viper"
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/exporters/jaeger"
@@ -20,6 +19,8 @@ import (
 	sdktrace "go.opentelemetry.io/otel/sdk/trace"
 	semconv "go.opentelemetry.io/otel/semconv/v1.7.0"
 	"go.opentelemetry.io/otel/trace"
+
+	"github.com/imind-lab/micro/util"
 )
 
 func InitTracer() (*sdktrace.TracerProvider, error) {

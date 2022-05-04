@@ -9,18 +9,19 @@ package log
 
 import (
 	"context"
+	"os"
+
 	"github.com/google/uuid"
 	grpc_middleware "github.com/grpc-ecosystem/go-grpc-middleware"
 	"github.com/grpc-ecosystem/go-grpc-middleware/logging/zap/ctxzap"
 	grpc_ctxtags "github.com/grpc-ecosystem/go-grpc-middleware/tags"
-	"github.com/imind-lab/micro/util"
-	"google.golang.org/grpc"
-	"google.golang.org/grpc/metadata"
-	"os"
-
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
+	"google.golang.org/grpc"
+	"google.golang.org/grpc/metadata"
 	"gopkg.in/natefinch/lumberjack.v2"
+
+	"github.com/imind-lab/micro/util"
 )
 
 var debugEnabled bool

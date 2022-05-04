@@ -4,9 +4,10 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/imind-lab/micro/microctl/orm"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
+
+	"github.com/imind-lab/micro/microctl/orm"
 )
 
 var (

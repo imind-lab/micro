@@ -2,8 +2,10 @@ package cmd
 
 import (
 	"fmt"
-	"github.com/imind-lab/micro/microctl/inject"
+
 	"github.com/spf13/cobra"
+
+	"github.com/imind-lab/micro/microctl/inject"
 )
 
 var (

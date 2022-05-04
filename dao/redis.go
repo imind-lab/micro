@@ -11,10 +11,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"github.com/imind-lab/micro/log"
-	redisx "github.com/imind-lab/micro/redis"
-	"github.com/imind-lab/micro/status"
-	"go.uber.org/zap"
 	"net"
 	"strconv"
 	"sync"
@@ -22,6 +18,11 @@ import (
 
 	"github.com/go-redis/redis/v8"
 	"github.com/spf13/viper"
+	"go.uber.org/zap"
+
+	"github.com/imind-lab/micro/log"
+	redisx "github.com/imind-lab/micro/redis"
+	"github.com/imind-lab/micro/status"
 )
 
 var (

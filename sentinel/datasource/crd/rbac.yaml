@@ -1,8 +1,0 @@
-kind: ClusterRole
-apiVersion: rbac.authorization.k8s.io/v1
-metadata:
-  name: sentinel-reader
-rules:
-  - apiGroups: ["datasource.sentinel.io"]
-    resources: ["flowrules", "circuitbreakerrules"]
-    verbs: ["get", "watch", "list"]

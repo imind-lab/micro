@@ -1,11 +1,12 @@
 package grpc
 
 import (
+	"net/http"
+	"strings"
+
 	"github.com/grpc-ecosystem/grpc-gateway/v2/runtime"
 	"google.golang.org/grpc"
 	"google.golang.org/protobuf/encoding/protojson"
-	"net/http"
-	"strings"
 )
 
 func GrpcHandlerFunc(grpcServer *grpc.Server, otherHandler http.Handler) http.Handler {

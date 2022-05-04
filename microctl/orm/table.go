@@ -5,9 +5,9 @@ import (
 	"errors"
 	"strings"
 
-	"github.com/imind-lab/micro/dao"
-
 	"github.com/spf13/viper"
+
+	"github.com/imind-lab/micro/dao"
 )
 
 type Table struct {

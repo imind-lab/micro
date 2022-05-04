@@ -2,12 +2,13 @@ package redis
 
 import (
 	"context"
+	"testing"
+	"time"
+
 	"github.com/go-redis/redis/v8"
 	"github.com/go-redis/redismock/v8"
 	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
-	"testing"
-	"time"
 )
 
 type Suite struct {

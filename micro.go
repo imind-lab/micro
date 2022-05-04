@@ -3,11 +3,7 @@ package micro
 import (
 	"context"
 	"fmt"
-	"github.com/grpc-ecosystem/go-grpc-middleware/logging/zap/ctxzap"
-	grpc_retry "github.com/grpc-ecosystem/go-grpc-middleware/retry"
-	"github.com/imind-lab/micro/log"
-	"github.com/imind-lab/micro/tracing"
-	tracesdk "go.opentelemetry.io/otel/sdk/trace"
+	"google.golang.org/grpc/credentials/insecure"
 	"net"
 	"net/http"
 	"runtime/debug"
@@ -16,12 +12,14 @@ import (
 
 	grpc_middleware "github.com/grpc-ecosystem/go-grpc-middleware"
 	grpc_zap "github.com/grpc-ecosystem/go-grpc-middleware/logging/zap"
+	"github.com/grpc-ecosystem/go-grpc-middleware/logging/zap/ctxzap"
 	grpc_recovery "github.com/grpc-ecosystem/go-grpc-middleware/recovery"
+	grpc_retry "github.com/grpc-ecosystem/go-grpc-middleware/retry"
 	grpc_ctxtags "github.com/grpc-ecosystem/go-grpc-middleware/tags"
 	"github.com/grpc-ecosystem/grpc-gateway/v2/runtime"
-	grpcx "github.com/imind-lab/micro/grpc"
 	"github.com/spf13/viper"
 	"go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc"
+	tracesdk "go.opentelemetry.io/otel/sdk/trace"
 	"go.uber.org/zap"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
@@ -30,6 +28,10 @@ import (
 	"google.golang.org/grpc/reflection"
 	"google.golang.org/grpc/status"
 	"gopkg.in/tomb.v2"
+
+	grpcx "github.com/imind-lab/micro/grpc"
+	"github.com/imind-lab/micro/log"
+	"github.com/imind-lab/micro/tracing"
 )
 
 type Service interface {
@@ -125,13 +127,13 @@ func (s service) Run() error {
 
 	var tb1 tomb.Tomb
 	tb1.Go(func() error {
-		// 启动gGRC监听
+		// start gRPC server
 		return s.startGrpcServer(grpcListener)
 	})
 
 	var tb2 tomb.Tomb
 	tb2.Go(func() error {
-		// 启动http监听
+		// start http server
 		return s.startHttpServer(httpListener)
 	})
 
@@ -306,7 +308,7 @@ func ClientConn(ctx context.Context, name string, tls bool) (*grpc.ClientConn, *
 	if tls {
 		dialOpt = append(dialOpt, grpc.WithTransportCredentials(grpcx.NewGrpcCred().ClientCred()))
 	} else {
-		dialOpt = append(dialOpt, grpc.WithInsecure())
+		dialOpt = append(dialOpt, grpc.WithTransportCredentials(insecure.NewCredentials()))
 	}
 
 	dialOpt = append(dialOpt, grpc.WithUnaryInterceptor(grpc_middleware.ChainUnaryClient(unaryInterceptors...)),

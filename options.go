@@ -4,14 +4,15 @@ import (
 	"context"
 
 	"github.com/grpc-ecosystem/go-grpc-middleware/logging/zap/ctxzap"
-	"github.com/imind-lab/micro/broker"
-	"github.com/imind-lab/micro/log"
-	"github.com/imind-lab/micro/tracing"
 	"github.com/spf13/viper"
 	tracesdk "go.opentelemetry.io/otel/sdk/trace"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
 	"google.golang.org/grpc/credentials"
+
+	"github.com/imind-lab/micro/broker"
+	"github.com/imind-lab/micro/log"
+	"github.com/imind-lab/micro/tracing"
 )
 
 type Options struct {
