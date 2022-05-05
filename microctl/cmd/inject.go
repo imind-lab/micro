@@ -14,7 +14,7 @@ var (
 
 var injectCmd = &cobra.Command{
 	Use:   "inject",
-	Short: "Use chopectl inject process microservice",
+	Short: "Use microctl inject process microservice",
 	Run: func(cmd *cobra.Command, args []string) {
 		content, err := inject.Process(path)
 		if err != nil {

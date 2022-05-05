@@ -351,6 +351,6 @@ func init() {
 	rootCmd.PersistentFlags().StringVarP(&domain, "domain", "d", "github.com", "company domain")
 	rootCmd.PersistentFlags().StringVarP(&project, "project", "p", "imind-lab", "project name")
 	rootCmd.PersistentFlags().StringVarP(&service, "service", "s", "greeter", "service name")
-	rootCmd.PersistentFlags().StringVarP(&layer, "layer", "l", "srv", "generate service layere")
+	rootCmd.PersistentFlags().StringVarP(&layer, "layer", "l", "srv", "generate service layer")
 	rootCmd.AddCommand(serverCmd)
 }

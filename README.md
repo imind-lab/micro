@@ -1,71 +1,69 @@
-Go微服务开发框架使用指南
+## Imind
+Imind is a framework based on gRPC for microservices development 
 
-### 一、基础环境配置
+#### Overview
+Imind provides the core requirements for microservices development. Microservices communicate with each other based on gRPC, Service Registry and Service Discovery using the service of kubernetes, decouple and dynamically update the configuration file using the configmap and secret of kubernetes, and service circuit breaker, degradation and traffic limit using Sentinel developed by Alibaba, service distributed tracing using OpenTelemetry and Jaeger. Imind scaffolding can automatically generate common microservice code.
 
-##### 1、安装protobuf v3.17.3
+#### Features
+Go Micro abstracts away the details of micro services. Here are the main features.
+- Base on gRPC
 
-地址：https://github.com/protocolbuffers/protobuf/releases 
+  Imind implements communication between services based on gRPC and simplifies gRPC operations for developers. Integrated gRPC-Gateway for restful API support.
 
-下载系统对应版本 [protoc-3.17.3-osx-x86_64.zip]，并解压
+- Distributed tracing
 
-拷贝bin目录下protoc到/usr/local/bin
+  Imind is based on OpenTelemetry and Jaeger to implements distributed tracing, which can automatically implements link tracing among services and easily implements the tracing among methods within services manually.
 
-拷贝include目录下的google到/usr/local/include
+- Circuitbreaker,Degradation and Traffic limit
 
-##### 2、安装golang protobuf
+  Imind is based on Sentinel developed by Alibaba implements service circuit breaker, degradation and traffic limit. It supports dynamic data sources and can implement dynamic updating of rules.
 
-```shell
-go install github.com/golang/protobuf/protoc-gen-go@v1.5.2
-```
+- Distributed log
 
-##### 3、安装grpc
+  Imind injects trace id into logs through a customized gRPC interceptor and automatically collects application information for easy program debugging and log analysis
 
-```shell
-go install google.golang.org/grpc/cmd/protoc-gen-go-grpc@v1.1.0
-```
+- Kubernetes deployment.
 
-##### 4、安装grpc-gateway
+  Imind automatically generates helm chart, implements one-click deployment of applications to kubernetes, and supports gitlab ci.
 
-```shell
-go install github.com/grpc-ecosystem/grpc-gateway/v2/protoc-gen-grpc-gateway@v2.4.0
-go install github.com/grpc-ecosystem/grpc-gateway/v2/protoc-gen-openapiv2@v2.4.0
-```
+- Customize tag in Proto
 
-##### 5、安装protoc-go-inject-tag
+  Imind supports custom tag in proto, which can verify request parameters based on tag rules and unify response format based on tag.
 
-```shell
-go install github.com/favadi/protoc-go-inject-tag@latest
-```
+#### Getting Started
 
-### 二、microctl工具安装与使用
+Install scaffolding and use scaffolding to generate sample microservice code. Before you do that, you need to complete the [environment configuration](docs/prerequisite.md)
 
-##### 1、安装microctl工具
+##### 1. Install scaffolding
 
 ```shell
-go get -u https://github.com/imind-lab/micro/microctl@latest
-# 把microctl加入系统PATH
-echo 'export PATH=$PATH:$GOPATH/bin' >> ~/.zprofile
-source ~/.zprofile
+go install https://github.com/imind-lab/micro/microctl@latest
 
-# 查看microctl版本
+# View scaffolding help
+microctl help
+
+# View scaffolding version
 microctl version
 ```
 
-##### 2、运行工具，生成实例代码
+##### 2. Run scaffolding to generate the sample microservice
 
 ```shell
 cd $GOPATH/src
 
-# init 子命令 初始化微服务
-# -p 项目名 默认值imind-lab
-# -s 微服务名 默认值greet
-# -a 是否生成api-gateway 默认值是true
-microctl init -p imind-lab -s greet -a=true
+# init subcommand to initialize the microservice
+# -d Code repository domain name, default is github.com
+# -p project name, default is imind-lab
+# -s microservice name, default is greeter
+# -l service type. Currently api(aggregation service) and srv(backend service) are supported, default is srv
+microctl init -d gitlab.imind.tech -p daniel -s greeter -l srv
 
-cd github.com/imind-lab/greet/build
+cd gitlab.imind.tech/daniel/greeter
 
-# 部署greet服务到kubernetes
+# Deploy the Greeter service to Kubernetes(You need to have operational Kubernetes)
 make deploy
 ```
 
-3、具体示例代码详见：https://github.com/imind-lab/greeter
+#### Advanced usage
+
+To be continued...

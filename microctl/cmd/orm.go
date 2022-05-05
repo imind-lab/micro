@@ -40,8 +40,8 @@ var ormCmd = &cobra.Command{
 
 func init() {
 	rootCmd.PersistentFlags().StringVarP(&cfgFile, "config", "c", "./conf/conf.yaml", "Start server with provided configuration file")
-	rootCmd.PersistentFlags().StringVarP(&outPath, "out", "o", "./server/model/", "model output dir")
-	rootCmd.PersistentFlags().StringVarP(&db, "db", "b", "hr", "db name in conf file")
+	rootCmd.PersistentFlags().StringVarP(&outPath, "out", "o", "./repository/model/", "model output dir")
+	rootCmd.PersistentFlags().StringVarP(&db, "db", "b", "imind", "db name in conf file")
 	rootCmd.PersistentFlags().StringVarP(&table, "table", "t", "", "tables name")
 	rootCmd.AddCommand(ormCmd)
 	//cobra.OnInitialize(initConf)
