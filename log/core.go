@@ -150,3 +150,20 @@ func newContextForCall(ctx context.Context) context.Context {
 
 	return metadata.NewIncomingContext(ctx, md)
 }
+
+func NewContextWithTraceId(traceId string) context.Context {
+	ctx := context.Background()
+	md := metadata.MD{}
+
+	if traceId == "" {
+		traceId = uuid.New().String()
+	}
+
+	md.Set("trace-id", traceId)
+
+	tags := grpc_ctxtags.NewTags()
+	tags = tags.Set("traceId", traceId)
+	ctx = grpc_ctxtags.SetInContext(ctx, tags)
+
+	return metadata.NewIncomingContext(ctx, md)
+}

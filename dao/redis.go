@@ -74,7 +74,7 @@ type Redis interface {
 	SortedSetSet(ctx context.Context, key string, args []*redis.Z, expire time.Duration) error
 
 	Del(ctx context.Context, keys ...string) error
-	//Get(ctx context.Context, key string) *redis.StringCmd
+	Get(ctx context.Context, key string) (StringCmd, error)
 	SAdd(ctx context.Context, key string, members ...interface{}) error
 	Set(ctx context.Context, key string, value interface{}, expiration time.Duration) error
 	ZRem(ctx context.Context, key string, members ...interface{}) error
@@ -97,7 +97,7 @@ func NewRedisNode() redisNode {
 func (cli redisNode) GetNumber(ctx context.Context, key string) (int64, error) {
 	ctx, _ = context.WithTimeout(ctx, cli.timeout)
 
-	reply := cli.Get(ctx, key)
+	reply := cli.Client.Get(ctx, key)
 	if err := reply.Err(); err != nil {
 		err = CheckDeadline(ctx, err)
 		return 0, err
@@ -303,11 +303,17 @@ func (cli redisNode) Del(ctx context.Context, keys ...string) error {
 	return CheckDeadline(ctx, err)
 }
 
-//func (cli redisNode) Get(ctx context.Context, key string) *redis.StringCmd {
-//	ctx, _ = context.WithTimeout(ctx, cli.timeout)
-//
-//	return cli.Client.Get(ctx, key)
-//}
+func (cli redisNode) Get(ctx context.Context, key string) (StringCmd, error) {
+	ctx, _ = context.WithTimeout(ctx, cli.timeout)
+
+	cmd := cli.Client.Get(ctx, key)
+	stringCmd := StringCmd{cmd}
+	if err := cmd.Err(); err != nil {
+		err = CheckDeadline(ctx, err)
+		return stringCmd, err
+	}
+	return stringCmd, nil
+}
 
 func (cli redisNode) SAdd(ctx context.Context, key string, members ...interface{}) error {
 	ctx, _ = context.WithTimeout(ctx, cli.timeout)
@@ -387,7 +393,7 @@ func NewRedisCluster() redisCluster {
 func (cli redisCluster) GetNumber(ctx context.Context, key string) (int64, error) {
 	ctx, _ = context.WithTimeout(ctx, cli.timeout)
 
-	reply := cli.Get(ctx, key)
+	reply := cli.ClusterClient.Get(ctx, key)
 	if err := reply.Err(); err != nil {
 		err = CheckDeadline(ctx, err)
 		return 0, err
@@ -593,11 +599,17 @@ func (cli redisCluster) Del(ctx context.Context, keys ...string) error {
 	return CheckDeadline(ctx, err)
 }
 
-//func (cli redisNode) Get(ctx context.Context, key string) *redis.StringCmd {
-//	ctx, _ = context.WithTimeout(ctx, cli.timeout)
-//
-//	return cli.ClusterClient.Get(ctx, key)
-//}
+func (cli redisCluster) Get(ctx context.Context, key string) (StringCmd, error) {
+	ctx, _ = context.WithTimeout(ctx, cli.timeout)
+
+	cmd := cli.ClusterClient.Get(ctx, key)
+	stringCmd := StringCmd{cmd}
+	if err := cmd.Err(); err != nil {
+		err = CheckDeadline(ctx, err)
+		return stringCmd, err
+	}
+	return stringCmd, nil
+}
 
 func (cli redisCluster) SAdd(ctx context.Context, key string, members ...interface{}) error {
 	ctx, _ = context.WithTimeout(ctx, cli.timeout)
@@ -670,4 +682,8 @@ func CheckDeadline(ctx context.Context, err error) error {
 		return status.ErrRedisDeadlineExceeded
 	}
 	return err
+}
+
+type StringCmd struct {
+	*redis.StringCmd
 }

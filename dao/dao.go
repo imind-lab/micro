@@ -15,6 +15,12 @@ import (
 	"gorm.io/gorm"
 )
 
+type deadlineKey struct{}
+
+func NewDeadlineKey() deadlineKey {
+	return deadlineKey{}
+}
+
 type Dao interface {
 	DB(ctx context.Context) *gorm.DB
 	ExtraDB(ctx context.Context, name string) *gorm.DB
@@ -51,7 +57,13 @@ func (d *dao) DB(ctx context.Context) *gorm.DB {
 	if d.dbMock != nil {
 		return d.dbMock
 	}
-	ctx, _ = context.WithTimeout(ctx, d.timeout)
+
+	timeout, ok := ctx.Value(NewDeadlineKey()).(time.Duration)
+	if ok {
+		ctx, _ = context.WithTimeout(ctx, timeout)
+	} else {
+		ctx, _ = context.WithTimeout(ctx, d.timeout)
+	}
 	return d.Database.DB(d.dbName).WithContext(ctx)
 }
 
@@ -59,7 +71,13 @@ func (d *dao) ExtraDB(ctx context.Context, name string) *gorm.DB {
 	if d.dbMock != nil {
 		return d.dbMock
 	}
-	ctx, _ = context.WithTimeout(ctx, d.timeout)
+
+	timeout, ok := ctx.Value(NewDeadlineKey()).(time.Duration)
+	if ok {
+		ctx, _ = context.WithTimeout(ctx, timeout)
+	} else {
+		ctx, _ = context.WithTimeout(ctx, d.timeout)
+	}
 	return d.Database.DB(name).WithContext(ctx)
 }
 
