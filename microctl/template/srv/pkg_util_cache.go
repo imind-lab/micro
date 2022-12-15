@@ -19,7 +19,7 @@ func CreatePkgUtilCache(data *tpl.Data) error {
 	var tpl = `package util
 
 import (
-	"github.com/imind-lab/micro/util"
+	"github.com/imind-lab/rainbow/util"
 
 	"{{.Domain}}/{{.Project}}/{{.Service}}/pkg/constant"
 )

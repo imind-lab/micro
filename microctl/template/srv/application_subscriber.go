@@ -1,25 +1,22 @@
 /**
  *  MindLab
  *
- *  Create by songli on {{.Year}}/02/27
- *  Copyright © {{.Year}} imind.tech All rights reserved.
+ *  Create by songli on 2022/02/27
+ *  Copyright © 2022 imind.tech All rights reserved.
  */
 
 package srv
 
 import (
-	"os"
-	"text/template"
-
-	tpl "github.com/imind-lab/micro/microctl/template"
+	"github.com/imind-lab/micro/microctl/template"
 )
 
 // 生成client/service.go
-func CreateApplicationSubscriber(data *tpl.Data) error {
+func CreateApplicationSubscriber(data *template.Data) error {
 	var tpl = `/**
  *  {{.Svc}}
  *
- *  Create by songli on {{.Date}}
+ *  Create by songli on 2021/06/01
  *  Copyright © {{.Year}} imind.tech All rights reserved.
  */
 
@@ -27,9 +24,9 @@ package subscriber
 
 import (
 	"context"
-	"github.com/imind-lab/micro/log"
 
 	"github.com/imind-lab/micro/broker"
+	"github.com/imind-lab/micro/log"
 	"go.uber.org/zap"
 )
 
@@ -55,30 +52,8 @@ func (svc *{{.Svc}}) UpdateCountHandle(msg *broker.Message) error {
 }
 `
 
-	t, err := template.New("application_service").Parse(tpl)
-	if err != nil {
-		return err
-	}
+	path := "./" + data.Domain + "/" + data.Project + "/" + data.Service + "/application/" + data.Service + "/event/subscriber/"
+	name := data.Service + ".go"
 
-	t.Option()
-	dir := "./" + data.Domain + "/" + data.Project + "/" + data.Service + "/application/" + data.Service + "/event/subscriber/"
-
-	err = os.MkdirAll(dir, os.ModePerm)
-	if err != nil {
-		return err
-	}
-
-	fileName := dir + data.Service + ".go"
-
-	f, err := os.Create(fileName)
-	if err != nil {
-		return err
-	}
-	err = t.Execute(f, data)
-	if err != nil {
-		return err
-	}
-	f.Close()
-
-	return nil
+	return template.CreateFile(data, tpl, path, name)
 }

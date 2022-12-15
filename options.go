@@ -2,25 +2,18 @@ package micro
 
 import (
 	"context"
+	"net/http"
 
-	"github.com/grpc-ecosystem/go-grpc-middleware/logging/zap/ctxzap"
-	"github.com/spf13/viper"
-	tracesdk "go.opentelemetry.io/otel/sdk/trace"
 	"go.uber.org/zap"
-	"go.uber.org/zap/zapcore"
 	"google.golang.org/grpc/credentials"
-
-	"github.com/imind-lab/micro/broker"
-	"github.com/imind-lab/micro/log"
-	"github.com/imind-lab/micro/tracing"
 )
 
-type Options struct {
-	Name   string
-	Broker broker.Broker
+type Handler func(next http.Handler) http.Handler
 
-	Context        context.Context
-	TracerProvider *tracesdk.TracerProvider
+type Options struct {
+	Name string
+
+	Context context.Context
 
 	Logger *zap.Logger
 
@@ -32,33 +25,15 @@ type Options struct {
 	AfterRun   []func() error
 	AfterStop  []func() error
 
+	Handlers []Handler
+
 	Signal bool
 }
 
 func newOptions(opts ...Option) Options {
-	name := viper.GetString("service.name")
-	namespace := viper.GetString("service.namespace")
-
-	logPath := viper.GetString("log.path")
-	logLevel := viper.GetInt("log.level")
-	logAge := viper.GetInt("log.age")
-	logSize := viper.GetInt("log.size")
-	logBackup := viper.GetInt("log.backup")
-	logCompress := viper.GetBool("log.compress")
-	logFormat := viper.GetString("log.format")
-
-	logger := log.NewLogger(logPath, zapcore.Level(logLevel), logSize, logBackup, logAge, logCompress, logFormat, zap.Fields(zap.String("namespace", namespace), zap.String("service", name)))
-	ctx := ctxzap.ToContext(context.Background(), logger)
-
-	// 初始化调用链追踪
-	provider, _ := tracing.InitTracer()
-
 	opt := Options{
-		Name:           name,
-		Context:        ctx,
-		Logger:         logger,
-		TracerProvider: provider,
-		Signal:         true,
+		Context: context.Background(),
+		Signal:  true,
 	}
 
 	for _, o := range opts {
@@ -68,10 +43,24 @@ func newOptions(opts ...Option) Options {
 	return opt
 }
 
-// Broker to be used for service
-func Broker(b broker.Broker) Option {
+// Name to be used for service
+func Name(name string) Option {
 	return func(o *Options) {
-		o.Broker = b
+		o.Name = name
+	}
+}
+
+// Context to be used for service
+func Context(c context.Context) Option {
+	return func(o *Options) {
+		o.Context = c
+	}
+}
+
+// Logger to be used for service
+func Logger(logger *zap.Logger) Option {
+	return func(o *Options) {
+		o.Logger = logger
 	}
 }
 
@@ -118,5 +107,12 @@ func AfterRun(fn func() error) Option {
 func AfterStop(fn func() error) Option {
 	return func(o *Options) {
 		o.AfterStop = append(o.AfterStop, fn)
+	}
+}
+
+// HttpHandler add handler for Http
+func HttpHandler(handlers ...Handler) Option {
+	return func(o *Options) {
+		o.Handlers = append(o.Handlers, handlers...)
 	}
 }

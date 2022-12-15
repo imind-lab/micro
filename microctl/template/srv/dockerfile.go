@@ -1,21 +1,18 @@
 /**
  *  MindLab
  *
- *  Create by songli on {{.Year}}/02/27
- *  Copyright © {{.Year}} imind.tech All rights reserved.
+ *  Create by songli on 2022/02/27
+ *  Copyright © 2022 imind.tech All rights reserved.
  */
 
 package srv
 
 import (
-	"os"
-	"text/template"
-
-	tpl "github.com/imind-lab/micro/microctl/template"
+	"github.com/imind-lab/micro/microctl/template"
 )
 
 // 生成Dockerfile
-func CreateDockerfile(data *tpl.Data) error {
+func CreateDockerfile(data *template.Data) error {
 	var tpl = `FROM alpine:latest
 RUN sed -i 's/dl-cdn.alpinelinux.org/mirrors.ustc.edu.cn/g' /etc/apk/repositories
 RUN apk add --no-cache tzdata \
@@ -24,37 +21,13 @@ RUN apk add --no-cache tzdata \
     && rm -rf /var/cache/apk/* /tmp/* /var/tmp/* $HOME/.cache
 
 WORKDIR .
-ADD cicd/.aws /root/.aws
-RUN chmod 600 -R /root/.aws
 ADD conf /conf
-COPY {{.Service}} /bin/
+COPY {{.Service}} grpc-health-probe /bin/
 ENTRYPOINT [ "/bin/{{.Service}}", "server" ]
 `
 
-	t, err := template.New("dockerfile").Parse(tpl)
-	if err != nil {
-		return err
-	}
+	path := "./" + data.Domain + "/" + data.Project + "/" + data.Service + "/"
+	name := "Dockerfile"
 
-	t.Option()
-	dir := "./" + data.Domain + "/" + data.Project + "/" + data.Service + "/"
-
-	err = os.MkdirAll(dir, os.ModePerm)
-	if err != nil {
-		return err
-	}
-
-	fileName := dir + "Dockerfile"
-
-	f, err := os.Create(fileName)
-	if err != nil {
-		return err
-	}
-	err = t.Execute(f, data)
-	if err != nil {
-		return err
-	}
-	f.Close()
-
-	return nil
+	return template.CreateFile(data, tpl, path, name)
 }

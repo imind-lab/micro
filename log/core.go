@@ -11,39 +11,27 @@ import (
 	"context"
 	"os"
 
-	"github.com/google/uuid"
 	grpc_middleware "github.com/grpc-ecosystem/go-grpc-middleware"
 	"github.com/grpc-ecosystem/go-grpc-middleware/logging/zap/ctxzap"
 	grpc_ctxtags "github.com/grpc-ecosystem/go-grpc-middleware/tags"
+	"github.com/imind-lab/micro/util"
+	"go.opentelemetry.io/otel/trace"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
 	"google.golang.org/grpc"
-	"google.golang.org/grpc/metadata"
-	"gopkg.in/natefinch/lumberjack.v2"
-
-	"github.com/imind-lab/micro/util"
 )
 
 var debugEnabled bool
 
-func NewLogger(filePath string, level zapcore.Level, maxSize int, maxBackups int, maxAge int, compress bool, format string, options ...zap.Option) *zap.Logger {
-	core := newCore(filePath, level, maxSize, maxBackups, maxAge, compress, format)
+func NewLogger(level zapcore.Level, format string, options ...zap.Option) *zap.Logger {
+	core := newCore(level, format)
 
 	opts := []zap.Option{zap.AddCaller(), zap.AddCallerSkip(0), zap.Development()}
 	opts = append(opts, options...)
 	return zap.New(core, opts...)
 }
 
-func newCore(filePath string, initLevel zapcore.Level, maxSize int, maxBackups int, maxAge int, compress bool, format string) zapcore.Core {
-	// 日志文件路径配置
-	hook := lumberjack.Logger{
-		Filename:   filePath,   // 日志文件路径
-		MaxSize:    maxSize,    // 每个日志文件保存的最大尺寸 单位：M
-		MaxBackups: maxBackups, // 日志文件最多保存多少个备份
-		MaxAge:     maxAge,     // 文件最多保存多少天
-		Compress:   compress,   // 是否压缩
-	}
-
+func newCore(initLevel zapcore.Level, format string) zapcore.Core {
 	// 设置日志级别
 	//atomicLevel := zap.NewAtomicLevel()
 	//atomicLevel.SetLevel(level)
@@ -74,9 +62,9 @@ func newCore(filePath string, initLevel zapcore.Level, maxSize int, maxBackups i
 	}
 
 	return zapcore.NewCore(
-		encoder, // 编码器配置
-		zapcore.NewMultiWriteSyncer(zapcore.AddSync(os.Stdout), zapcore.AddSync(&hook)), // 打印到控制台和文件
-		atomicLevel, // 日志级别
+		encoder,                                                 // 编码器配置
+		zapcore.NewMultiWriteSyncer(zapcore.AddSync(os.Stdout)), // 打印到控制台
+		atomicLevel,                                             // 日志级别
 	)
 }
 
@@ -128,42 +116,10 @@ func StreamClientInterceptor() grpc.StreamClientInterceptor {
 }
 
 func newContextForCall(ctx context.Context) context.Context {
-	traceId := ""
-	md, ok := metadata.FromIncomingContext(ctx)
-	if ok {
-		if tid := md.Get("trace-id"); len(tid) > 0 {
-			traceId = tid[0]
-		}
-	} else {
-		md = metadata.MD{}
-	}
-
-	if traceId == "" {
-		traceId = uuid.New().String()
-	}
-
-	md.Set("trace-id", traceId)
+	spanCtx := trace.SpanContextFromContext(ctx)
 
 	tags := grpc_ctxtags.NewTags()
-	tags = tags.Set("traceId", traceId)
-	ctx = grpc_ctxtags.SetInContext(ctx, tags)
+	tags = tags.Set("traceId", spanCtx.TraceID().String())
 
-	return metadata.NewIncomingContext(ctx, md)
-}
-
-func NewContextWithTraceId(traceId string) context.Context {
-	ctx := context.Background()
-	md := metadata.MD{}
-
-	if traceId == "" {
-		traceId = uuid.New().String()
-	}
-
-	md.Set("trace-id", traceId)
-
-	tags := grpc_ctxtags.NewTags()
-	tags = tags.Set("traceId", traceId)
-	ctx = grpc_ctxtags.SetInContext(ctx, tags)
-
-	return metadata.NewIncomingContext(ctx, md)
+	return grpc_ctxtags.SetInContext(ctx, tags)
 }

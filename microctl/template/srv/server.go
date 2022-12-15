@@ -1,105 +1,140 @@
 /**
  *  MindLab
  *
- *  Create by songli on {{.Year}}/02/27
- *  Copyright © {{.Year}} imind.tech All rights reserved.
+ *  Create by songli on 2022/02/27
+ *  Copyright © 2022 imind.tech All rights reserved.
  */
 
 package srv
 
 import (
-	"os"
-	"text/template"
-
-	tpl "github.com/imind-lab/micro/microctl/template"
+	"github.com/imind-lab/micro/microctl/template"
 )
 
 // 生成server/server.go
-func CreateServer(data *tpl.Data) error {
+func CreateServer(data *template.Data) error {
 	var tpl = `/**
  *  {{.Svc}}
  *
- *  Create by songli on {{.Date}}
+ *  Create by songli on 2021/06/01
  *  Copyright © {{.Year}} imind.tech All rights reserved.
  */
 
 package server
 
 import (
+	"context"
 	"fmt"
-	{{.Service}} "{{.Domain}}/{{.Project}}/{{.Service}}/application/{{.Service}}/proto"
-	"google.golang.org/grpc"
+	"net/http"
+	_ "net/http/pprof"
+	"runtime"
 
+	"github.com/grpc-ecosystem/go-grpc-middleware/logging/zap/ctxzap"
 	"github.com/imind-lab/micro"
+	{{if .MQ}}
+	"github.com/imind-lab/micro/broker"{{end}}
 	grpcx "github.com/imind-lab/micro/grpc"
+	"github.com/imind-lab/micro/log"
+	"github.com/imind-lab/micro/tracing"
 	"github.com/spf13/viper"
-	"{{.Domain}}/{{.Project}}/{{.Service}}/application/{{.Service}}/service"
+	"go.uber.org/zap"
+	"go.uber.org/zap/zapcore"
+	"google.golang.org/grpc"
+	{{if .MQ}}
+	"{{.Domain}}/{{.Project}}/{{.Service}}/application/{{.Service}}/event/subscriber"{{end}}
+	{{.Service}} "{{.Domain}}/{{.Project}}/{{.Service}}/application/{{.Service}}/proto"
 )
 
+type Port struct {
+	Http int ${backtick}yaml:"http"${backtick}
+	Grpc int ${backtick}yaml:"grpc"${backtick}
+}
+
+type Config struct {
+	Name      string ${backtick}yaml:"name"${backtick}
+	Namespace string ${backtick}yaml:"namespace"${backtick}
+	LogLevel  int    ${backtick}yaml:"logLevel"${backtick}
+	LogFormat string ${backtick}yaml:"logFormat"${backtick}
+	Port      Port   ${backtick}yaml:"port"${backtick}
+}
+
 func Serve() error {
-	svc := micro.NewService()
+	var conf Config
+	if err := viper.UnmarshalKey("service", &conf); err != nil {
+		panic(fmt.Errorf("Fatal error config file: %s \n", err))
+	}
 
-	// 初始化kafka代理
-	//endpoint, err := broker.NewBroker(constant.MQName)
-	//if err != nil {
-	//	return err
-	//}
-	//// 设置消息队列事件处理器（可选）
-	//mqHandler := subscriber.New{{.Svc}}(svc.Options().Context)
-	//endpoint.Subscribe(
-	//	broker.Processor{Topic: endpoint.Options().Topics["create{{.Service}}"], Handler: mqHandler.CreateHandle, Retry: 1},
-	//)
+	logger := log.NewLogger(zapcore.Level(conf.LogLevel), conf.LogFormat, zap.Fields(zap.String("namespace", conf.Namespace), zap.String("service", conf.Name)))
+	ctx := ctxzap.ToContext(context.Background(), logger)
 
-	grpcCred := grpcx.NewGrpcCred()
+	runtime.SetBlockProfileRate(1)
 
-	svc.Init(
-		//micro.Broker(endpoint),
-		micro.ServerCred(grpcCred.ServerCred()),
-		micro.ClientCred(grpcCred.ClientCred()))
-
-	grpcSrv := svc.GrpcServer()
-	{{.Service}}.Register{{.Svc}}ServiceServer(grpcSrv, service.New{{.Svc}}Service())
-
-	// 注册gRPC-Gateway
-	endPoint := fmt.Sprintf(":%d", viper.GetInt("service.port.grpc"))
-
-	mux := svc.ServeMux()
-	opts := []grpc.DialOption{grpc.WithTransportCredentials(grpcCred.ClientCred())}
-	err := {{.Service}}.Register{{.Svc}}ServiceHandlerFromEndpoint(svc.Options().Context, mux, endPoint, opts)
+	// initialize tracing
+	provider, err := tracing.InitTracer()
 	if err != nil {
 		return err
 	}
+	defer provider.Shutdown(ctx)
+	{{if .MQ}}
+	// initialize kafka broker
+	endpoint, err := broker.NewBroker()
+	if err != nil {
+		return err
+	}
+	defer endpoint.Close()
+
+	// set up the handler for MQ
+	mqHandler := subscriber.New{{.Svc}}(ctx)
+	endpoint.Subscribe(
+		broker.Processor{Topic: endpoint.Options().Topics["{{.Service}}create"], Handler: mqHandler.CreateHandle, Retry: 1},
+	)
+	{{end}}
+	grpcCred := grpcx.NewGrpcCred()
+
+	svc := micro.NewService()
+	svc.Init(
+		micro.Context(ctx),
+		micro.Logger(logger),
+		micro.Name(conf.Name),
+		micro.ServerCred(grpcCred.ServerCred()),
+		micro.ClientCred(grpcCred.ClientCred()))
+	//micro.HttpHandler(AuthHandler))
+
+	// 注册gRPC-Gateway
+	endPoint := fmt.Sprintf(":%d", conf.Port.Grpc)
+
+	mux := svc.ServeMux()
+
+	opts := []grpc.DialOption{grpc.WithTransportCredentials(grpcCred.ClientCred())}
+	err = {{.Service}}.Register{{.Svc}}ServiceHandlerFromEndpoint(ctx, mux, endPoint, opts)
+	if err != nil {
+		return err
+	}
+
+	grpcSrv := svc.GrpcServer()
+
+	{{.Service}}Svc := Create{{.Svc}}Service({{if .MQ}}endpoint{{end}})
+	{{.Service}}.Register{{.Svc}}ServiceServer(grpcSrv, {{.Service}}Svc)
 
 	// This commentary is for scaffolding. Do not modify or delete it
 
 	return svc.Run()
 }
+
+func AuthHandler(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Header.Get("auth") != "auth" {
+			w.WriteHeader(http.StatusUnauthorized)
+			w.Write([]byte("unauthorized"))
+			return
+		}
+		next.ServeHTTP(w, r)
+	})
+}
 `
 
-	t, err := template.New("main").Parse(tpl)
-	if err != nil {
-		return err
-	}
+	path := "./" + data.Domain + "/" + data.Project + "/" + data.Service + "/server/"
+	name := "server.go"
 
-	t.Option()
-	dir := "./" + data.Domain + "/" + data.Project + "/" + data.Service + "/server/"
-
-	err = os.MkdirAll(dir, os.ModePerm)
-	if err != nil {
-		return err
-	}
-
-	fileName := dir + "server.go"
-
-	f, err := os.Create(fileName)
-	if err != nil {
-		return err
-	}
-	err = t.Execute(f, data)
-	if err != nil {
-		return err
-	}
-	f.Close()
-
-	return nil
+	return template.CreateFile(data, tpl, path, name)
 }

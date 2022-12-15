@@ -1,168 +1,325 @@
-/**
- *  MindLab
- *
- *  Create by songli on 2020/10/23
- *  Copyright © 2021 imind.tech All rights reserved.
- */
-
 package redis
 
 import (
-	"fmt"
-	"reflect"
-	"strings"
-	"sync"
+	"context"
+	"github.com/go-redis/redis/v8"
+	"github.com/imind-lab/micro/log"
+	"github.com/imind-lab/micro/status"
+	"github.com/mitchellh/mapstructure"
+	"github.com/pkg/errors"
+	"go.uber.org/zap"
+	"strconv"
+	"time"
 )
 
-var (
-	structSpecMutex sync.RWMutex
-	structSpecCache = make(map[reflect.Type]*structSpec)
-)
-
-type fieldSpec struct {
-	name      string
-	index     []int
-	omitEmpty bool
+type RedisConfig struct {
+	Model   string        `yaml:"model"`
+	Timeout time.Duration `yaml:"timeout"`
+	Addr    string        `yaml:"addr"`
+	Pass    string        `yaml:"pass"`
+	DB      int           `yaml:"db"`
 }
 
-type structSpec struct {
-	m map[string]*fieldSpec
-	l []*fieldSpec
+type Redis interface {
+	GetNumber(ctx context.Context, key string) (int64, error)
+
+	HashTableGet(ctx context.Context, key string, value interface{}, fields ...string) error
+	HashTableGetAll(ctx context.Context, key string, value interface{}) error
+	HashTableSet(ctx context.Context, key string, p interface{}, expire time.Duration) error
+
+	SetSet(ctx context.Context, key string, args []interface{}, expire time.Duration) error
+	SetDelKeys(ctx context.Context, key string) error
+
+	SortedSetRange(ctx context.Context, key string, pageSize, pageNum int64, isDesc bool, out interface{}) (int, error)
+	SortedSetRangeByScore(ctx context.Context, key string, pageSize, lastId int64, isDesc bool, out interface{}) (int, error)
+	SortedSetSet(ctx context.Context, key string, args []*redis.Z, expire time.Duration) error
+
+	Del(ctx context.Context, keys ...string) error
+	Get(ctx context.Context, key string) *redis.StringCmd
+	SAdd(ctx context.Context, key string, members ...interface{}) error
+	Set(ctx context.Context, key string, value interface{}, expiration time.Duration) error
+	ZRem(ctx context.Context, key string, members ...interface{}) error
 }
 
-func (ss *structSpec) fieldSpec(name []byte) *fieldSpec {
-	return ss.m[string(name)]
+type cmdable struct {
+	redis.Cmdable
+	timeout time.Duration
 }
 
-func compileStructSpec(t reflect.Type, depth map[string]int, index []int, ss *structSpec) {
-	for i := 0; i < t.NumField(); i++ {
-		f := t.Field(i)
-		switch {
-		case f.PkgPath != "" && !f.Anonymous:
-			// Ignore unexported fields.
-		case f.Anonymous:
-			// TODO: Handle pointers. Requires change to decoder and
-			// protection against infinite recursion.
-			if f.Type.Kind() == reflect.Struct {
-				compileStructSpec(f.Type, depth, append(index, i), ss)
-			}
-		default:
-			fs := &fieldSpec{name: f.Name}
-			tag := f.Tag.Get("redis")
-			p := strings.Split(tag, ",")
-			if len(p) > 0 {
-				if p[0] == "-" {
-					continue
-				}
-				if len(p[0]) > 0 {
-					fs.name = p[0]
-				}
-				for _, s := range p[1:] {
-					switch s {
-					case "omitempty":
-						fs.omitEmpty = true
-					default:
-						panic(fmt.Errorf("redigo: unknown field tag %s for type %s", s, t.Name()))
-					}
-				}
-			}
-			d, found := depth[fs.name]
-			if !found {
-				d = 1 << 30
-			}
-			switch {
-			case len(index) == d:
-				// At same depth, remove from result.
-				delete(ss.m, fs.name)
-				j := 0
-				for i := 0; i < len(ss.l); i++ {
-					if fs.name != ss.l[i].name {
-						ss.l[j] = ss.l[i]
-						j += 1
-					}
-				}
-				ss.l = ss.l[:j]
-			case len(index) < d:
-				fs.index = make([]int, len(index)+1)
-				copy(fs.index, index)
-				fs.index[len(index)] = i
-				depth[fs.name] = len(index)
-				ss.m[fs.name] = fs
-				ss.l = append(ss.l, fs)
-			}
+func NewRedis(cmd redis.Cmdable, timeout time.Duration) Redis {
+	return cmdable{Cmdable: cmd, timeout: timeout}
+}
+
+func (cmd cmdable) GetNumber(ctx context.Context, key string) (int64, error) {
+	ctx, _ = context.WithTimeout(ctx, cmd.timeout)
+
+	reply := cmd.Get(ctx, key)
+	if err := reply.Err(); err != nil {
+		err = CheckDeadline(ctx, err)
+		return 0, err
+	}
+	cnt, err := reply.Int64()
+	if err != nil {
+		return 0, err
+	}
+	return cnt, nil
+}
+
+func (cmd cmdable) HashTableGet(ctx context.Context, key string, value interface{}, fields ...string) error {
+	ctx, _ = context.WithTimeout(ctx, cmd.timeout)
+
+	if len(fields) > 0 {
+		return cmd.hashTableMGet(ctx, key, value, fields...)
+	}
+	return cmd.hashTableGetAll(ctx, key, value)
+}
+
+func (cmd cmdable) hashTableMGet(ctx context.Context, key string, value interface{}, fields ...string) error {
+	reply := cmd.HMGet(ctx, key, fields...)
+	v, err := reply.Result()
+	if err != nil {
+		return CheckDeadline(ctx, err)
+	}
+	if len(v) > 0 {
+		err := reply.Scan(value)
+		if err == nil {
+			return nil
 		}
 	}
+	return status.ErrRedisDataNotExist
 }
 
-func structSpecForType(t reflect.Type) *structSpec {
-
-	structSpecMutex.RLock()
-	ss, found := structSpecCache[t]
-	structSpecMutex.RUnlock()
-	if found {
-		return ss
+func (cmd cmdable) hashTableGetAll(ctx context.Context, key string, value interface{}) error {
+	reply := cmd.HGetAll(ctx, key)
+	v, err := reply.Result()
+	if err != nil {
+		return CheckDeadline(ctx, err)
 	}
-
-	structSpecMutex.Lock()
-	defer structSpecMutex.Unlock()
-	ss, found = structSpecCache[t]
-	if found {
-		return ss
+	if len(v) > 0 {
+		err := reply.Scan(value)
+		if err == nil {
+			return nil
+		}
 	}
-
-	ss = &structSpec{m: make(map[string]*fieldSpec)}
-	compileStructSpec(t, make(map[string]int), nil, ss)
-	structSpecCache[t] = ss
-	return ss
+	return status.ErrRedisDataNotExist
 }
 
-func flattenStruct(v reflect.Value) map[string]interface{} {
-	args := make(map[string]interface{})
-	ss := structSpecForType(v.Type())
-	for _, fs := range ss.l {
-		fv := v.FieldByIndex(fs.index)
-		if fs.omitEmpty {
-			var empty = false
-			switch fv.Kind() {
-			case reflect.Array, reflect.Map, reflect.Slice, reflect.String:
-				empty = fv.Len() == 0
-			case reflect.Bool:
-				empty = !fv.Bool()
-			case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
-				empty = fv.Int() == 0
-			case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64, reflect.Uintptr:
-				empty = fv.Uint() == 0
-			case reflect.Float32, reflect.Float64:
-				empty = fv.Float() == 0
-			case reflect.Interface, reflect.Ptr:
-				empty = fv.IsNil()
-			}
-			if empty {
-				continue
-			}
-		}
-		if fv.Kind() == reflect.Ptr {
-			if !fv.IsNil() {
-				args[fs.name] = fv.Elem().Interface()
-			}
-		} else {
-			args[fs.name] = fv.Interface()
+func (cmd cmdable) HashTableGetAll(ctx context.Context, key string, value interface{}) error {
+	ctx, _ = context.WithTimeout(ctx, cmd.timeout)
+
+	reply := cmd.HGetAll(ctx, key)
+	v, err := reply.Result()
+	if err != nil {
+		return CheckDeadline(ctx, err)
+	}
+	if len(v) > 0 {
+		err := reply.Scan(value)
+		if err == nil {
+			return nil
 		}
 	}
-	return args
+	return status.ErrRedisDataNotExist
 }
 
-func FlatStruct(v interface{}) map[string]interface{} {
-	rv := reflect.ValueOf(v)
-	switch rv.Kind() {
-	case reflect.Struct:
-		return flattenStruct(rv)
-	case reflect.Ptr:
-		if rv.Type().Elem().Kind() == reflect.Struct {
-			if !rv.IsNil() {
-				return flattenStruct(rv.Elem())
-			}
-		}
+func (cmd cmdable) HashTableSet(ctx context.Context, key string, p interface{}, expire time.Duration) error {
+	ctx, _ = context.WithTimeout(ctx, cmd.timeout)
+
+	var m map[string]interface{}
+
+	config := &mapstructure.DecoderConfig{
+		Metadata: nil,
+		TagName:  "redis",
+		Result:   &m,
+	}
+
+	decoder, err := mapstructure.NewDecoder(config)
+	if err != nil {
+		return err
+	}
+
+	if err := decoder.Decode(p); err != nil {
+		return err
+	}
+	err = cmd.HSet(ctx, key, m).Err()
+	if err != nil {
+		return CheckDeadline(ctx, err)
+	}
+
+	err = cmd.Expire(ctx, key, expire).Err()
+	if err != nil {
+		return CheckDeadline(ctx, err)
+	}
+
+	return nil
+}
+
+func (cmd cmdable) SetSet(ctx context.Context, key string, args []interface{}, expire time.Duration) error {
+	ctx, _ = context.WithTimeout(ctx, cmd.timeout)
+
+	if len(args) == 0 {
+		return cmd.Set(ctx, key, "", expire)
+	}
+	err := cmd.SAdd(ctx, key, args...)
+	if err != nil {
+		return err
+	}
+	err = cmd.Expire(ctx, key, expire).Err()
+	if err != nil {
+		return CheckDeadline(ctx, err)
 	}
 	return nil
+}
+func (cmd cmdable) SetDelKeys(ctx context.Context, key string) error {
+	ctx, _ = context.WithTimeout(ctx, cmd.timeout)
+
+	keys, err := cmd.SMembers(ctx, key).Result()
+	if err != nil {
+		return CheckDeadline(ctx, err)
+	}
+	return cmd.Del(ctx, keys...)
+}
+
+func (cmd cmdable) SortedSetRange(ctx context.Context, key string, pageSize, pageNum int64, isDesc bool, out interface{}) (int, error) {
+	ctx, _ = context.WithTimeout(ctx, cmd.timeout)
+
+	rtype, err := cmd.Type(ctx, key).Result()
+	if err != nil {
+		return SortedSetError(ctx, err)
+	}
+	switch rtype {
+	case "zset":
+		var cnt int64
+		cnt, err = cmd.ZCard(ctx, key).Result()
+		if err != nil {
+			return SortedSetError(ctx, err)
+		}
+		start := (pageNum - 1) * pageSize
+		// 是offset的索引而不是获取的长度，所以应该减一
+		stop := start + pageSize - 1
+		var data *redis.StringSliceCmd
+		if isDesc {
+			data = cmd.ZRevRange(ctx, key, start, stop)
+		} else {
+			data = cmd.ZRange(ctx, key, start, stop)
+		}
+		err = data.Err()
+		if err != nil {
+			return SortedSetError(ctx, err)
+		}
+		err = data.ScanSlice(out)
+		if err != nil {
+			return 0, err
+		}
+		return int(cnt), nil
+	case "none":
+	default:
+		return 0, nil
+	}
+	return 0, status.ErrRedisDataNotExist
+}
+
+func (cmd cmdable) SortedSetRangeByScore(ctx context.Context, key string, pageSize, lastId int64, isDesc bool, out interface{}) (int, error) {
+	ctx, _ = context.WithTimeout(ctx, cmd.timeout)
+
+	rtype, err := cmd.Type(ctx, key).Result()
+	if err != nil {
+		return SortedSetError(ctx, err)
+	}
+	switch rtype {
+	case "zset":
+		var cnt int64
+		cnt, err = cmd.ZCard(ctx, key).Result()
+		if err != nil {
+			return SortedSetError(ctx, err)
+		}
+		var data *redis.StringSliceCmd
+		if isDesc {
+			data = cmd.ZRevRangeByScore(ctx, key, &redis.ZRangeBy{Max: strconv.FormatInt(lastId-1, 10), Min: "-inf", Offset: 0, Count: pageSize})
+		} else {
+			data = cmd.ZRangeByScore(ctx, key, &redis.ZRangeBy{Max: "+inf", Min: strconv.FormatInt(lastId+1, 10), Offset: 0, Count: pageSize})
+		}
+		err = data.Err()
+		if err != nil {
+			return SortedSetError(ctx, err)
+		}
+		err = data.ScanSlice(out)
+		if err != nil {
+			return 0, err
+		}
+		return int(cnt), nil
+	case "none":
+	default:
+		return 0, nil
+	}
+	return 0, status.ErrRedisDataNotExist
+
+}
+
+func (cmd cmdable) SortedSetSet(ctx context.Context, key string, args []*redis.Z, expire time.Duration) error {
+	ctx, _ = context.WithTimeout(ctx, cmd.timeout)
+
+	if len(args) == 0 {
+		return cmd.Set(ctx, key, "", expire)
+	}
+	err := cmd.ZAdd(ctx, key, args...).Err()
+	if err != nil {
+		return CheckDeadline(ctx, err)
+	}
+	err = cmd.Expire(ctx, key, expire).Err()
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func (cmd cmdable) Del(ctx context.Context, keys ...string) error {
+	ctx, _ = context.WithTimeout(ctx, cmd.timeout)
+
+	err := cmd.Cmdable.Del(ctx, keys...).Err()
+	return CheckDeadline(ctx, err)
+}
+
+func (cmd cmdable) Get(ctx context.Context, key string) *redis.StringCmd {
+	ctx, _ = context.WithTimeout(ctx, cmd.timeout)
+
+	return cmd.Cmdable.Get(ctx, key)
+}
+
+func (cmd cmdable) SAdd(ctx context.Context, key string, members ...interface{}) error {
+	ctx, _ = context.WithTimeout(ctx, cmd.timeout)
+
+	err := cmd.Cmdable.SAdd(ctx, key, members...).Err()
+	return CheckDeadline(ctx, err)
+}
+
+func (cmd cmdable) Set(ctx context.Context, key string, value interface{}, expiration time.Duration) error {
+	ctx, _ = context.WithTimeout(ctx, cmd.timeout)
+
+	err := cmd.Cmdable.Set(ctx, key, value, expiration).Err()
+	return CheckDeadline(ctx, err)
+}
+
+func (cmd cmdable) ZRem(ctx context.Context, key string, members ...interface{}) error {
+	ctx, _ = context.WithTimeout(ctx, cmd.timeout)
+
+	err := cmd.Cmdable.ZRem(ctx, key, members...).Err()
+	return CheckDeadline(ctx, err)
+}
+
+func CheckDeadline(ctx context.Context, err error) error {
+	if errors.Is(err, context.DeadlineExceeded) {
+		logger := log.GetLogger(ctx)
+		logger.Error("RedisDeadlineExceeded", zap.Error(err))
+		return status.ErrRedisDeadlineExceeded
+	}
+	return err
+}
+
+func SortedSetError(ctx context.Context, err error) (int, error) {
+	if errors.Is(err, context.DeadlineExceeded) {
+		logger := log.GetLogger(ctx)
+		logger.Error("RedisDeadlineExceeded", zap.Error(err))
+		return 0, status.ErrRedisDeadlineExceeded
+	}
+	return 0, err
 }

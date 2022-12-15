@@ -21,7 +21,7 @@ type Options struct {
 	ProducerAddr []string
 	ConsumerAddr []string
 	Topics       map[string]string
-	GroupId       string
+	GroupId      string
 
 	Context context.Context
 }
@@ -67,9 +67,10 @@ func GroupId(group string) Option {
 }
 
 func NewOptions(name string) Options {
-	producerAddr := viper.GetStringSlice("kafka." + name + ".producer")
-	consumerAddr := viper.GetStringSlice("kafka." + name + ".consumer")
-	topics := viper.GetStringMapString("kafka." + name + ".topic")
+	name = "kafka." + name
+	producerAddr := viper.GetStringSlice(name + ".producer")
+	consumerAddr := viper.GetStringSlice(name + ".consumer")
+	topics := viper.GetStringMapString(name + ".topic")
 	opts := Options{
 		ProducerAddr: producerAddr,
 		ConsumerAddr: consumerAddr,

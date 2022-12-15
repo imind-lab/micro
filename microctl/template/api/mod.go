@@ -22,13 +22,13 @@ go 1.16
 
 replace {{.Domain}}/{{.Project}}/{{.Service}} => ../../../{{.Domain}}/{{.Project}}/{{.Service}}
 
-replace github.com/imind-lab/micro => ../../../github.com/imind-lab/micro
+replace github.com/imind-lab/rainbow => ../../../github.com/imind-lab/rainbow
 
 require (
 	github.com/alibaba/sentinel-golang v1.0.4
 	github.com/go-playground/validator/v10 v10.10.1
 	github.com/grpc-ecosystem/grpc-gateway/v2 v2.8.0
-	github.com/imind-lab/micro v0.0.0-{{.Year}}0502151153-ee574a04d410
+	github.com/imind-lab/rainbow v0.0.0-{{.Year}}0502151153-ee574a04d410
 	github.com/spf13/cobra v1.4.0
 	github.com/spf13/viper v1.10.1
 	{{.Domain}}/{{.Project}}/{{.Service}} v0.0.0-00010101000000-000000000000

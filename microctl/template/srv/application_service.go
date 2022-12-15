@@ -1,25 +1,22 @@
 /**
  *  MindLab
  *
- *  Create by songli on {{.Year}}/02/27
- *  Copyright © {{.Year}} imind.tech All rights reserved.
+ *  Create by songli on 2022/02/27
+ *  Copyright © 2022 imind.tech All rights reserved.
  */
 
 package srv
 
 import (
-	"os"
-	"text/template"
-
-	tpl "github.com/imind-lab/micro/microctl/template"
+	"github.com/imind-lab/micro/microctl/template"
 )
 
 // 生成client/service.go
-func CreateApplicationService(data *tpl.Data) error {
+func CreateApplicationService(data *template.Data) error {
 	var tpl = `/**
  *  {{.Svc}}
  *
- *  Create by songli on {{.Date}}
+ *  Create by songli on 2021/06/01
  *  Copyright © {{.Year}} imind.tech All rights reserved.
  */
 
@@ -27,6 +24,8 @@ package service
 
 import (
 	"context"
+	"errors"
+	"fmt"
 	"io"
 
 	"github.com/go-playground/validator/v10"
@@ -36,18 +35,18 @@ import (
 	"go.uber.org/zap"
 
 	{{.Service}} "{{.Domain}}/{{.Project}}/{{.Service}}/application/{{.Service}}/proto"
-	service "{{.Domain}}/{{.Project}}/{{.Service}}/domain/{{.Service}}"
+	domain "{{.Domain}}/{{.Project}}/{{.Service}}/domain/{{.Service}}"
+	"{{.Domain}}/{{.Project}}/{{.Service}}/repository/{{.Service}}/model"
 )
 
 type {{.Svc}}Service struct {
 	{{.Service}}.Unimplemented{{.Svc}}ServiceServer
 
 	vd *validator.Validate
-	dm service.{{.Svc}}Domain
+	dm domain.{{.Svc}}Domain
 }
 
-func New{{.Svc}}Service() *{{.Svc}}Service {
-	dm := service.New{{.Svc}}Domain()
+func New{{.Svc}}Service(dm domain.{{.Svc}}Domain) *{{.Svc}}Service {
 	svc := &{{.Svc}}Service{
 		dm: dm,
 		vd: validator.New(),
@@ -63,9 +62,51 @@ func (svc *{{.Svc}}Service) Create{{.Svc}}(ctx context.Context, req *{{.Service}
 
 	rsp := &{{.Service}}.Create{{.Svc}}Response{}
 
-	//info, articles, infos, configs, promotions, categories, emails, menus, pictures, maps := Export{{.Svc}}Info(req)
+	err := svc.vd.Struct(req)
+	if err != nil {
 
-	rsp.SetCode(status.Success, "")
+		if _, ok := err.(*validator.InvalidValidationError); ok {
+			fmt.Println(err)
+		}
+
+		for _, err := range err.(validator.ValidationErrors) {
+			fmt.Println(err.Namespace())
+			fmt.Println(err.Field())
+			fmt.Println(err.StructNamespace())
+			fmt.Println(err.StructField())
+			fmt.Println(err.Tag())
+			fmt.Println(err.ActualTag())
+			fmt.Println(err.Kind())
+			fmt.Println(err.Type())
+			fmt.Println(err.Value())
+			fmt.Println(err.Param())
+			fmt.Println()
+		}
+
+	}
+
+	err = svc.vd.Var(req.Name, "required,email")
+	if err != nil {
+		logger.Error("Name不能为空", zap.Any("name", req.Name), zap.Error(err))
+		rsp.SetCode(status.InvalidParams, "Name不能为空")
+		return rsp, nil
+	}
+	m := model.{{.Svc}}{
+		Name: req.Name,
+		Type: int8(req.Type),
+	}
+	err = svc.dm.Create{{.Svc}}(ctx, m)
+	if err != nil {
+		msg := "创建{{.Svc}}失败"
+		logger.Error(msg, zap.Any("{{.Service}}", m), zap.Error(err))
+		var state status.Error
+		if errors.As(err, &state) {
+			rsp.SetCode(state.Code, state.Msg)
+		} else {
+			rsp.SetCode(status.DBQueryFailed, msg)
+		}
+	}
+	rsp.SetCode(status.Success)
 	return rsp, nil
 }
 
@@ -80,8 +121,14 @@ func (svc *{{.Svc}}Service) Get{{.Svc}}ById(ctx context.Context, req *{{.Service
 	rsp := &{{.Service}}.Get{{.Svc}}ByIdResponse{}
 	m, err := svc.dm.Get{{.Svc}}ById(ctx, int(req.Id))
 	if err != nil {
-		logger.Error("获取{{.Svc}}失败", zap.Any("{{.Service}}", m), zap.Error(err))
-		rsp.SetCode(status.DBQueryFailed, "获取{{.Svc}}失败")
+		msg := "获取{{.Svc}}失败"
+		logger.Error(msg, zap.Any("{{.Service}}", m), zap.Error(err))
+		var state status.Error
+		if errors.As(err, &state) {
+			rsp.SetCode(state.Code, state.Msg)
+		} else {
+			rsp.SetCode(status.DBQueryFailed, msg)
+		}
 		return rsp, nil
 	}
 	rsp.SetBody(status.Success, m)
@@ -102,9 +149,21 @@ func (svc *{{.Svc}}Service) Get{{.Svc}}List0(ctx context.Context, req *{{.Servic
 	} else if pageSize > 50 {
 		pageSize = 20
 	}
-	list, err := svc.dm.Get{{.Svc}}List0(ctx, int(req.Status), pageSize, pageNum, req.Order)
+	err := svc.vd.Var(req.Type, "gte=0,lte=3")
 	if err != nil {
-		rsp.SetCode(status.InternalError, "服务器内部错误")
+		msg := "请输入有效的Type"
+		logger.Error(msg, zap.Int32("status", req.Type), zap.Error(err))
+		rsp.SetCode(status.InvalidParams, msg)
+		return rsp, nil
+	}
+	list, err := svc.dm.Get{{.Svc}}List0(ctx, int(req.Type), pageSize, pageNum, req.IsDesc)
+	if err != nil {
+		var state status.Error
+		if errors.As(err, &state) {
+			rsp.SetCode(state.Code, state.Msg)
+		} else {
+			rsp.SetCode(status.DBQueryFailed, "数据查询失败")
+		}
 		return rsp, nil
 	}
 	rsp.SetBody(status.Success, list)
@@ -113,7 +172,7 @@ func (svc *{{.Svc}}Service) Get{{.Svc}}List0(ctx context.Context, req *{{.Servic
 
 func (svc *{{.Svc}}Service) Get{{.Svc}}List1(ctx context.Context, req *{{.Service}}.Get{{.Svc}}List1Request) (*{{.Service}}.Get{{.Svc}}ListResponse, error) {
 	logger := log.GetLogger(ctx)
-	logger.Debug("Receive Get{{.Svc}}List0 request", zap.Any("req", req))
+	logger.Debug("Receive Get{{.Svc}}List1 request", zap.Any("req", req))
 	rsp := &{{.Service}}.Get{{.Svc}}ListResponse{}
 	pageSize := int(req.PageSize)
 	if pageSize <= 0 {
@@ -121,21 +180,34 @@ func (svc *{{.Svc}}Service) Get{{.Svc}}List1(ctx context.Context, req *{{.Servic
 	} else if pageSize > 50 {
 		pageSize = 20
 	}
-	list, err := svc.dm.Get{{.Svc}}List1(ctx, int(req.Status), pageSize, int(req.LastId), req.Order)
+	list, err := svc.dm.Get{{.Svc}}List1(ctx, int(req.Type), pageSize, int(req.LastId), req.IsDesc)
 	if err != nil {
-		rsp.SetCode(status.InternalError, "服务器内部错误")
+		var state status.Error
+		if errors.As(err, &state) {
+			rsp.SetCode(state.Code, state.Msg)
+		} else {
+			rsp.SetCode(status.DBQueryFailed, "数据查询失败")
+		}
 		return rsp, nil
 	}
 	rsp.SetBody(status.Success, list)
 	return rsp, nil
 }
 
-func (svc *{{.Svc}}Service) Update{{.Svc}}Status(ctx context.Context, req *{{.Service}}.Update{{.Svc}}StatusRequest) (*{{.Service}}.Update{{.Svc}}StatusResponse, error) {
+func (svc *{{.Svc}}Service) Update{{.Svc}}Type(ctx context.Context, req *{{.Service}}.Update{{.Svc}}TypeRequest) (*{{.Service}}.Update{{.Svc}}TypeResponse, error) {
 	logger := log.GetLogger(ctx)
-	logger.Debug("Receive Update{{.Svc}}Status request")
+	logger.Debug("Receive Update{{.Svc}}Type request")
 
-	rsp := &{{.Service}}.Update{{.Svc}}StatusResponse{}
+	rsp := &{{.Service}}.Update{{.Svc}}TypeResponse{}
 
+	affected, err := svc.dm.Update{{.Svc}}Type(ctx, int(req.Id), int(req.Type))
+	if err != nil || affected <= 0 {
+		msg := "更新{{.Svc}}失败"
+		logger.Error(msg, zap.Int8("affected", affected), zap.Error(err))
+		rsp.SetCode(status.DBUpdateFailed, msg)
+		return rsp, nil
+	}
+	rsp.SetCode(status.Success)
 	return rsp, nil
 }
 
@@ -146,8 +218,14 @@ func (svc *{{.Svc}}Service) Delete{{.Svc}}ById(ctx context.Context, req *{{.Serv
 	rsp := &{{.Service}}.Delete{{.Svc}}ByIdResponse{}
 	affected, err := svc.dm.Delete{{.Svc}}ById(ctx, int(req.Id))
 	if err != nil || affected <= 0 {
-		logger.Error("更新{{.Svc}}失败", zap.Int8("affected", affected), zap.Error(err))
-		rsp.SetCode(status.DBUpdateFailed, "更新{{.Svc}}失败")
+		msg := "更新{{.Svc}}失败"
+		logger.Error(msg, zap.Int8("affected", affected), zap.Error(err))
+		var state status.Error
+		if errors.As(err, &state) {
+			rsp.SetCode(state.Code, state.Msg)
+		} else {
+			rsp.SetCode(status.DBUpdateFailed, msg)
+		}
 		return rsp, nil
 	}
 	rsp.SetCode(status.Success, "")
@@ -194,30 +272,8 @@ func (svc *{{.Svc}}Service) Get{{.Svc}}ListByStream(stream {{.Service}}.{{.Svc}}
 }
 `
 
-	t, err := template.New("application_service").Parse(tpl)
-	if err != nil {
-		return err
-	}
+	path := "./" + data.Domain + "/" + data.Project + "/" + data.Service + "/application/" + data.Service + "/service/"
+	name := data.Service + ".go"
 
-	t.Option()
-	dir := "./" + data.Domain + "/" + data.Project + "/" + data.Service + "/application/" + data.Service + "/service/"
-
-	err = os.MkdirAll(dir, os.ModePerm)
-	if err != nil {
-		return err
-	}
-
-	fileName := dir + data.Service + ".go"
-
-	f, err := os.Create(fileName)
-	if err != nil {
-		return err
-	}
-	err = t.Execute(f, data)
-	if err != nil {
-		return err
-	}
-	f.Close()
-
-	return nil
+	return template.CreateFile(data, tpl, path, name)
 }

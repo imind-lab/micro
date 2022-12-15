@@ -26,18 +26,18 @@ import (
 
 	"{{.Domain}}/{{.Project}}/{{.Service}}-api/application/{{.Service}}/proto"
 	"{{.Domain}}/{{.Project}}/{{.Service}}-api/application/{{.Service}}/service"
-	"github.com/imind-lab/micro"
-	grpcx "github.com/imind-lab/micro/grpc"
+	"github.com/imind-lab/rainbow"
+	grpcx "github.com/imind-lab/rainbow/grpc"
 )
 
 func Serve() error {
-	svc := micro.NewService()
+	svc := rainbow.NewService()
 
 	grpcCred := grpcx.NewGrpcCred()
 
 	svc.Init(
-		micro.ServerCred(grpcCred.ServerCred()),
-		micro.ClientCred(grpcCred.ClientCred()))
+		rainbow.ServerCred(grpcCred.ServerCred()),
+		rainbow.ClientCred(grpcCred.ClientCred()))
 
 	grpcSrv := svc.GrpcServer()
 	{{.Service}}_api.Register{{.Svc}}ServiceServer(grpcSrv, service.New{{.Svc}}Service(svc.Options().Logger))

@@ -1,25 +1,22 @@
 /**
  *  MindLab
  *
- *  Create by songli on {{.Year}}/02/27
- *  Copyright © {{.Year}} imind.tech All rights reserved.
+ *  Create by songli on 2022/02/27
+ *  Copyright © 2022 imind.tech All rights reserved.
  */
 
 package srv
 
 import (
-	"os"
-	"text/template"
-
-	tpl "github.com/imind-lab/micro/microctl/template"
+	"github.com/imind-lab/micro/microctl/template"
 )
 
 // 生成repository/model.go
-func CreateRepositoryPersistenceService(data *tpl.Data) error {
+func CreateRepositoryPersistenceService(data *template.Data) error {
 	var tpl = `/**
  *  {{.Svc}}
  *
- *  Create by songli on {{.Date}}
+ *  Create by songli on 2021/06/01
  *  Copyright © {{.Year}} imind.tech All rights reserved.
  */
 
@@ -29,23 +26,28 @@ import (
 	"context"
 	"errors"
 	"fmt"
+
 	"strconv"
 	"sync"
 
 	"github.com/go-redis/redis/v8"
+	errorsx "github.com/pkg/errors"
+	"go.uber.org/zap"
+	"gorm.io/gorm"
+	{{if .MQ}}
+	"github.com/imind-lab/micro/broker"{{end}}
 	"github.com/imind-lab/micro/log"
 	"github.com/imind-lab/micro/sentinel"
 	"github.com/imind-lab/micro/status"
 	"github.com/imind-lab/micro/tracing"
 	"github.com/imind-lab/micro/util"
-	errorsx "github.com/pkg/errors"
-	"go.uber.org/zap"
-	"gorm.io/gorm"
 
 	"{{.Domain}}/{{.Project}}/{{.Service}}/pkg/constant"
 	utilx "{{.Domain}}/{{.Project}}/{{.Service}}/pkg/util"
 	"{{.Domain}}/{{.Project}}/{{.Service}}/repository/{{.Service}}/model"
 )
+
+const _CDType = "type=?"
 
 func (repo {{.Svc}}Repository) Create{{.Svc}}(ctx context.Context, {{.Service}} model.{{.Svc}}) (model.{{.Svc}}, error) {
 	ctx, span := tracing.StartSpan(ctx)
@@ -55,8 +57,20 @@ func (repo {{.Svc}}Repository) Create{{.Svc}}(ctx context.Context, {{.Service}} 
 	if err != nil {
 		return {{.Service}}, err
 	}
-	err = repo.CacheModel(ctx, {{.Service}}, constant.Cache{{.Svc}}, {{.Service}}.Id, constant.CacheMinute5)
-	return {{.Service}}, err
+	logger := log.GetLogger(ctx)
+	err = repo.CacheModel(ctx, &{{.Service}}, constant.Cache{{.Svc}}, {{.Service}}.Id, constant.CacheMinute5)
+	if err != nil {
+		logger.Warn("CacheModel error", zap.Error(err))
+	}
+	{{if .MQ}}
+	err = repo.broker.Publish(&broker.Message{
+		Topic: repo.broker.Options().Topics["{{.Service}}create"],
+		Body:  []byte(fmt.Sprintf("{{.Svc}} %s Created", {{.Service}}.Name)),
+	})
+	if err != nil {
+		logger.Error("Kafka publish error", zap.Error(err))
+	}{{end}}
+	return {{.Service}}, nil
 }
 
 // 忽略部分字段的更新
@@ -91,28 +105,30 @@ func (repo {{.Svc}}Repository) Get{{.Svc}}ById(ctx context.Context, id int) (mod
 
 	logger := log.GetLogger(ctx)
 
-	var m model.{{.Svc}}
-	err := repo.GetModelCache(ctx, &m, constant.Cache{{.Svc}}, id)
-	logger.Debug("GetModelCache", zap.Any("{{.Service}}", m), zap.Error(err))
+	var {{.Service}} model.{{.Svc}}
+	err := repo.GetModelCache(ctx, &{{.Service}}, constant.Cache{{.Svc}}, id)
+	logger.Debug("GetModelCache", zap.Any("{{.Service}}", {{.Service}}), zap.Error(err))
 	if err == nil {
-		return m, nil
+		return {{.Service}}, nil
 	}
 
-	m, err = repo.Find{{.Svc}}ById(ctx, id)
+	{{.Service}}, err = repo.Find{{.Svc}}ById(ctx, id)
 	if err != nil {
-		return m, errorsx.WithMessage(err, "{{.Svc}}Repository.Get{{.Svc}}ById")
+		return {{.Service}}, errorsx.WithMessage(err, util.GetFuncName())
 	}
 
-	if m.IsEmpty() {
-		repo.CacheModelDefault(ctx, m, constant.Cache{{.Svc}}, id)
+	if {{.Service}}.IsEmpty() {
+		repo.CacheModelDefault(ctx, &{{.Service}}, constant.Cache{{.Svc}}, id)
 	} else {
 		tool := util.NewCacheTool()
 		expire := constant.CacheMinute5 + tool.RandExpire(120)
-		err := repo.CacheModel(ctx, m, constant.Cache{{.Svc}}, id, expire)
-		fmt.Println(err)
+		err := repo.CacheModel(ctx, &{{.Service}}, constant.Cache{{.Svc}}, id, expire)
+		if err != nil {
+			logger.Warn("CacheModel", zap.Error(err))
+		}
 	}
 
-	return m, nil
+	return {{.Service}}, nil
 }
 
 // 根据Id获取{{.Svc}}(无缓存)
@@ -129,27 +145,27 @@ func (repo {{.Svc}}Repository) Find{{.Svc}}ById(ctx context.Context, id int) (mo
 		if errors.Is(err, context.DeadlineExceeded) {
 			return m, status.ErrDBDeadlineExceeded
 		} else if errors.Is(err, gorm.ErrRecordNotFound) {
-			return m, nil
+			return m, status.ErrRecordNotFound
 		}
 		return m, status.ErrDBQuery
 	}
 	return m, nil
 }
 
-func (repo {{.Svc}}Repository) Get{{.Svc}}sCount(ctx context.Context, status int) (int64, error) {
+func (repo {{.Svc}}Repository) Get{{.Svc}}sCount(ctx context.Context, typ int) (int64, error) {
 	ctx, span := tracing.StartSpan(ctx)
 	span.End()
 
 	logger := log.GetLogger(ctx)
 
-	key := utilx.CacheKey(constant.Cache{{.Svc}}Cnt, strconv.Itoa(status))
+	key := utilx.CacheKey(constant.Cache{{.Svc}}Cnt, strconv.Itoa(typ))
 	cnt, err := repo.Redis().GetNumber(ctx, key)
 	if err == nil {
 		return cnt, nil
 	}
-	cnt, err = repo.Find{{.Svc}}sCount(ctx, status)
+	cnt, err = repo.Find{{.Svc}}sCount(ctx, typ)
 	if err != nil {
-		return 0, errorsx.WithMessage(err, "{{.Svc}}Repository.Get{{.Svc}}sCount")
+		return 0, errorsx.WithMessage(err, util.GetFuncName())
 	}
 	err = repo.Redis().Set(ctx, key, cnt, constant.CacheMinute5)
 	if err != nil {
@@ -158,49 +174,50 @@ func (repo {{.Svc}}Repository) Get{{.Svc}}sCount(ctx context.Context, status int
 	return cnt, nil
 }
 
-func (repo {{.Svc}}Repository) Find{{.Svc}}sCount(ctx context.Context, status int) (int64, error) {
+func (repo {{.Svc}}Repository) Find{{.Svc}}sCount(ctx context.Context, typ int) (int64, error) {
 	var count int64
 	tx := repo.DB(ctx).Model(model.{{.Svc}}{}).Select("count(id)")
-	tx = tx.Where("status=?", status)
+	tx = tx.Where(_CDType, typ)
 	if err := tx.Count(&count).Error; err != nil {
-		return 0, errorsx.Wrap(err, "{{.Svc}}Repository.Find{{.Svc}}sCount")
+		return 0, errorsx.Wrap(err, util.GetFuncName())
 	}
 	return count, nil
 }
 
 // Get{{.Svc}}List0 Get the list of {{.Service}} with cache for pageNum
-func (repo {{.Svc}}Repository) Get{{.Svc}}List0(ctx context.Context, status, pageSize, pageNum int, desc bool) ([]model.{{.Svc}}, int, error) {
+func (repo {{.Svc}}Repository) Get{{.Svc}}List0(ctx context.Context, typ, pageSize, pageNum int, isDesc bool) ([]model.{{.Svc}}, int, error) {
 	logger := log.GetLogger(ctx)
 
-	ids, cnt, err := repo.Get{{.Svc}}List0Ids(ctx, status, pageSize, pageNum, desc)
+	ids, cnt, err := repo.Get{{.Svc}}List0Ids(ctx, typ, pageSize, pageNum, isDesc)
 	if err != nil {
-		return nil, 0, errorsx.WithMessage(err, "{{.Service}}sRepository.Get{{.Svc}}sList0.Get{{.Svc}}sListIds")
+		return nil, 0, errorsx.WithMessage(err, util.GetFuncName())
 	}
 
 	{{.Service}}s, err := repo.Get{{.Svc}}List4Concurrent(ctx, ids, repo.Get{{.Svc}}ById)
 	logger.Debug("Get{{.Svc}}List4Concurrent", zap.Any("{{.Service}}s", {{.Service}}s), zap.Error(err))
 	if err != nil {
-		return nil, 0, errorsx.WithMessage(err, "{{.Svc}}Repository.Get{{.Svc}}List0.Get{{.Svc}}List4Concurrent")
+		return nil, 0, errorsx.WithMessage(err, util.GetFuncName())
 	}
 	return {{.Service}}s, cnt, nil
 }
 
 // Get{{.Svc}}List0Ids Get the list of {{.Service}} id with cache for pageNum
-func (repo {{.Svc}}Repository) Get{{.Svc}}List0Ids(ctx context.Context, status, pageSize, pageNum int, desc bool) ([]int, int, error) {
-	key := utilx.CacheKey(constant.Cache{{.Svc}}Ids, "0_", strconv.Itoa(status))
+func (repo {{.Svc}}Repository) Get{{.Svc}}List0Ids(ctx context.Context, typ, pageSize, pageNum int, isDesc bool) ([]int, int, error) {
+	key := utilx.CacheKey(constant.Cache{{.Svc}}Ids, "0_", strconv.Itoa(typ))
 	var (
 		ids []int
 		cnt int
 		err error
 	)
-	ids, cnt, err = repo.Redis().SortedSetRange(ctx, key, int64(pageSize), int64(pageNum), desc)
+	cnt, err = repo.Redis().SortedSetRange(ctx, key, int64(pageSize), int64(pageNum), isDesc, &ids)
+	fmt.Println("SortedSetRange", cnt, err, ids)
 	if err == nil {
 		return ids, cnt, nil
 	}
 
-	ids, args, err := repo.Find{{.Svc}}List0Ids(ctx, status, pageSize, pageNum, desc)
+	ids, args, err := repo.Find{{.Svc}}List0Ids(ctx, typ, pageSize, pageNum, isDesc)
 	if err != nil {
-		return nil, 0, errorsx.WithMessage(err, "{{.Svc}}Repository.Get{{.Svc}}List0")
+		return nil, 0, errorsx.WithMessage(err, util.GetFuncName())
 	}
 	expire := constant.CacheMinute5 + util.RandDuration(120)
 	repo.Redis().SortedSetSet(ctx, key, args, expire)
@@ -208,10 +225,10 @@ func (repo {{.Svc}}Repository) Get{{.Svc}}List0Ids(ctx context.Context, status, 
 }
 
 // Find{{.Svc}}List0Ids Get the list of {{.Service}} id without cache for pageNum
-func (repo {{.Svc}}Repository) Find{{.Svc}}List0Ids(ctx context.Context, status, pageSize, pageNum int, desc bool) ([]int, []*redis.Z, error) {
+func (repo {{.Svc}}Repository) Find{{.Svc}}List0Ids(ctx context.Context, typ, pageSize, pageNum int, desc bool) ([]int, []*redis.Z, error) {
 	limit := 1000
 	tx := repo.DB(ctx).Model(model.{{.Svc}}{}).Select("id")
-	tx = tx.Where("status=?", status)
+	tx = tx.Where(_CDType, typ)
 	if desc {
 		tx = tx.Order("create_time DESC")
 	} else {
@@ -223,38 +240,38 @@ func (repo {{.Svc}}Repository) Find{{.Svc}}List0Ids(ctx context.Context, status,
 }
 
 // Get{{.Svc}}List1 Get the list of {{.Service}} with cache for lastId
-func (repo {{.Svc}}Repository) Get{{.Svc}}List1(ctx context.Context, status, pageSize, lastId int, desc bool) ([]model.{{.Svc}}, int, error) {
+func (repo {{.Svc}}Repository) Get{{.Svc}}List1(ctx context.Context, typ, pageSize, lastId int, isDesc bool) ([]model.{{.Svc}}, int, error) {
 	logger := log.GetLogger(ctx)
 
-	ids, cnt, err := repo.Get{{.Svc}}List1Ids(ctx, status, pageSize, lastId, desc)
+	ids, cnt, err := repo.Get{{.Svc}}List1Ids(ctx, typ, pageSize, lastId, isDesc)
 	if err != nil {
-		return nil, 0, errorsx.WithMessage(err, "{{.Service}}sRepository.Get{{.Svc}}sList1.Get{{.Svc}}sListIds")
+		return nil, 0, errorsx.WithMessage(err, util.GetFuncName())
 	}
 
 	{{.Service}}s, err := repo.Get{{.Svc}}List4Concurrent(ctx, ids, repo.Get{{.Svc}}ById)
 	logger.Debug("Get{{.Svc}}List4Concurrent", zap.Any("{{.Service}}s", {{.Service}}s), zap.Error(err))
 	if err != nil {
-		return nil, 0, errorsx.WithMessage(err, "{{.Svc}}Repository.Get{{.Svc}}List1.Get{{.Svc}}List4Concurrent")
+		return nil, 0, errorsx.WithMessage(err, util.GetFuncName())
 	}
 	return {{.Service}}s, cnt, nil
 }
 
 // Get{{.Svc}}List1Ids Get the list of {{.Service}} id with cache for lastId
-func (repo {{.Svc}}Repository) Get{{.Svc}}List1Ids(ctx context.Context, status, pageSize, lastId int, desc bool) ([]int, int, error) {
-	key := utilx.CacheKey(constant.Cache{{.Svc}}Ids, "1_", strconv.Itoa(status))
+func (repo {{.Svc}}Repository) Get{{.Svc}}List1Ids(ctx context.Context, typ, pageSize, lastId int, isDesc bool) ([]int, int, error) {
+	key := utilx.CacheKey(constant.Cache{{.Svc}}Ids, "1_", strconv.Itoa(typ))
 	var (
 		ids []int
 		cnt int
 		err error
 	)
-	ids, cnt, err = repo.Redis().SortedSetRangeByScore(ctx, key, int64(pageSize), int64(lastId), desc)
+	cnt, err = repo.Redis().SortedSetRangeByScore(ctx, key, int64(pageSize), int64(lastId), isDesc, &ids)
 	if err == nil {
 		return ids, cnt, nil
 	}
 
-	ids, args, err := repo.Find{{.Svc}}List1Ids(ctx, status, pageSize, lastId, desc)
+	ids, args, err := repo.Find{{.Svc}}List1Ids(ctx, typ, pageSize, lastId, isDesc)
 	if err != nil {
-		return nil, 0, errorsx.WithMessage(err, "{{.Svc}}Repository.Get{{.Svc}}List0")
+		return nil, 0, errorsx.WithMessage(err, util.GetFuncName())
 	}
 	expire := constant.CacheMinute5 + util.RandDuration(120)
 	repo.Redis().SortedSetSet(ctx, key, args, expire)
@@ -262,10 +279,10 @@ func (repo {{.Svc}}Repository) Get{{.Svc}}List1Ids(ctx context.Context, status, 
 }
 
 // Find{{.Svc}}List1Ids Get the list of {{.Service}} id without cache for lastId
-func (repo {{.Svc}}Repository) Find{{.Svc}}List1Ids(ctx context.Context, status, pageSize, lastId int, desc bool) ([]int, []*redis.Z, error) {
+func (repo {{.Svc}}Repository) Find{{.Svc}}List1Ids(ctx context.Context, typ, pageSize, lastId int, desc bool) ([]int, []*redis.Z, error) {
 	limit := 1000
 	tx := repo.DB(ctx).Model(model.{{.Svc}}{}).Select("id")
-	tx = tx.Where("status=?", status)
+	tx = tx.Where(_CDType, typ)
 	if lastId > 0 {
 		if desc {
 			tx = tx.Where("id<?", lastId)
@@ -324,14 +341,13 @@ type concurrent{{.Svc}}Output struct {
 	err    error
 }
 
-func (repo {{.Svc}}Repository) Update{{.Svc}}Status(ctx context.Context, id, status int) (int8, error) {
+func (repo {{.Svc}}Repository) Update{{.Svc}}Type(ctx context.Context, id, typ int) (int8, error) {
 	logger := log.GetLogger(ctx)
-	logger.Debug("invoke info", zap.Int("id", id), zap.Int("status", status))
-	tx := repo.DB(ctx).Model(model.{{.Svc}}{}).Where("id = ?", id)
-	tx = tx.Update("status", status)
+	logger.Debug("invoke info", zap.Int("id", id), zap.Int("type", typ))
+	tx := repo.DB(ctx).Model(&model.{{.Svc}}{}).Where("id = ?", id)
+	tx = tx.Update("type", typ)
 	if tx.Error != nil {
-
-		return 0, errorsx.Wrap(tx.Error, "{{.Svc}}Repository.Update{{.Svc}}Status")
+		return 0, errorsx.Wrap(tx.Error, util.GetFuncName())
 	}
 	repo.DelModelCache(ctx, constant.Cache{{.Svc}}, id)
 	return int8(tx.RowsAffected), nil
@@ -343,37 +359,15 @@ func (repo {{.Svc}}Repository) Delete{{.Svc}}ById(ctx context.Context, id int) (
 	logger.Debug("invoke info", zap.Int("id", id))
 	tx := repo.DB(ctx).Delete(&model.{{.Svc}}{}, id)
 	if tx.Error != nil {
-		return 0, errorsx.Wrap(tx.Error, "{{.Svc}}Repository.Delete{{.Svc}}ById")
+		return 0, errorsx.Wrap(tx.Error, util.GetFuncName())
 	}
 	repo.DelModelCacheAll(ctx, constant.Cache{{.Svc}}, id)
 	return int8(tx.RowsAffected), nil
 }
 `
 
-	t, err := template.New("repository_model").Parse(tpl)
-	if err != nil {
-		return err
-	}
+	path := "./" + data.Domain + "/" + data.Project + "/" + data.Service + "/repository/" + data.Service + "/persistence/"
+	name := data.Service + ".go"
 
-	t.Option()
-	dir := "./" + data.Domain + "/" + data.Project + "/" + data.Service + "/repository/" + data.Service + "/persistence/"
-
-	err = os.MkdirAll(dir, os.ModePerm)
-	if err != nil {
-		return err
-	}
-
-	fileName := dir + data.Service + ".go"
-
-	f, err := os.Create(fileName)
-	if err != nil {
-		return err
-	}
-	err = t.Execute(f, data)
-	if err != nil {
-		return err
-	}
-	f.Close()
-
-	return nil
+	return template.CreateFile(data, tpl, path, name)
 }

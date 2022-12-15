@@ -88,7 +88,7 @@ func Base64Encode(s string) string {
 	return base64.StdEncoding.EncodeToString([]byte(s))
 }
 
-//Base64Decode  base64 解密
+// Base64Decode  base64 解密
 func Base64Decode(s string) string {
 	var b []byte
 	var err error
@@ -105,39 +105,14 @@ func Base64Decode(s string) string {
 	return string(b)
 }
 
-func str2bytes(s string) []byte {
+func Str2bytes(s string) []byte {
 	x := (*[2]uintptr)(unsafe.Pointer(&s))
 	h := [3]uintptr{x[0], x[1], x[1]}
 	return *(*[]byte)(unsafe.Pointer(&h))
 }
 
-func bytes2str(b []byte) string {
+func Bytes2str(b []byte) string {
 	return *(*string)(unsafe.Pointer(&b))
-}
-
-func MysqlEscape(src string) string {
-	if len(src) == 0 {
-		return ""
-	}
-	i := 0
-	dest := make([]rune, len(src)*2)
-	for _, c := range src {
-		switch c {
-		case '\r', '\n', '\\', '\'', '"':
-			dest[i] = '\\'
-			dest[i+1] = c
-			i = i + 2
-		case '\032':
-			dest[i] = '\\'
-			dest[i+1] = 'Z'
-			i = i + 2
-		default:
-			dest[i] = c
-			i = i + 1
-
-		}
-	}
-	return string(dest[:i])
 }
 
 func StripTags(content string) string {
@@ -145,7 +120,7 @@ func StripTags(content string) string {
 	return re.ReplaceAllString(content, "")
 }
 
-//将utf-8编码的字符串转换为GBK编码
+// 将utf-8编码的字符串转换为GBK编码
 func Convert2GBK(str string) string {
 	if ret, err := simplifiedchinese.GBK.NewEncoder().String(str); err == nil {
 		return ret
@@ -153,7 +128,7 @@ func Convert2GBK(str string) string {
 	return ""
 }
 
-//将GBK编码的字符串转换为utf-8编码
+// 将GBK编码的字符串转换为utf-8编码
 func Convert2UTF8(str string) string {
 	if ret, err := simplifiedchinese.GBK.NewDecoder().String(str); err == nil {
 		return ret
@@ -418,14 +393,14 @@ func StringToInt32(val string) int32 {
 
 // 过滤 emoji 表情
 func FilterEmoji(content string) string {
-	new_content := ""
+	var buf bytes.Buffer
 	for _, value := range content {
 		_, size := utf8.DecodeRuneInString(string(value))
 		if size <= 3 {
-			new_content += string(value)
+			buf.WriteRune(value)
 		}
 	}
-	return new_content
+	return buf.String()
 }
 
 func ExternalIP() (net.IP, error) {
@@ -548,30 +523,29 @@ func ContainsString(list []string, value string) bool {
 	return false
 }
 
-//获取下一个可用消息id
+// 获取下一个可用消息id
 func GetId(ids []int) int {
 	if len(ids) == 0 {
 		return 1
-	} else {
-		max := int(^uint16(0))
-		sort.Ints(ids)
-		id := ids[len(ids)-1] + 1
-		for {
-			if id > max {
-				id = 1
-			}
-			available := true
-			for _, v := range ids {
-				if v == id {
-					available = false
-					break
-				}
-			}
-			if available {
-				return id
-			}
-			id++
+	}
+	max := int(^uint16(0))
+	sort.Ints(ids)
+	id := ids[len(ids)-1] + 1
+	for {
+		if id > max {
+			id = 1
 		}
+		available := true
+		for _, v := range ids {
+			if v == id {
+				available = false
+				break
+			}
+		}
+		if available {
+			return id
+		}
+		id++
 	}
 }
 
@@ -597,6 +571,21 @@ func AppendString(keys ...string) string {
 	return string(result)
 }
 
+func GetPascalCase(name string) string {
+	return strings.ReplaceAll(cases.Title(language.English).String(name), "-", "")
+}
+
+func GetCamelCase(name string) string {
+	components := strings.SplitN(name, "-", 2)
+	if len(components) == 2 {
+		var buffer bytes.Buffer
+		buffer.WriteString(components[0])
+		buffer.WriteString(strings.ReplaceAll(cases.Title(language.English).String(components[1]), "-", ""))
+		return buffer.String()
+	}
+	return components[0]
+}
+
 func GetPtrFuncName() (string, string) {
 	pc := make([]uintptr, 1)
 	runtime.Callers(3, pc)
@@ -612,7 +601,7 @@ func GetPtrFuncName() (string, string) {
 	return layer, info[cnt-1]
 }
 
-func GetFuncName() (string, string) {
+func GetFuncName() string {
 	pc := make([]uintptr, 1)
 	runtime.Callers(3, pc)
 	f := runtime.FuncForPC(pc[0])
@@ -620,5 +609,5 @@ func GetFuncName() (string, string) {
 	info := strings.Split(f.Name(), ".")
 	cnt := len(info)
 
-	return info[cnt-2], info[cnt-1]
+	return strings.Join(info[cnt-2:], ".")
 }

@@ -3,7 +3,6 @@ package micro
 import (
 	"context"
 	"fmt"
-	"google.golang.org/grpc/credentials/insecure"
 	"net"
 	"net/http"
 	"runtime/debug"
@@ -19,10 +18,11 @@ import (
 	"github.com/grpc-ecosystem/grpc-gateway/v2/runtime"
 	"github.com/spf13/viper"
 	"go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc"
-	tracesdk "go.opentelemetry.io/otel/sdk/trace"
+	"go.opentelemetry.io/otel"
 	"go.uber.org/zap"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/credentials/insecure"
 	"google.golang.org/grpc/health"
 	healthpb "google.golang.org/grpc/health/grpc_health_v1"
 	"google.golang.org/grpc/reflection"
@@ -31,7 +31,6 @@ import (
 
 	grpcx "github.com/imind-lab/micro/grpc"
 	"github.com/imind-lab/micro/log"
-	"github.com/imind-lab/micro/tracing"
 )
 
 type Service interface {
@@ -86,7 +85,7 @@ func (s *service) Init(opts ...Option) {
 	}
 	s.once.Do(func() {
 		s.grpcServer = s.newGrpcServer()
-		server, mux := s.newHttpServer()
+		server, mux := s.newHttpServer(s.opts.Handlers...)
 		s.httpServer = server
 		s.serveMux = mux
 	})
@@ -167,11 +166,6 @@ func (s service) Stop() error {
 	}
 
 	s.cancel()
-	s.opts.TracerProvider.Shutdown(s.opts.Context)
-
-	if s.opts.Broker != nil {
-		s.opts.Broker.Close()
-	}
 
 	s.grpcServer.GracefulStop()
 	err := s.httpServer.Shutdown(s.opts.Context)
@@ -205,8 +199,8 @@ func (s service) newGrpcServer() *grpc.Server {
 		grpc_recovery.WithRecoveryHandler(customFunc),
 	}
 
-	unaryInterceptors = append(unaryInterceptors, grpc_recovery.UnaryServerInterceptor(recoveryOpts...), grpc_ctxtags.UnaryServerInterceptor())
-	streamInterceptors = append(streamInterceptors, grpc_recovery.StreamServerInterceptor(recoveryOpts...), grpc_ctxtags.StreamServerInterceptor())
+	unaryInterceptors = append(unaryInterceptors, grpc_recovery.UnaryServerInterceptor(recoveryOpts...), grpc_ctxtags.UnaryServerInterceptor(), otelgrpc.UnaryServerInterceptor())
+	streamInterceptors = append(streamInterceptors, grpc_recovery.StreamServerInterceptor(recoveryOpts...), grpc_ctxtags.StreamServerInterceptor(), otelgrpc.StreamServerInterceptor())
 
 	if s.opts.Logger != nil {
 		opts := []grpc_zap.Option{
@@ -221,11 +215,6 @@ func (s service) newGrpcServer() *grpc.Server {
 		}
 		unaryInterceptors = append(unaryInterceptors, log.UnaryServerInterceptor(), grpc_zap.UnaryServerInterceptor(s.opts.Logger, opts...))
 		streamInterceptors = append(streamInterceptors, log.StreamServerInterceptor(), grpc_zap.StreamServerInterceptor(s.opts.Logger, opts...))
-	}
-
-	if s.opts.TracerProvider != nil {
-		unaryInterceptors = append(unaryInterceptors, otelgrpc.UnaryServerInterceptor())
-		streamInterceptors = append(streamInterceptors, otelgrpc.StreamServerInterceptor())
 	}
 
 	var serverOpt []grpc.ServerOption
@@ -247,11 +236,16 @@ func (s service) newGrpcServer() *grpc.Server {
 	return grpcServer
 }
 
-func (s service) newHttpServer() (*http.Server, *runtime.ServeMux) {
-	mux := runtime.NewServeMux()
+func (s service) newHttpServer(handlers ...Handler) (*http.Server, *runtime.ServeMux) {
+	mux := runtime.NewServeMux(grpcx.EnableGatewayJsonTag())
+
+	handler := grpcx.GrpcHandlerFunc(s.grpcServer, mux)
+	for _, handle := range handlers {
+		handler = handle(handler)
+	}
 
 	httpServer := &http.Server{
-		Handler: grpcx.GrpcHandlerFunc(s.grpcServer, mux),
+		Handler: handler,
 	}
 
 	return httpServer, mux
@@ -276,9 +270,8 @@ func (s service) startHttpServer(listener net.Listener) error {
 	return nil
 }
 
-func ClientConn(ctx context.Context, name string, tls bool) (*grpc.ClientConn, *tracesdk.TracerProvider, error) {
+func ClientConn(ctx context.Context, name string, tls bool) (*grpc.ClientConn, error) {
 	service := viper.GetString("rpc." + name + ".service")
-	namespace := viper.GetString("rpc." + name + ".namespace")
 	port := viper.GetInt("rpc." + name + ".port")
 	addr := fmt.Sprintf("%s:%d", service, port)
 
@@ -295,14 +288,8 @@ func ClientConn(ctx context.Context, name string, tls bool) (*grpc.ClientConn, *
 	var unaryInterceptors []grpc.UnaryClientInterceptor
 	var streamInterceptors []grpc.StreamClientInterceptor
 
-	unaryInterceptors = append(unaryInterceptors, grpc_retry.UnaryClientInterceptor(retryOpts...), log.UnaryClientInterceptor(), grpc_zap.UnaryClientInterceptor(ctxzap.Extract(ctx), zapOpts...))
-	streamInterceptors = append(streamInterceptors, log.StreamClientInterceptor(), grpc_zap.StreamClientInterceptor(ctxzap.Extract(ctx), zapOpts...))
-
-	provider, err := tracing.InitProvider(service+"-cli", namespace)
-	if err == nil {
-		unaryInterceptors = append(unaryInterceptors, otelgrpc.UnaryClientInterceptor(otelgrpc.WithTracerProvider(provider)))
-		streamInterceptors = append(streamInterceptors, otelgrpc.StreamClientInterceptor(otelgrpc.WithTracerProvider(provider)))
-	}
+	unaryInterceptors = append(unaryInterceptors, grpc_retry.UnaryClientInterceptor(retryOpts...), log.UnaryClientInterceptor(), grpc_zap.UnaryClientInterceptor(ctxzap.Extract(ctx), zapOpts...), otelgrpc.UnaryClientInterceptor(otelgrpc.WithTracerProvider(otel.GetTracerProvider())))
+	streamInterceptors = append(streamInterceptors, log.StreamClientInterceptor(), grpc_zap.StreamClientInterceptor(ctxzap.Extract(ctx), zapOpts...), otelgrpc.StreamClientInterceptor(otelgrpc.WithTracerProvider(otel.GetTracerProvider())))
 
 	var dialOpt []grpc.DialOption
 	if tls {
@@ -316,5 +303,5 @@ func ClientConn(ctx context.Context, name string, tls bool) (*grpc.ClientConn, *
 
 	conn, err := grpc.Dial(addr, dialOpt...)
 
-	return conn, provider, err
+	return conn, err
 }

@@ -20,7 +20,7 @@ func CreatePkgUtilCache(data *tpl.Data) error {
 
 import (
         "{{.Domain}}/{{.Project}}/{{.Service}}/pkg/constant"
-        "github.com/imind-lab/micro/util"
+        "github.com/imind-lab/rainbow/util"
 )
 
 func CacheKey(keys ...string) string {

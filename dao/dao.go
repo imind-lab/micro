@@ -9,89 +9,40 @@ package dao
 
 import (
 	"context"
-	"time"
-
-	"github.com/spf13/viper"
+	"github.com/imind-lab/micro/redis"
 	"gorm.io/gorm"
 )
-
-type deadlineKey struct{}
-
-func NewDeadlineKey() deadlineKey {
-	return deadlineKey{}
-}
 
 type Dao interface {
 	DB(ctx context.Context) *gorm.DB
 	ExtraDB(ctx context.Context, name string) *gorm.DB
-	SetDBMock(db *gorm.DB)
 
-	Redis() Redis
-	//SetRedisMock(rdb *redis.ClusterClient)
+	Redis() redis.Redis
 }
 
 type dao struct {
 	Cache
 	Database
-
-	dbName string
-	dbMock *gorm.DB
-
-	//redisMock *redis.ClusterClient
-
-	timeout time.Duration
 }
 
-func NewDao(dbName string) Dao {
-	timeout := viper.GetDuration("db.timeout")
+func NewDao(cache Cache, db Database) Dao {
 	rep := &dao{
-		Cache:    NewCache(),
-		Database: NewDatabase(),
-		dbName:   dbName,
-		timeout:  timeout,
+		Cache:    cache,
+		Database: db,
 	}
 	return rep
 }
 
 func (d *dao) DB(ctx context.Context) *gorm.DB {
-	if d.dbMock != nil {
-		return d.dbMock
-	}
-
-	timeout, ok := ctx.Value(NewDeadlineKey()).(time.Duration)
-	if ok {
-		ctx, _ = context.WithTimeout(ctx, timeout)
-	} else {
-		ctx, _ = context.WithTimeout(ctx, d.timeout)
-	}
-	return d.Database.DB(d.dbName).WithContext(ctx)
+	ctx, _ = context.WithTimeout(ctx, d.Database.Timeout())
+	return d.Database.DB("default").WithContext(ctx)
 }
 
 func (d *dao) ExtraDB(ctx context.Context, name string) *gorm.DB {
-	if d.dbMock != nil {
-		return d.dbMock
-	}
-
-	timeout, ok := ctx.Value(NewDeadlineKey()).(time.Duration)
-	if ok {
-		ctx, _ = context.WithTimeout(ctx, timeout)
-	} else {
-		ctx, _ = context.WithTimeout(ctx, d.timeout)
-	}
+	ctx, _ = context.WithTimeout(ctx, d.Database.Timeout())
 	return d.Database.DB(name).WithContext(ctx)
 }
 
-func (d *dao) SetDBMock(db *gorm.DB) {
-	d.dbMock = db
-}
-
-//func (d *dao) SetRedisMock(rdb *redis.ClusterClient) {
-//	d.redisMock = rdb
-//}
-
-func (d *dao) Redis() Redis {
-	//if d.redisMock != nil {
-	//	return d.redisMock
-	//}
+func (d *dao) Redis() redis.Redis {
 	return d.Cache.Redis()
 }

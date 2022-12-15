@@ -1,21 +1,18 @@
 /**
  *  MindLab
  *
- *  Create by songli on {{.Year}}/02/27
- *  Copyright © {{.Year}} imind.tech All rights reserved.
+ *  Create by songli on 2022/02/27
+ *  Copyright © 2022 imind.tech All rights reserved.
  */
 
 package srv
 
 import (
-	"os"
-	"text/template"
-
-	tpl "github.com/imind-lab/micro/microctl/template"
+	"github.com/imind-lab/micro/microctl/template"
 )
 
 // 生成repository/model.go
-func CreateRepositoryPersistence(data *tpl.Data) error {
+func CreateRepositoryPersistence(data *template.Data) error {
 	var tpl = `package persistence
 
 import (
@@ -25,11 +22,13 @@ import (
 	"time"
 
 	"github.com/go-redis/redis/v8"
+	"go.uber.org/zap"
+	"gorm.io/gorm"
+	{{if .MQ}}
+	"github.com/imind-lab/micro/broker"{{end}}
 	"github.com/imind-lab/micro/dao"
 	"github.com/imind-lab/micro/log"
 	"github.com/imind-lab/micro/status"
-	"go.uber.org/zap"
-	"gorm.io/gorm"
 
 	"{{.Domain}}/{{.Project}}/{{.Service}}/pkg/constant"
 	utilx "{{.Domain}}/{{.Project}}/{{.Service}}/pkg/util"
@@ -38,13 +37,15 @@ import (
 
 type {{.Svc}}Repository struct {
 	dao.Dao
+	{{if .MQ}}
+	broker broker.Broker{{end}}
 }
 
 // New{{.Svc}}Repository create a {{.Service}} repository instance
-func New{{.Svc}}Repository() {{.Service}}.{{.Svc}}Repository {
-	rep := dao.NewDao(constant.DBName)
+func New{{.Svc}}Repository(dao dao.Dao{{if .MQ}}, broker broker.Broker{{end}}) {{.Service}}.{{.Svc}}Repository {
 	repo := {{.Svc}}Repository{
-		Dao: rep,
+		Dao:    dao,   {{if .MQ}}
+		broker: broker,{{end}}
 	}
 	return repo
 }
@@ -157,20 +158,10 @@ func (repo {{.Svc}}Repository) FetchList0ID(ctx context.Context, tx *gorm.DB, pa
 		err = rows.Scan(&id)
 		if err != nil {
 			logger.Error("Data scan failed", zap.Error(err))
-			if errors.Is(err, context.DeadlineExceeded) {
-				return nil, nil, status.ErrDBDeadlineExceeded
-			}
 			return nil, nil, status.ErrDBUpdate
 		}
-
-		check := false
-		if index >= start {
-			check = true
-		}
-		if check {
-			if len(ids) < pageSize {
-				ids = append(ids, id)
-			}
+		if index >= start && len(ids) < pageSize {
+			ids = append(ids, id)
 		}
 		idx = index
 		if desc {
@@ -179,11 +170,9 @@ func (repo {{.Svc}}Repository) FetchList0ID(ctx context.Context, tx *gorm.DB, pa
 		args = append(args, &redis.Z{Score: idx, Member: id})
 		index++
 	}
+
 	if err = rows.Err(); err != nil {
 		logger.Error("Data err failed", zap.Error(err))
-		if errors.Is(err, context.DeadlineExceeded) {
-			return nil, nil, status.ErrDBDeadlineExceeded
-		}
 		return nil, nil, status.ErrDBUpdate
 	}
 	return ids, args, nil
@@ -213,9 +202,6 @@ func (repo {{.Svc}}Repository) FetchList1ID(ctx context.Context, tx *gorm.DB, pa
 		err = rows.Scan(&id)
 		if err != nil {
 			logger.Error("Data scan failed", zap.Error(err))
-			if errors.Is(err, context.DeadlineExceeded) {
-				return nil, nil, status.ErrDBDeadlineExceeded
-			}
 			return nil, nil, status.ErrDBUpdate
 		}
 
@@ -225,41 +211,17 @@ func (repo {{.Svc}}Repository) FetchList1ID(ctx context.Context, tx *gorm.DB, pa
 
 		args = append(args, &redis.Z{Score: float64(id), Member: id})
 	}
+
 	if err = rows.Err(); err != nil {
 		logger.Error("Data err failed", zap.Error(err))
-		if errors.Is(err, context.DeadlineExceeded) {
-			return nil, nil, status.ErrDBDeadlineExceeded
-		}
 		return nil, nil, status.ErrDBUpdate
 	}
 	return ids, args, nil
 }
 `
 
-	t, err := template.New("repository_model").Parse(tpl)
-	if err != nil {
-		return err
-	}
+	path := "./" + data.Domain + "/" + data.Project + "/" + data.Service + "/repository/" + data.Service + "/persistence/"
+	name := "persistence.go"
 
-	t.Option()
-	dir := "./" + data.Domain + "/" + data.Project + "/" + data.Service + "/repository/" + data.Service + "/persistence/"
-
-	err = os.MkdirAll(dir, os.ModePerm)
-	if err != nil {
-		return err
-	}
-
-	fileName := dir + "persistence.go"
-
-	f, err := os.Create(fileName)
-	if err != nil {
-		return err
-	}
-	err = t.Execute(f, data)
-	if err != nil {
-		return err
-	}
-	f.Close()
-
-	return nil
+	return template.CreateFile(data, tpl, path, name)
 }

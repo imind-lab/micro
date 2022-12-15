@@ -1,25 +1,22 @@
 /**
  *  MindLab
  *
- *  Create by songli on {{.Year}}/02/27
- *  Copyright © {{.Year}} imind.tech All rights reserved.
+ *  Create by songli on 2022/02/27
+ *  Copyright © 2022 imind.tech All rights reserved.
  */
 
 package srv
 
 import (
-	"os"
-	"text/template"
-
-	tpl "github.com/imind-lab/micro/microctl/template"
+	"github.com/imind-lab/micro/microctl/template"
 )
 
 // 生成domain/service.go
-func CreateDomainService(data *tpl.Data) error {
+func CreateDomainService(data *template.Data) error {
 	var tpl = `/**
  *  {{.Svc}}
  *
- *  Create by songli on {{.Date}}
+ *  Create by songli on 2021/06/01
  *  Copyright © {{.Year}} imind.tech All rights reserved.
  */
 
@@ -31,6 +28,7 @@ import (
 
 	"github.com/imind-lab/micro/log"
 	"github.com/imind-lab/micro/tracing"
+	"github.com/imind-lab/micro/util"
 	"github.com/pkg/errors"
 
 	{{.Service}} "{{.Domain}}/{{.Project}}/{{.Service}}/application/{{.Service}}/proto"
@@ -51,13 +49,13 @@ func (dm {{.Service}}Domain) Get{{.Svc}}ById(ctx context.Context, id int) (*{{.S
 
 	m, err := dm.repo.Get{{.Svc}}ById(ctx, id)
 	if err != nil {
-		return nil, errors.WithMessage(err, "{{.Service}}sDomain.Get{{.Svc}}sById")
+		return nil, errors.WithMessage(err, util.GetFuncName())
 	}
 	return {{.Svc}}Out(m), nil
 }
 
-func (dm {{.Service}}Domain) Get{{.Svc}}List0(ctx context.Context, status, pageSize, pageNum int, desc bool) (*{{.Service}}.{{.Svc}}List, error) {
-	list, total, err := dm.repo.Get{{.Svc}}List0(ctx, status, pageSize, pageNum, desc)
+func (dm {{.Service}}Domain) Get{{.Svc}}List0(ctx context.Context, typ, pageSize, pageNum int, isDesc bool) (*{{.Service}}.{{.Svc}}List, error) {
+	list, total, err := dm.repo.Get{{.Svc}}List0(ctx, typ, pageSize, pageNum, isDesc)
 	if err != nil {
 		return nil, err
 	}
@@ -79,8 +77,8 @@ func (dm {{.Service}}Domain) Get{{.Svc}}List0(ctx context.Context, status, pageS
 }
 
 // 疑问：中间时翻上一页
-func (dm {{.Service}}Domain) Get{{.Svc}}List1(ctx context.Context, status, pageSize, lastId int, desc bool) (*{{.Service}}.{{.Svc}}List, error) {
-	list, total, err := dm.repo.Get{{.Svc}}List1(ctx, status, pageSize, lastId, desc)
+func (dm {{.Service}}Domain) Get{{.Svc}}List1(ctx context.Context, typ, pageSize, lastId int, isDesc bool) (*{{.Service}}.{{.Svc}}List, error) {
+	list, total, err := dm.repo.Get{{.Svc}}List1(ctx, typ, pageSize, lastId, isDesc)
 	if err != nil {
 		return nil, err
 	}
@@ -99,8 +97,8 @@ func (dm {{.Service}}Domain) Get{{.Svc}}List1(ctx context.Context, status, pageS
 	return {{.Service}}List, nil
 }
 
-func (dm {{.Service}}Domain) Update{{.Svc}}Status(ctx context.Context, id, status int) (int8, error) {
-	return dm.repo.Update{{.Svc}}Status(ctx, id, status)
+func (dm {{.Service}}Domain) Update{{.Svc}}Type(ctx context.Context, id, typ int) (int8, error) {
+	return dm.repo.Update{{.Svc}}Type(ctx, id, typ)
 }
 
 func (dm {{.Service}}Domain) Delete{{.Svc}}ById(ctx context.Context, id int) (int8, error) {
@@ -108,30 +106,8 @@ func (dm {{.Service}}Domain) Delete{{.Svc}}ById(ctx context.Context, id int) (in
 }
 `
 
-	t, err := template.New("domain_service").Parse(tpl)
-	if err != nil {
-		return err
-	}
+	path := "./" + data.Domain + "/" + data.Project + "/" + data.Service + "/domain/" + data.Service + "/"
+	name := data.Service + ".go"
 
-	t.Option()
-	dir := "./" + data.Domain + "/" + data.Project + "/" + data.Service + "/domain/" + data.Service + "/"
-
-	err = os.MkdirAll(dir, os.ModePerm)
-	if err != nil {
-		return err
-	}
-
-	fileName := dir + data.Service + ".go"
-
-	f, err := os.Create(fileName)
-	if err != nil {
-		return err
-	}
-	err = t.Execute(f, data)
-	if err != nil {
-		return err
-	}
-	f.Close()
-
-	return nil
+	return template.CreateFile(data, tpl, path, name)
 }

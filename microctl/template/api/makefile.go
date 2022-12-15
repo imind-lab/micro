@@ -57,7 +57,7 @@ endif
 ifdef NAMESPACE
 NS := $(NAMESPACE)
 else
-NS := micro
+NS := rainbow
 endif
 
 names:={{.Service}}-api

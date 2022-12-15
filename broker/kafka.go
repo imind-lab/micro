@@ -201,29 +201,30 @@ func (h *consumerGroupHandler) ConsumeClaim(sess sarama.ConsumerGroupSession, cl
 			Body:      msg.Value,
 		}
 
-		if processor, ok := h.processors[msg.Topic]; ok {
-			if err := processor.Handler(m); err == nil {
-				sess.MarkMessage(msg, "")
-			} else {
-				if retry := processor.Retry; retry > 0 {
-					for i := 0; i < retry; i++ {
-						if err := processor.Handler(m); err == nil {
-							sess.MarkMessage(msg, "")
-							break
-						} else {
-							if err := processor.Handler(m); err == nil {
-								sess.MarkMessage(msg, "")
-							} else {
-								ctxzap.Error(h.cxt, "retry process error", zap.String("topic", msg.Topic), zap.String("content", string(msg.Value)), zap.Int("retry", i), zap.Error(err))
-							}
-						}
-					}
-				}
-				ctxzap.Error(h.cxt, "process error", zap.String("topic", msg.Topic), zap.String("content", string(msg.Value)), zap.Error(err))
-			}
-		} else {
+		processor, ok := h.processors[msg.Topic]
+		if !ok {
 			ctxzap.Warn(h.cxt, "processor not exist", zap.String("topic", msg.Topic))
+			continue
 		}
+		err := processor.Handler(m)
+		if err == nil {
+			sess.MarkMessage(msg, "")
+			continue
+		}
+		retry := processor.Retry
+		if retry <= 0 {
+			continue
+		}
+		for i := 0; i < retry; i++ {
+			err := processor.Handler(m)
+			if err == nil {
+				sess.MarkMessage(msg, "")
+				break
+			}
+			ctxzap.Error(h.cxt, "retry process error", zap.String("topic", msg.Topic), zap.String("content", string(msg.Value)), zap.Int("retry", i), zap.Error(err))
+
+		}
+		ctxzap.Error(h.cxt, "process error", zap.String("topic", msg.Topic), zap.String("content", string(msg.Value)), zap.Error(err))
 	}
 	return nil
 }

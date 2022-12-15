@@ -28,7 +28,7 @@ package client
 import (
 	"context"
 
-	"github.com/imind-lab/micro"
+	"github.com/imind-lab/rainbow"
 	{{.Service}} "{{.Domain}}/{{.Project}}/{{.Service}}/application/{{.Service}}/proto"
 	tracesdk "go.opentelemetry.io/otel/sdk/trace"
 )
@@ -40,7 +40,7 @@ type {{.Service}}Client struct {
 }
 
 func New{{.Svc}}Client(ctx context.Context, name string, tls bool) (*{{.Service}}Client, error) {
-	conn, provider, err := micro.ClientConn(ctx, name, tls)
+	conn, provider, err := rainbow.ClientConn(ctx, name, tls)
 	if err != nil {
 		return nil, err
 	}

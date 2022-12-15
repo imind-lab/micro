@@ -10,6 +10,7 @@ import (
 	tpl "github.com/imind-lab/micro/microctl/template"
 	"github.com/imind-lab/micro/microctl/template/api"
 	"github.com/imind-lab/micro/microctl/template/srv"
+	"github.com/imind-lab/micro/util"
 )
 
 var (
@@ -17,6 +18,8 @@ var (
 	project string
 	service string
 	layer   string
+	kafka   bool
+	tracing bool
 )
 
 var serverCmd = &cobra.Command{
@@ -30,130 +33,182 @@ var serverCmd = &cobra.Command{
 			Domain:  domain,
 			Project: project,
 			Service: service,
-			Svc:     strings.Title(service),
+			Svc:     util.GetPascalCase(service),
 			Date:    date,
 			Year:    year,
+			Package: strings.ReplaceAll(service, "-", "_"),
+			Name:    util.GetCamelCase(service),
+			MQ:      kafka,
 		}
 
 		if layer == "api" {
-			err := api.CreateApplicationConvert(data)
+			err := api.CreateApplicationProto(data)
 			if err == nil {
-				fmt.Println("生成API-ApplicationConvert成功")
+				fmt.Println("生成Api-ApplicationProto成功")
 			} else {
-				fmt.Println("生成API-ApplicationConvert出错", err)
-			}
-
-			err = api.CreateApplicationProto(data)
-			if err == nil {
-				fmt.Println("生成API-ApplicationProto成功")
-			} else {
-				fmt.Println("生成API-ApplicationProto出错", err)
+				fmt.Println("生成Api-ApplicationProto出错", err)
 			}
 
 			err = api.CreateApplicationService(data)
 			if err == nil {
-				fmt.Println("生成API-ApplicationService成功")
+				fmt.Println("生成Api-ApplicationService成功")
 			} else {
-				fmt.Println("生成API-ApplicationService出错", err)
-			}
-
-			err = api.CreateDockerfile(data)
-			if err == nil {
-				fmt.Println("生成API-BuildDockerfile成功")
-			} else {
-				fmt.Println("生成API-BuildDockerfile出错", err)
-			}
-
-			err = api.CreateMakefile(data)
-			if err == nil {
-				fmt.Println("生成API-BuildMakefile成功")
-			} else {
-				fmt.Println("生成API-BuildMakefile出错", err)
+				fmt.Println("生成Api-ApplicationService出错", err)
 			}
 
 			err = api.CreateCmd(data)
 			if err == nil {
-				fmt.Println("生成API-Cmd成功")
+				fmt.Println("生成Api-Cmd成功")
 			} else {
-				fmt.Println("生成API-Cmd出错", err)
+				fmt.Println("生成Api-Cmd出错", err)
 			}
 
 			err = api.CreateCmdServer(data)
 			if err == nil {
-				fmt.Println("生成API-CmdServer成功")
+				fmt.Println("生成Api-CmdServer成功")
 			} else {
-				fmt.Println("生成API-CmdServer出错", err)
+				fmt.Println("生成Api-CmdServer出错", err)
 			}
 
 			err = api.CreateConf(data)
 			if err == nil {
-				fmt.Println("生成API-Conf成功")
+				fmt.Println("生成Api-Conf成功")
 			} else {
-				fmt.Println("生成API-Conf出错", err)
+				fmt.Println("生成Api-Conf出错", err)
 			}
 
-			//err = api.CreateDeploy(data)
+			//err = api.CreateConfCrt(data)
 			//if err == nil {
-			//	fmt.Println("生成API-Deploy成功")
+			//	fmt.Println("生成Api-ConfCrt成功")
 			//} else {
-			//	fmt.Println("生成API-Deploy出错", err)
+			//	fmt.Println("生成Api-ConfCrt出错", err)
+			//}
+			//
+			//err = api.CreateConfKey(data)
+			//if err == nil {
+			//	fmt.Println("生成Api-ConfKey成功")
+			//} else {
+			//	fmt.Println("生成Api-ConfKey出错", err)
+			//}
+
+			err = api.CreateDeploy(data)
+			if err == nil {
+				fmt.Println("生成Api-Deploy成功")
+			} else {
+				fmt.Println("生成Api-Deploy出错", err)
+			}
+
+			err = api.CreateDockerfile(data)
+			if err == nil {
+				fmt.Println("生成Api-BuildDockerfile成功")
+			} else {
+				fmt.Println("生成Api-BuildDockerfile出错", err)
+			}
+
+			//err = api.CreateDomainConvert(data)
+			//if err == nil {
+			//	fmt.Println("生成Api-DomainConvert成功")
+			//} else {
+			//	fmt.Println("生成Api-DomainConvert出错", err)
+			//}
+			//
+			//err = api.CreateDomainDomain(data)
+			//if err == nil {
+			//	fmt.Println("生成Api-DomainDomain成功")
+			//} else {
+			//	fmt.Println("生成Api-DomainDomain出错", err)
+			//}
+			//
+			//err = api.CreateDomainService(data)
+			//if err == nil {
+			//	fmt.Println("生成Api-DomainService成功")
+			//} else {
+			//	fmt.Println("生成Api-DomainService出错", err)
 			//}
 
 			err = api.CreateMain(data)
 			if err == nil {
-				fmt.Println("生成API-Main成功")
+				fmt.Println("生成Api-Main成功")
 			} else {
-				fmt.Println("生成API-Main出错", err)
+				fmt.Println("生成Api-Main出错", err)
+			}
+
+			err = api.CreateMakefile(data)
+			if err == nil {
+				fmt.Println("生成Api-BuildMakefile成功")
+			} else {
+				fmt.Println("生成Api-BuildMakefile出错", err)
 			}
 
 			err = api.CreateMod(data)
 			if err == nil {
-				fmt.Println("生成API-Mod成功")
+				fmt.Println("生成Api-Mod成功")
 			} else {
-				fmt.Println("生成API-Mod出错", err)
-			}
-
-			err = api.CreatePkg(data)
-			if err == nil {
-				fmt.Println("生成API-Pkg成功")
-			} else {
-				fmt.Println("生成API-Pkg出错", err)
+				fmt.Println("生成Api-Mod出错", err)
 			}
 
 			err = api.CreatePkgConstantCache(data)
 			if err == nil {
-				fmt.Println("生成API-PkgConstantCache成功")
+				fmt.Println("生成Api-PkgConstantCache成功")
 			} else {
-				fmt.Println("生成API-PkgConstantCache出错", err)
+				fmt.Println("生成Api-PkgConstantCache出错", err)
 			}
 
 			err = api.CreatePkgConstantOption(data)
 			if err == nil {
-				fmt.Println("生成API-PkgConstantOption成功")
+				fmt.Println("生成Api-PkgConstantOption成功")
 			} else {
-				fmt.Println("生成API-PkgConstantOption出错", err)
+				fmt.Println("生成Api-PkgConstantOption出错", err)
 			}
+
+			//err = api.CreatePkgGoogleProtos(data)
+			//if err == nil {
+			//	fmt.Println("生成Api-Pkg成功")
+			//} else {
+			//	fmt.Println("生成Api-Pkg出错", err)
+			//}
 
 			err = api.CreatePkgUtilCache(data)
 			if err == nil {
-				fmt.Println("生成API-PkgUtilCache成功")
+				fmt.Println("生成Api-PkgUtilCache成功")
 			} else {
-				fmt.Println("生成API-PkgUtilCache出错", err)
+				fmt.Println("生成Api-PkgUtilCache出错", err)
 			}
+
+			//err = api.CreateRepositoryInterface(data)
+			//if err == nil {
+			//	fmt.Println("生成Api-RepositoryInterface成功")
+			//} else {
+			//	fmt.Println("生成Api-RepositoryInterface出错", err)
+			//}
+			//
+			//err = api.CreateRepositoryPersistence(data)
+			//if err == nil {
+			//	fmt.Println("生成Api-RepositoryPersistence成功")
+			//} else {
+			//	fmt.Println("生成Api-RepositoryPersistence出错", err)
+			//}
+			//
+			//err = api.CreateRepositoryPersistenceService(data)
+			//if err == nil {
+			//	fmt.Println("生成Api-RepositoryPersistenceService成功")
+			//} else {
+			//	fmt.Println("生成Api-RepositoryPersistenceService出错", err)
+			//}
 
 			err = api.CreateServer(data)
 			if err == nil {
-				fmt.Println("生成API-Server成功")
+				fmt.Println("生成Api-Server成功")
 			} else {
-				fmt.Println("生成API-Server出错", err)
+				fmt.Println("生成Api-Server出错", err)
 			}
 
-			err = api.CreateDeploy(data)
-			if err == nil {
-				fmt.Println("生成API-Deploy成功")
-			} else {
-				fmt.Println("生成API-Deploy出错", err)
-			}
+			//err = api.CreateServerWire(data)
+			//if err == nil {
+			//	fmt.Println("生成Api-ServerWire成功")
+			//} else {
+			//	fmt.Println("生成Api-ServerWire出错", err)
+			//}
 		} else {
 			err := srv.CreateApplicationProto(data)
 			if err == nil {
@@ -169,25 +224,13 @@ var serverCmd = &cobra.Command{
 				fmt.Println("生成ApplicationService出错", err)
 			}
 
-			err = srv.CreateApplicationSubscriber(data)
-			if err == nil {
-				fmt.Println("生成ApplicationSubscriber成功")
-			} else {
-				fmt.Println("生成ApplicationSubscriber出错", err)
-			}
-
-			err = srv.CreateDockerfile(data)
-			if err == nil {
-				fmt.Println("生成BuildDockerfile成功")
-			} else {
-				fmt.Println("生成BuildDockerfile出错", err)
-			}
-
-			err = srv.CreateMakefile(data)
-			if err == nil {
-				fmt.Println("生成BuildMakefile成功")
-			} else {
-				fmt.Println("生成BuildMakefile出错", err)
+			if kafka {
+				err = srv.CreateApplicationSubscriber(data)
+				if err == nil {
+					fmt.Println("生成ApplicationSubscriber成功")
+				} else {
+					fmt.Println("生成ApplicationSubscriber出错", err)
+				}
 			}
 
 			err = srv.CreateClient(data)
@@ -197,18 +240,18 @@ var serverCmd = &cobra.Command{
 				fmt.Println("生成Client出错", err)
 			}
 
-			err = srv.CreateClientService(data)
-			if err == nil {
-				fmt.Println("生成ClientService成功")
-			} else {
-				fmt.Println("生成ClientService出错", err)
-			}
-
 			err = srv.CreateCmd(data)
 			if err == nil {
 				fmt.Println("生成Cmd成功")
 			} else {
 				fmt.Println("生成Cmd出错", err)
+			}
+
+			err = srv.CreateCmdCron(data)
+			if err == nil {
+				fmt.Println("生成CmdCron成功")
+			} else {
+				fmt.Println("生成CmdCron出错", err)
 			}
 
 			err = srv.CreateCmdServer(data)
@@ -225,11 +268,32 @@ var serverCmd = &cobra.Command{
 				fmt.Println("生成Conf出错", err)
 			}
 
+			err = srv.CreateConfCrt(data)
+			if err == nil {
+				fmt.Println("生成ConfCrt成功")
+			} else {
+				fmt.Println("生成ConfCrt出错", err)
+			}
+
+			err = srv.CreateConfKey(data)
+			if err == nil {
+				fmt.Println("生成ConfKey成功")
+			} else {
+				fmt.Println("生成ConfKey出错", err)
+			}
+
 			err = srv.CreateDeploy(data)
 			if err == nil {
 				fmt.Println("生成Deploy成功")
 			} else {
 				fmt.Println("生成Deploy出错", err)
+			}
+
+			err = srv.CreateDockerfile(data)
+			if err == nil {
+				fmt.Println("生成BuildDockerfile成功")
+			} else {
+				fmt.Println("生成BuildDockerfile出错", err)
 			}
 
 			err = srv.CreateDomainConvert(data)
@@ -260,18 +324,18 @@ var serverCmd = &cobra.Command{
 				fmt.Println("生成Main出错", err)
 			}
 
+			err = srv.CreateMakefile(data)
+			if err == nil {
+				fmt.Println("生成BuildMakefile成功")
+			} else {
+				fmt.Println("生成BuildMakefile出错", err)
+			}
+
 			err = srv.CreateMod(data)
 			if err == nil {
 				fmt.Println("生成Mod成功")
 			} else {
 				fmt.Println("生成Mod出错", err)
-			}
-
-			err = srv.CreatePkg(data)
-			if err == nil {
-				fmt.Println("生成Pkg成功")
-			} else {
-				fmt.Println("生成Pkg出错", err)
 			}
 
 			err = srv.CreatePkgConstantCache(data)
@@ -287,6 +351,13 @@ var serverCmd = &cobra.Command{
 			} else {
 				fmt.Println("生成PkgConstantOption出错", err)
 			}
+
+			//err = srv.CreatePkgGoogleProtos(data)
+			//if err == nil {
+			//	fmt.Println("生成Pkg成功")
+			//} else {
+			//	fmt.Println("生成Pkg出错", err)
+			//}
 
 			err = srv.CreatePkgUtilCache(data)
 			if err == nil {
@@ -307,13 +378,6 @@ var serverCmd = &cobra.Command{
 				fmt.Println("生成RepositoryModel成功")
 			} else {
 				fmt.Println("生成RepositoryModel出错", err)
-			}
-
-			err = srv.CreateRepositoryOptions(data)
-			if err == nil {
-				fmt.Println("生成RepositoryOptions成功")
-			} else {
-				fmt.Println("生成RepositoryOptions出错", err)
 			}
 
 			err = srv.CreateRepositoryPersistence(data)
@@ -337,20 +401,22 @@ var serverCmd = &cobra.Command{
 				fmt.Println("生成Server出错", err)
 			}
 
-			err = srv.CreateServer(data)
+			err = srv.CreateServerWire(data)
 			if err == nil {
-				fmt.Println("生成Server成功")
+				fmt.Println("生成ServerWire成功")
 			} else {
-				fmt.Println("生成Server出错", err)
+				fmt.Println("生成ServerWire出错", err)
 			}
 		}
 	},
 }
 
 func init() {
-	rootCmd.PersistentFlags().StringVarP(&domain, "domain", "d", "github.com", "company domain")
-	rootCmd.PersistentFlags().StringVarP(&project, "project", "p", "imind-lab", "project name")
+	rootCmd.PersistentFlags().StringVarP(&domain, "domain", "d", "git.chope.it", "company domain")
+	rootCmd.PersistentFlags().StringVarP(&project, "project", "p", "backend", "project name")
 	rootCmd.PersistentFlags().StringVarP(&service, "service", "s", "greeter", "service name")
-	rootCmd.PersistentFlags().StringVarP(&layer, "layer", "l", "srv", "generate service layer")
+	rootCmd.PersistentFlags().StringVarP(&layer, "layer", "l", "srv", "service type: src for backend service, api for api gateway")
+	rootCmd.PersistentFlags().BoolVarP(&kafka, "kafka", "", true, "whether to generate kafka-related code")
+	rootCmd.PersistentFlags().BoolVarP(&tracing, "tracing", "", true, "whether to generate tracing-related code")
 	rootCmd.AddCommand(serverCmd)
 }

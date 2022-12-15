@@ -59,27 +59,16 @@ func MessagePartition(partition int32) MessageOption {
 	}
 }
 
-var brokers map[string]Broker
-
-func init() {
-	brokers = make(map[string]Broker)
+func NewBroker(opt ...Option) (Broker, error) {
+	return NewBrokerWithName("default", opt...)
 }
 
-func NewBroker(name string, opt ...Option) (Broker, error) {
-	ep, ok := brokers[name]
-	if !ok {
-		ep = NewKafkaBroker(name, opt...)
-		err := ep.Connect()
-		if err != nil {
-			return nil, err
-		}
-		brokers[name] = ep
+func NewBrokerWithName(name string, opt ...Option) (Broker, error) {
+	ep := NewKafkaBroker(name, opt...)
+	err := ep.Connect()
+	if err != nil {
+		return nil, err
 	}
+
 	return ep, nil
-}
-
-func Close() {
-	for _, client := range brokers {
-		client.Close()
-	}
 }

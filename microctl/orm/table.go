@@ -1,11 +1,7 @@
 package orm
 
 import (
-	"context"
-	"errors"
 	"strings"
-
-	"github.com/spf13/viper"
 
 	"github.com/imind-lab/micro/dao"
 )
@@ -20,20 +16,15 @@ type Table struct {
 	LongestTypeLen        int     `gorm:"type:int"`    //类型空格数长度
 }
 
-//获取表相的相关信息
+// 获取表相的相关信息
 func GetTablesInfo(db string, Tables []string) ([]Table, error) {
-	DbNamePath := "db." + db + ".write.name"
-	DbName := viper.GetString(DbNamePath)
-	if DbName == "" {
-		return nil, errors.New("config database can no be empty")
-	}
-	connection := dao.NewDao(DbName).DB(context.Background())
+	connection := dao.NewDatabase().DB(db)
 	var tables []Table
 	query := connection.Table("information_schema.tables").Select("table_name name")
 	if len(Tables) > 0 {
-		query = query.Where("table_schema = ? AND table_name IN (?)", DbName, Tables)
+		query = query.Where("table_schema = ? AND table_name IN (?)", db, Tables)
 	} else {
-		query = query.Where("table_schema = ? ", DbName)
+		query = query.Where("table_schema = ? ", db)
 	}
 	query.Scan(&tables)
 	// 查出每个表的字段信息
@@ -41,14 +32,14 @@ func GetTablesInfo(db string, Tables []string) ([]Table, error) {
 		var columns []Field
 		connection.Table("information_schema.columns").
 			Select("COLUMN_NAME name, COLUMN_KEY col_key, COLUMN_COMMENT comment, DATA_TYPE data_type ").
-			Where("table_schema = ? AND table_name = ?", DbName, table.Name).
+			Where("table_schema = ? AND table_name = ?", db, table.Name).
 			Order("ordinal_position ASC").Scan(&columns)
 		tables[i].Fields = columns
 	}
 	return InitTables(db, tables), nil
 }
 
-//初始化表的相关数据，使其能匹配模板进行替换
+// 初始化表的相关数据，使其能匹配模板进行替换
 func InitTables(db string, tables []Table) []Table {
 	for i := range tables {
 		longestBigCamelColLen, longestTagGORMLen, longestTypeLen := 0, 0, 0
@@ -83,7 +74,7 @@ func InitTables(db string, tables []Table) []Table {
 	return tables
 }
 
-//字符串转换为驼峰写法
+// 字符串转换为驼峰写法
 func ToBigCamelCase(str string) string {
 	result := ""
 	if str == "" {

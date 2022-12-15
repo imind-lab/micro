@@ -2,6 +2,7 @@ package status
 
 import (
 	"fmt"
+	"github.com/pkg/errors"
 )
 
 type Error struct {
@@ -66,3 +67,14 @@ var ErrUploadFileFailed = New(UploadFileFailed)
 
 // ErrorSystem 严重错误
 var ErrSystem = New(SystemError)
+
+func AsError(err error) Error {
+	if err == nil {
+		return ResponseOK
+	}
+	var e Error
+	if errors.Is(err, &e) {
+		return e
+	}
+	return New(UnknownError)
+}
