@@ -1,8 +1,8 @@
 /**
  *  MindLab
  *
- *  Create by songli on {{.Year}}/02/27
- *  Copyright © {{.Year}} imind.tech All rights reserved.
+ *  Create by songli on 2021/02/27
+ *  Copyright © 2022 imind.tech All rights reserved.
  */
 
 package api
@@ -20,7 +20,7 @@ func CreatePkgUtilCache(data *tpl.Data) error {
 
 import (
         "{{.Domain}}/{{.Project}}/{{.Service}}/pkg/constant"
-        "github.com/imind-lab/rainbow/util"
+        "github.com/imind-lab/micro/util"
 )
 
 func CacheKey(keys ...string) string {

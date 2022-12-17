@@ -1,57 +1,90 @@
 /**
  *  MindLab
  *
- *  Create by songli on {{.Year}}/02/27
- *  Copyright © {{.Year}} imind.tech All rights reserved.
+ *  Create by songli on 2022/02/27
+ *  Copyright © 2022 imind.tech All rights reserved.
  */
 
 package api
 
 import (
-	"os"
-	"text/template"
-
-	tpl "github.com/imind-lab/micro/microctl/template"
+	"github.com/imind-lab/micro/microctl/template"
 )
 
 // 生成server/server.go
-func CreateServer(data *tpl.Data) error {
+func CreateServer(data *template.Data) error {
 	var tpl = `package server
 
 import (
+	"context"
 	"fmt"
-
+	"github.com/grpc-ecosystem/go-grpc-middleware/logging/zap/ctxzap"
+	"github.com/imind-lab/micro"
+	"github.com/imind-lab/micro/log"
+	"github.com/imind-lab/micro/tracing"
 	"github.com/spf13/viper"
+	{{.Service}}_api "gitlab.imind.tech/{{.Project}}/{{.Service}}-api/application/{{.Service}}/proto"
+	"go.uber.org/zap"
+	"go.uber.org/zap/zapcore"
 	"google.golang.org/grpc"
 
-	"{{.Domain}}/{{.Project}}/{{.Service}}-api/application/{{.Service}}/proto"
-	"{{.Domain}}/{{.Project}}/{{.Service}}-api/application/{{.Service}}/service"
-	"github.com/imind-lab/rainbow"
-	grpcx "github.com/imind-lab/rainbow/grpc"
+	grpcx "github.com/imind-lab/micro/grpc"
 )
 
+type Port struct {
+	Http int ${backtick}yaml:"http"${backtick}
+	Grpc int ${backtick}yaml:"grpc"${backtick}
+}
+
+type Config struct {
+	Name      string ${backtick}yaml:"name"${backtick}
+	Namespace string ${backtick}yaml:"namespace"${backtick}
+	LogLevel  int    ${backtick}yaml:"logLevel"${backtick}
+	LogFormat string ${backtick}yaml:"logFormat"${backtick}
+	Port      Port   ${backtick}yaml:"port"${backtick}
+}
+
 func Serve() error {
-	svc := rainbow.NewService()
+	var conf Config
+	if err := viper.UnmarshalKey("service", &conf); err != nil {
+		panic(fmt.Errorf("Fatal error config file: %s \n", err))
+	}
 
-	grpcCred := grpcx.NewGrpcCred()
+	logger := log.NewLogger(zapcore.Level(conf.LogLevel), conf.LogFormat, zap.Fields(zap.String("namespace", conf.Namespace), zap.String("service", conf.Name)))
+	ctx := ctxzap.ToContext(context.Background(), logger)
 
-	svc.Init(
-		rainbow.ServerCred(grpcCred.ServerCred()),
-		rainbow.ClientCred(grpcCred.ClientCred()))
-
-	grpcSrv := svc.GrpcServer()
-	{{.Service}}_api.Register{{.Svc}}ServiceServer(grpcSrv, service.New{{.Svc}}Service(svc.Options().Logger))
-
-	// 注册gRPC-Gateway
-	endPoint := fmt.Sprintf(":%d", viper.GetInt("service.port.grpc"))
-	fmt.Println(endPoint)
-
-	mux := svc.ServeMux()
-	opts := []grpc.DialOption{grpc.WithTransportCredentials(grpcCred.ClientCred())}
-	err := {{.Service}}_api.Register{{.Svc}}ServiceHandlerFromEndpoint(svc.Options().Context, mux, endPoint, opts)
+	// 初始化调用链追踪
+	provider, err := tracing.InitTracer()
 	if err != nil {
 		return err
 	}
+	defer provider.Shutdown(ctx)
+
+	grpcCred := grpcx.NewGrpcCred()
+
+	svc := micro.NewService()
+
+	svc.Init(
+		micro.Context(ctx),
+		micro.Logger(logger),
+		micro.Name(conf.Name),
+		micro.ServerCred(grpcCred.ServerCred()),
+		micro.ClientCred(grpcCred.ClientCred()))
+
+	// 注册gRPC-Gateway
+	endPoint := fmt.Sprintf(":%d", conf.Port.Grpc)
+
+	mux := svc.ServeMux()
+	opts := []grpc.DialOption{grpc.WithTransportCredentials(grpcCred.ClientCred())}
+	err = {{.Service}}_api.Register{{.Svc}}ServiceHandlerFromEndpoint(svc.Options().Context, mux, endPoint, opts)
+	if err != nil {
+		return err
+	}
+
+	grpcSrv := svc.GrpcServer()
+
+	{{.Service}}Svc := Create{{.Svc}}Service()
+	{{.Service}}_api.Register{{.Svc}}ServiceServer(grpcSrv, {{.Service}}Svc)
 
 	// This commentary is for scaffolding. Do not modify or delete it
 
@@ -59,30 +92,8 @@ func Serve() error {
 }
 `
 
-	t, err := template.New("main").Parse(tpl)
-	if err != nil {
-		return err
-	}
+	path := "./" + data.Domain + "/" + data.Project + "/" + data.Service + "-api/server/"
+	name := "server.go"
 
-	t.Option()
-	dir := "./" + data.Domain + "/" + data.Project + "/" + data.Service + "-api/server/"
-
-	err = os.MkdirAll(dir, os.ModePerm)
-	if err != nil {
-		return err
-	}
-
-	fileName := dir + "server.go"
-
-	f, err := os.Create(fileName)
-	if err != nil {
-		return err
-	}
-	err = t.Execute(f, data)
-	if err != nil {
-		return err
-	}
-	f.Close()
-
-	return nil
+	return template.CreateFile(data, tpl, path, name)
 }

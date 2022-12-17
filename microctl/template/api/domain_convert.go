@@ -1,33 +1,30 @@
 /**
  *  MindLab
  *
- *  Create by songli on 2021/02/27
+ *  Create by songli on 2022/02/27
  *  Copyright © 2022 imind.tech All rights reserved.
  */
 
 package api
 
 import (
-	"os"
-	"text/template"
-
-	tpl "github.com/imind-lab/micro/microctl/template"
+	"github.com/imind-lab/micro/microctl/template"
 )
 
-// 生成client/service.go
-func CreateApplicationConvert(data *tpl.Data) error {
+// 生成domain/convert.go
+func CreateDomainConvert(data *template.Data) error {
 	var tpl = `/**
- *  {{.Project}}
+ *  ImindLab
  *
  *  Create by songli on {{.Year}}/03/03
  *  Copyright © {{.Year}} imind.tech All rights reserved.
  */
 
-package service
+package {{.Service}}
 
 import (
-	"{{.Domain}}/{{.Project}}/{{.Service}}-api/application/{{.Service}}/proto"
-	"{{.Domain}}/{{.Project}}/{{.Service}}/application/{{.Service}}/proto"
+	{{.Service}}_api "gitlab.imind.tech/{{.Project}}/{{.Service}}-api/application/{{.Service}}/proto"
+	{{.Service}} "gitlab.imind.tech/{{.Project}}/{{.Service}}/application/{{.Service}}/proto"
 )
 
 func {{.Svc}}Map(pos []*{{.Service}}.{{.Svc}}, fn func(*{{.Service}}.{{.Svc}}) *{{.Service}}_api.{{.Svc}}) []*{{.Service}}_api.{{.Svc}} {
@@ -47,7 +44,7 @@ func {{.Svc}}Api2Srv(po *{{.Service}}_api.{{.Svc}}) *{{.Service}}.{{.Svc}} {
 	dto.Id = po.Id
 	dto.Name = po.Name
 	dto.ViewNum = po.ViewNum
-	dto.Status = po.Status
+	dto.Type = po.Type
 	dto.CreateTime = po.CreateTime
 	dto.UpdateDatetime = po.UpdateDatetime
 	dto.CreateDatetime = po.CreateDatetime
@@ -64,7 +61,7 @@ func {{.Svc}}Srv2Api(dto *{{.Service}}.{{.Svc}}) *{{.Service}}_api.{{.Svc}} {
 	po.Id = dto.Id
 	po.Name = dto.Name
 	po.ViewNum = dto.ViewNum
-	po.Status = dto.Status
+	po.Type = dto.Type
 	po.CreateTime = dto.CreateTime
 	po.UpdateDatetime = dto.UpdateDatetime
 	po.CreateDatetime = dto.CreateDatetime
@@ -87,30 +84,8 @@ func {{.Svc}}ListSrv2Api(dto *{{.Service}}.{{.Svc}}List) *{{.Service}}_api.{{.Sv
 }
 `
 
-	t, err := template.New("application_service").Parse(tpl)
-	if err != nil {
-		return err
-	}
+	path := "./" + data.Domain + "/" + data.Project + "/" + data.Service + "-api/domain/" + data.Service + "/"
+	name := "convert.go"
 
-	t.Option()
-	dir := "./" + data.Domain + "/" + data.Project + "/" + data.Service + "-api/application/" + data.Service + "/service/"
-
-	err = os.MkdirAll(dir, os.ModePerm)
-	if err != nil {
-		return err
-	}
-
-	fileName := dir + "convert.go"
-
-	f, err := os.Create(fileName)
-	if err != nil {
-		return err
-	}
-	err = t.Execute(f, data)
-	if err != nil {
-		return err
-	}
-	f.Close()
-
-	return nil
+	return template.CreateFile(data, tpl, path, name)
 }

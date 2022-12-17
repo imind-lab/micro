@@ -1,21 +1,18 @@
 /**
  *  MindLab
  *
- *  Create by songli on 2021/02/27
+ *  Create by songli on 2022/02/27
  *  Copyright © 2022 imind.tech All rights reserved.
  */
 
-package srv
+package share
 
 import (
-	"os"
-	"text/template"
-
-	tpl "github.com/imind-lab/micro/microctl/template"
+	"github.com/imind-lab/micro/microctl/template"
 )
 
 // 生成pkg/constant/cache.go
-func CreatePkgConstantCache(data *tpl.Data) error {
+func CreatePkgConstantCache(data *template.Data) error {
 	var tpl = `/**
  *  {{.Svc}}
  *
@@ -68,13 +65,6 @@ const (
 )
 
 const (
-	CacheCmsPromotion     = "cms_iromotion_"
-	CacheCmsPromotionKeys = "cms_iromotion_keys_"
-	CacheCmsPromotionCnt  = "cms_iromotion_cnt_"
-	CacheCmsPromotionIds  = "cms_iromotion_ids_"
-)
-
-const (
 	CacheConfig     = "config_"
 	CacheConfigKeys = "config_keys_"
 	CacheConfigCnt  = "config_cnt_"
@@ -103,56 +93,12 @@ const (
 )
 
 const (
-	CachePicture     = "third_party_map_"
-	CachePictureKeys = "third_party_map_keys_"
-	CachePictureCnt  = "third_party_map_cnt_"
-	CachePictureIds  = "third_party_map_ids_"
-)
-
-const (
-	CacheThirdPartyMap     = "third_party_map_"
-	CacheThirdPartyMapKeys = "third_party_map_keys_"
-	CacheThirdPartyMapCnt  = "third_party_map_cnt_"
-	CacheThirdPartyMapIds  = "third_party_map_ids_"
-	CacheThirdPartyMapMid  = "third_party_map_mid_"
-)
-
-const (
-	CacheCategoryRelationship     = "category_relationship_"
-	CacheCategoryRelationshipKeys = "category_relationship_keys_"
-	CacheCategoryRelationshipCnt  = "category_relationship_cnt_"
-	CacheCategoryRelationshipIds  = "category_relationship_ids_"
-)
-
-const (
 	CacheD{{.Svc}} = "d_"
 )
 `
 
-	t, err := template.New("cmd_server").Parse(tpl)
-	if err != nil {
-		return err
-	}
+	path := "./" + data.Domain + "/" + data.Project + "/" + data.Service + "/pkg/constant/"
+	name := "cache.go"
 
-	t.Option()
-	dir := "./" + data.Domain + "/" + data.Project + "/" + data.Service + "/pkg/constant/"
-
-	err = os.MkdirAll(dir, os.ModePerm)
-	if err != nil {
-		return err
-	}
-
-	fileName := dir + "cache.go"
-
-	f, err := os.Create(fileName)
-	if err != nil {
-		return err
-	}
-	err = t.Execute(f, data)
-	if err != nil {
-		return err
-	}
-	f.Close()
-
-	return nil
+	return template.CreateFile(data, tpl, path, name)
 }

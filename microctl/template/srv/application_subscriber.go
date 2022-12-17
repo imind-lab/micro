@@ -16,7 +16,7 @@ func CreateApplicationSubscriber(data *template.Data) error {
 	var tpl = `/**
  *  {{.Svc}}
  *
- *  Create by songli on 2021/06/01
+ *  Create by songli on {{.Date}}
  *  Copyright © {{.Year}} imind.tech All rights reserved.
  */
 

@@ -1,26 +1,23 @@
 /**
  *  MindLab
  *
- *  Create by songli on {{.Year}}/02/27
- *  Copyright © {{.Year}} imind.tech All rights reserved.
+ *  Create by songli on 2022/02/27
+ *  Copyright © 2022 imind.tech All rights reserved.
  */
 
 package api
 
 import (
-	"os"
-	"text/template"
-
-	tpl "github.com/imind-lab/micro/microctl/template"
+	"github.com/imind-lab/micro/microctl/template"
 )
 
 // 生成client/service.go
-func CreateApplicationProto(data *tpl.Data) error {
+func CreateApplicationProto(data *template.Data) error {
 	var tpl = `syntax = "proto3";
 
 package {{.Service}}_api;
 
-option go_package = "{{.Domain}}/{{.Project}}/{{.Service}}-api/application/{{.Service}}/proto;{{.Service}}_api";
+option go_package = "gitlab.imind.tech/{{.Project}}/{{.Service}}-api/application/{{.Service}}/proto;{{.Service}}_api";
 
 import "google/api/annotations.proto";
 
@@ -40,19 +37,19 @@ service {{.Svc}}Service {
 
     rpc Get{{.Svc}}List0 (Get{{.Svc}}List0Request) returns (Get{{.Svc}}ListResponse) {
         option (google.api.http) = {
-            get: "/v1/{{.Service}}/list/0/{status}"
+            get: "/v1/{{.Service}}/list/0/{type}"
         };
     }
 
     rpc Get{{.Svc}}List1 (Get{{.Svc}}List1Request) returns (Get{{.Svc}}ListResponse) {
         option (google.api.http) = {
-            get: "/v1/{{.Service}}/list/1/{status}"
+            get: "/v1/{{.Service}}/list/1/{type}"
         };
     }
 
-    rpc Update{{.Svc}}Status (Update{{.Svc}}StatusRequest) returns (Update{{.Svc}}StatusResponse) {
+    rpc Update{{.Svc}}Type (Update{{.Svc}}TypeRequest) returns (Update{{.Svc}}TypeResponse) {
         option (google.api.http) = {
-           post: "/v1/{{.Service}}/status"
+           post: "/v1/{{.Service}}/type"
            body: "*"
         };
     }
@@ -76,7 +73,7 @@ message Create{{.Svc}}Request {
     // @inject_tag: validate:"required,email"
     string name = 1;
     // @inject_tag: validate:"gte=0,lte=3"
-    int32 status = 2;
+    int32 type = 2;
 }
 
 // @inject_response Create{{.Svc}}Response
@@ -98,20 +95,20 @@ message Get{{.Svc}}ByIdResponse {
 
 message Get{{.Svc}}List0Request {
     // @inject_tag: validate:"gte=0,lte=3"
-    int32 status = 1;
+    int32 type = 1;
     // @inject_tag: validate:"gte=5,lte=20"
     int32 page_size = 2;
     int32 page_num = 3;
-    bool order = 4;
+    bool is_desc = 4;
 }
 
 message Get{{.Svc}}List1Request {
     // @inject_tag: validate:"gte=0,lte=3"
-    int32 status = 1;
+    int32 type = 1;
     // @inject_tag: validate:"gte=5,lte=20"
     int32 page_size = 2;
     int32 last_id = 3;
-    bool order = 4;
+    bool is_desc = 4;
 }
 
 // @inject_response Get{{.Svc}}ListResponse *{{.Svc}}List data
@@ -121,13 +118,13 @@ message Get{{.Svc}}ListResponse {
     {{.Svc}}List data = 3;
 }
 
-message Update{{.Svc}}StatusRequest {
+message Update{{.Svc}}TypeRequest {
     int32 id = 1;
-    int32 status = 2;
+    int32 type = 2;
 }
 
-// @inject_response Update{{.Svc}}StatusResponse
-message Update{{.Svc}}StatusResponse {
+// @inject_response Update{{.Svc}}TypeResponse
+message Update{{.Svc}}TypeResponse {
     int32 code = 1;
     string msg = 2;
 }
@@ -148,7 +145,7 @@ message {{.Svc}} {
     string name = 2;
     int32 view_num = 3;
     // @inject_tag: validate:"gte=0,lte=3"
-    int32 status = 4;
+    int32 type = 4;
     uint32 create_time = 5;
     string create_datetime = 6;
     string update_datetime = 7;
@@ -173,30 +170,8 @@ message Get{{.Svc}}ListByIdsResponse {
 }
 `
 
-	t, err := template.New("application_proto").Parse(tpl)
-	if err != nil {
-		return err
-	}
+	path := "./" + data.Domain + "/" + data.Project + "/" + data.Service + "-api/application/" + data.Service + "/proto/"
+	name := data.Service + "-api.proto"
 
-	t.Option()
-	dir := "./" + data.Domain + "/" + data.Project + "/" + data.Service + "-api/application/" + data.Service + "/proto/"
-
-	err = os.MkdirAll(dir, os.ModePerm)
-	if err != nil {
-		return err
-	}
-
-	fileName := dir + data.Service + "-api.proto"
-
-	f, err := os.Create(fileName)
-	if err != nil {
-		return err
-	}
-	err = t.Execute(f, data)
-	if err != nil {
-		return err
-	}
-	f.Close()
-
-	return nil
+	return template.CreateFile(data, tpl, path, name)
 }

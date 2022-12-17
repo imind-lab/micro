@@ -1,23 +1,20 @@
 /**
  *  MindLab
  *
- *  Create by songli on {{.Year}}/02/27
- *  Copyright © {{.Year}} imind.tech All rights reserved.
+ *  Create by songli on 2022/02/27
+ *  Copyright © 2022 imind.tech All rights reserved.
  */
 
 package api
 
 import (
-	"os"
-	"text/template"
-
-	tpl "github.com/imind-lab/micro/microctl/template"
+	"github.com/imind-lab/micro/microctl/template"
 )
 
 // 生成main.go
-func CreateMain(data *tpl.Data) error {
+func CreateMain(data *template.Data) error {
 	var tpl = `/**
- *  IMindLab
+ *  ImindLab
  *
  *  Create by songli on {{.Year}}/03/03
  *  Copyright © {{.Year}} imind.tech All rights reserved.
@@ -26,7 +23,7 @@ func CreateMain(data *tpl.Data) error {
 package main
 
 import (
-	"{{.Domain}}/{{.Project}}/{{.Service}}-api/cmd"
+	"gitlab.imind.tech/{{.Project}}/{{.Service}}-api/cmd"
 )
 
 func main() {
@@ -34,30 +31,8 @@ func main() {
 }
 `
 
-	t, err := template.New("main").Parse(tpl)
-	if err != nil {
-		return err
-	}
+	path := "./" + data.Domain + "/" + data.Project + "/" + data.Service + "-api/"
+	name := "main.go"
 
-	t.Option()
-	dir := "./" + data.Domain + "/" + data.Project + "/" + data.Service + "-api/"
-
-	err = os.MkdirAll(dir, os.ModePerm)
-	if err != nil {
-		return err
-	}
-
-	fileName := dir + "main.go"
-
-	f, err := os.Create(fileName)
-	if err != nil {
-		return err
-	}
-	err = t.Execute(f, data)
-	if err != nil {
-		return err
-	}
-	f.Close()
-
-	return nil
+	return template.CreateFile(data, tpl, path, name)
 }
