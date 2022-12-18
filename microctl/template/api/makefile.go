@@ -17,7 +17,7 @@ func CreateMakefile(data *template.Data) error {
 GOOS := $(shell go env GOOS)
 
 ifndef LOCAL
-LOCAL = false
+LOCAL = true
 endif
 
 ifndef IMAGE_TAG
@@ -65,7 +65,7 @@ build:
 ifeq ($(LOCAL), false)
 	CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -a -installsuffix cgo -o {{.Service}}-api ./main.go
 else
-	CGO_ENABLED=0 GOOS=$(GOOS) GOARCH=$(GOARCH) go build -a -installsuffix cgo -o {{.Service}}-api ./main.go
+	CGO_ENABLED=0 GOOS=linux GOARCH=$(GOARCH) go build -a -installsuffix cgo -o {{.Service}}-api ./main.go
 endif
 
 docker:

@@ -42,6 +42,9 @@ var serverCmd = &cobra.Command{
 		}
 
 		if layer == "api" {
+			data.Suffix = "-api"
+			data.Package = data.Package + "_api"
+
 			err := api.CreateApplicationProto(data)
 			if err == nil {
 				fmt.Println("生成Api-ApplicationProto成功")

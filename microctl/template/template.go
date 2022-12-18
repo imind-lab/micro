@@ -18,6 +18,7 @@ type Data struct {
 	Project string
 	Service string
 	Svc     string
+	Suffix  string
 	Date    string
 	Year    string
 	Package string

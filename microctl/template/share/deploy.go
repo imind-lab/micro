@@ -24,11 +24,10 @@ func CreateDeploy(data *template.Data) error {
 	CreateDeployHelper(data)
 	CreateDeployDeployment(data)
 	CreateDeployHpa(data)
-	CreateDeploySecret(data)
+	CreateDeployConfigMap(data)
 	CreateDeploySvc(data)
 	CreateDeploySa(data)
 	CreateDeployTraefik(data)
-	CreateDeployConf(data)
 	return nil
 }
 
@@ -36,7 +35,7 @@ func CreateDeploy(data *template.Data) error {
 func CreateDeployChart(data *template.Data) error {
 	// 生成Makefile
 	var tpl = `apiVersion: v2
-name: {{.Service}}
+name: {{.Service}}{{.Suffix}}
 description: A Helm chart for Kubernetes
 
 # A chart can be either an 'application' or a 'library' chart.
@@ -63,7 +62,7 @@ appVersion: "1.0.0"
 icon: https://static.imind.tech/frontend/images/wechat/bj.png
 `
 
-	path := "./" + data.Domain + "/" + data.Project + "/" + data.Service + _HelmPath + data.Service + "/"
+	path := "./" + data.Domain + "/" + data.Project + "/" + data.Service + data.Suffix + _HelmPath + data.Service + data.Suffix + "/"
 	name := "Chart.yaml"
 
 	return template.CreateFile(data, tpl, path, name)
@@ -77,7 +76,7 @@ func CreateDeployValues(data *template.Data) error {
 replicaCount: 2
 
 image:
-  repository: registry.cn-beijing.aliyuncs.com/imind/{{.Service}}
+  repository: registry.cn-beijing.aliyuncs.com/imind/{{.Service}}{{.Suffix}}
   pullPolicy: IfNotPresent
   # Overrides the image tag whose default is the chart appVersion.
   tag: ""
@@ -120,11 +119,10 @@ service:
 
 traefik:
   enabled: true
+  host: {{.Service}}{{.Suffix}}.imind.tech
   http:
-    host: {{.Service}}.imind.tech
     port: 80
   grpc:
-    host: {{.Service}}-grpc.imind.tech
     port: 50051
     tls: traefik-cert
 
@@ -203,9 +201,77 @@ nodeSelector: {}
 tolerations: []
 
 affinity: {}
+
+config:
+  global:
+    rate:
+      high:
+        limit: 10
+        capacity: 10
+      low:
+        limit: 10
+        capacity: 10
+    profile:
+      rate: 1
+
+  service:
+    namespace: {{.Project}}
+    name: {{.Service}}
+    version: latest
+    logLevel: -1
+    logFormat: json
+    port: #监听端口
+      http: 80
+      grpc: 50051
+
+  db:
+    logLevel: 4
+    max:
+      open: 10
+      idle: 5
+      life: 30
+    timeout: 5s
+    default:
+      master:
+        host: 127.0.0.1
+        port: 3306
+        user: root
+        pass: imind
+        name: imind
+      replica:
+        host: 127.0.0.1
+        port: 3306
+        user: root
+        pass: imind
+        name: imind
+
+  redis:
+    model: node
+    timeout: 5s
+    addr: '127.0.0.1:6379'
+    #  pass: imind
+    db: 0
+
+  kafka:
+    default:
+      producer:
+        - 'kafka.infra:9092'
+      consumer:
+        - 'kafka.infra:9092'
+      topic:
+        {{.Service}}Create: {{.Package}}_create
+        {{.Service}}Update: {{.Package}}_update
+
+  tracing:
+    agent:
+      host: '127.0.0.1'
+      port: 6831
+
+templates: {}
+#   environment.tmpl: |-
 `
 
-	path := "./" + data.Domain + "/" + data.Project + "/" + data.Service + _HelmPath + data.Service + "/"
+	path := "./" + data.Domain + "/" + data.Project + "/" + data.Service + data.Suffix + _HelmPath + data.Service + data.Suffix + "/"
 	name := "values.yaml"
 
 	return template.CreateFile(data, tpl, path, name)
@@ -274,7 +340,7 @@ Create the name of the service account to use
 {{- end }}
 `
 
-	path := "./" + data.Domain + "/" + data.Project + "/" + data.Service + _HelmPath + data.Service + _TemplatePath
+	path := "./" + data.Domain + "/" + data.Project + "/" + data.Service + data.Suffix + _HelmPath + data.Service + data.Suffix + _TemplatePath
 	name := "_helpers.tpl"
 	return template.WriteFile(tpl, path, name)
 }
@@ -299,7 +365,7 @@ spec:
       labels:
         {{- include "imind.selectorLabels" . | nindent 8 }}
       annotations:
-        checksum/config: {{ include (print $.Template.BasePath "/secret.yaml") . | sha256sum }}
+        checksum/config: {{ include (print $.Template.BasePath "/configmap.yaml") . | sha256sum }}
         {{- with .Values.podAnnotations }}
           {{- toYaml . | nindent 8 }}
         {{- end }}
@@ -338,8 +404,8 @@ spec:
               subPath: conf.yaml
       volumes:
         - name: conf
-          secret:
-            secretName: {{ include "imind.fullname" . }}
+          configMap:
+            name: {{ include "imind.fullname" . }}
             items:
               - key: conf.yaml
                 path: conf.yaml
@@ -360,7 +426,7 @@ spec:
         {{- toYaml . | nindent 8 }}
       {{- end }}
 `
-	path := "./" + data.Domain + "/" + data.Project + "/" + data.Service + _HelmPath + data.Service + _TemplatePath
+	path := "./" + data.Domain + "/" + data.Project + "/" + data.Service + data.Suffix + _HelmPath + data.Service + data.Suffix + _TemplatePath
 	name := "deployment.yaml"
 
 	return template.WriteFile(tpl, path, name)
@@ -369,7 +435,7 @@ spec:
 func CreateDeployHpa(data *template.Data) error {
 	// 生成hpa.yaml
 	tpl := `{{- if .Values.autoscaling.enabled }}
-apiVersion: autoscaling/v2beta2
+apiVersion: autoscaling/v2
 kind: HorizontalPodAutoscaler
 metadata:
   name: {{ include "imind.fullname" . }}
@@ -402,28 +468,33 @@ spec:
 {{- end }}
 `
 
-	path := "./" + data.Domain + "/" + data.Project + "/" + data.Service + _HelmPath + data.Service + _TemplatePath
+	path := "./" + data.Domain + "/" + data.Project + "/" + data.Service + data.Suffix + _HelmPath + data.Service + data.Suffix + _TemplatePath
 	name := "hpa.yaml"
 
 	return template.WriteFile(tpl, path, name)
 }
 
-func CreateDeploySecret(data *template.Data) error {
-	// 生成secret.yaml
-	tpl := `{{- $fullName := include "imind.fullname" . -}}
+func CreateDeployConfigMap(data *template.Data) error {
+	// 生成configmap.yaml
+	tpl := `{{- if .Values.config }}
 apiVersion: v1
-kind: Secret
+kind: ConfigMap
 metadata:
-  name: {{ $fullName }}
+  name: {{ include "imind.fullname" . }}
   labels:
     {{- include "imind.labels" . | nindent 4 }}
-type: Opaque
 data:
-  {{ (.Files.Glob "conf/conf.yaml").AsSecrets | indent 2 }}
+  conf.yaml: |-
+    {{- toYaml .Values.config | default "{}" | nindent 4 }}
+  {{- range $key, $value := .Values.templates }}
+  {{ $key }}: |-
+    {{- $value | nindent 4 }}
+  {{- end }}
+{{- end }}
 `
 
-	path := "./" + data.Domain + "/" + data.Project + "/" + data.Service + _HelmPath + data.Service + _TemplatePath
-	name := "secret.yaml"
+	path := "./" + data.Domain + "/" + data.Project + "/" + data.Service + data.Suffix + _HelmPath + data.Service + data.Suffix + _TemplatePath
+	name := "configmap.yaml"
 
 	return template.WriteFile(tpl, path, name)
 }
@@ -444,7 +515,7 @@ spec:
     {{- include "imind.selectorLabels" . | nindent 4 }}
 `
 
-	path := "./" + data.Domain + "/" + data.Project + "/" + data.Service + _HelmPath + data.Service + _TemplatePath
+	path := "./" + data.Domain + "/" + data.Project + "/" + data.Service + data.Suffix + _HelmPath + data.Service + data.Suffix + _TemplatePath
 	name := "service.yaml"
 
 	return template.WriteFile(tpl, path, name)
@@ -465,7 +536,7 @@ metadata:
   {{- end }}
 {{- end }}
 `
-	path := "./" + data.Domain + "/" + data.Project + "/" + data.Service + _HelmPath + data.Service + _TemplatePath
+	path := "./" + data.Domain + "/" + data.Project + "/" + data.Service + data.Suffix + _HelmPath + data.Service + data.Suffix + _TemplatePath
 	name := "serviceaccount.yaml"
 
 	return template.WriteFile(tpl, path, name)
@@ -485,7 +556,7 @@ spec:
   entryPoints:
     - web
   routes:
-    - match: Host(^{{ .Values.traefik.http.host }}^)
+    - match: Host(^{{ .Values.traefik.host }}^)
       kind: Rule
       services:
         - name: {{ $fullName }}
@@ -502,7 +573,7 @@ spec:
   entryPoints:
     - websecure
   routes:
-    - match: Host(^{{ .Values.traefik.grpc.host }}^)
+    - match: Host(^{{ .Values.traefik.host }}^)
       kind: Rule
       services:
         - name: {{ $fullName }}
@@ -515,87 +586,8 @@ spec:
 `
 	tpl = strings.Replace(tpl, "^", "`", -1)
 
-	path := "./" + data.Domain + "/" + data.Project + "/" + data.Service + _HelmPath + data.Service + _TemplatePath
+	path := "./" + data.Domain + "/" + data.Project + "/" + data.Service + data.Suffix + _HelmPath + data.Service + data.Suffix + _TemplatePath
 	name := "traefik.yaml"
 
 	return template.WriteFile(tpl, path, name)
-}
-
-func CreateDeployConf(data *template.Data) error {
-	// 生成conf.yaml
-	tpl := `service:
-  namespace: {{.Project}}
-  name: {{.Service}}
-  version: latest
-  logLevel: -2
-  port: #监听端口
-    http: 80
-    grpc: 50051
-  rate:
-    high:
-      limit: 10
-      capacity: 10
-    low:
-      limit: 10
-      capacity: 10
-  profile:
-    rate: 1
-
-db:
-  logLevel: 4
-  max:
-    open: 10
-    idle: 5
-    life: 30
-  timeout: 5s
-  imind:
-    master:
-      host: mysql.infra
-      port: 3306
-      user: root
-      pass: imind123
-      name: imind
-    replica:
-      host: mysql.infra
-      port: 3306
-      user: root
-      pass: imind123
-      name: imind
-
-redis:
-  model: node
-  timeout: 5s
-  addr: 'redis-master.infra:6379'
-  pass: imind456
-  db: 0
-
-kafka:
-  business:
-    producer:
-      - 'kafka.infra:9092'
-    consumer:
-      - 'kafka.infra:9092'
-    topic:
-      {{.Service}}Create: {{.Service}}_create
-      {{.Service}}Update: {{.Service}}_update
-
-tracing:
-  agent:
-    host: 'jaeger'
-    port: 6831
-
-log:
-  path: './logs/ms.log'
-  level: -1
-  age: 7
-  size: 128
-  backup: 30
-  compress: true
-  format: json
-`
-
-	path := "./" + data.Domain + "/" + data.Project + "/" + data.Service + _HelmPath + data.Service + "/conf/"
-	name := "conf.yaml"
-
-	return template.CreateFile(data, tpl, path, name)
 }

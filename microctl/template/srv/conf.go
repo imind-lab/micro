@@ -60,7 +60,7 @@ redis:
   model: node
   timeout: 5s
   addr: '127.0.0.1:6379'
-#  pass: imind456
+#  pass: imind
   db: 0
 
 kafka:
