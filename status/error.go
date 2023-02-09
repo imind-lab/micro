@@ -1,25 +1,25 @@
 package status
 
 import (
-	"fmt"
-	"github.com/pkg/errors"
+    "errors"
+    "fmt"
 )
 
 type Error struct {
-	Code Code
-	Msg  string
+    Code Code
+    Msg  string
 }
 
 func New(code Code) Error {
-	return Error{
-		Code: code,
-		Msg:  code.String(),
-	}
+    return Error{
+        Code: code,
+        Msg:  code.String(),
+    }
 }
 
 // Error 实现Error接口
 func (err Error) Error() string {
-	return fmt.Sprintf("code = %d, message = %v", err.Code, err.Msg)
+    return fmt.Sprintf("code = %d, message = %v", err.Code, err.Msg)
 }
 
 // ResponseOK 处理成功
@@ -69,12 +69,12 @@ var ErrUploadFileFailed = New(UploadFileFailed)
 var ErrSystem = New(SystemError)
 
 func AsError(err error) Error {
-	if err == nil {
-		return ResponseOK
-	}
-	var e Error
-	if errors.Is(err, &e) {
-		return e
-	}
-	return New(UnknownError)
+    if err == nil {
+        return ResponseOK
+    }
+    var e Error
+    if errors.Is(err, &e) {
+        return e
+    }
+    return New(UnknownError)
 }

@@ -1,24 +1,24 @@
 /**
  *  MindLab
  *
- *  Create by songli on 2020/10/23
- *  Copyright © 2021 imind.tech All rights reserved.
+ *  Create by songli on 2023/02/03
+ *  Copyright © 2023 imind.tech All rights reserved.
  */
 
 package srv
 
 import (
-	"os"
-	"strings"
-	"text/template"
+    "os"
+    "strings"
+    "text/template"
 
-	tpl "github.com/imind-lab/micro/microctl/template"
+    tpl "github.com/imind-lab/micro/v2/microctl/template"
 )
 
 // 生成google.proto
 func CreatePkg(data *tpl.Data) error {
 
-	tpl := `// Copyright (c) 2015, Google Inc.
+    tpl := `// Copyright (c) 2015, Google Inc.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -51,33 +51,33 @@ extend google.protobuf.MethodOptions {
 }
 `
 
-	tpl = strings.Replace(tpl, "${backtick}", "`", -1)
+    tpl = strings.Replace(tpl, "${backtick}", "`", -1)
 
-	t, err := template.New("google.api.annotations.proto").Parse(tpl)
-	if err != nil {
-		return err
-	}
+    t, err := template.New("google.api.annotations.proto").Parse(tpl)
+    if err != nil {
+        return err
+    }
 
-	dir := "./" + data.Domain + "/" + data.Project + "/" + data.Service + "/pkg/proto/google/api/"
+    dir := "./" + data.Domain + "/" + data.Project + "/" + data.Service + "/pkg/proto/google/api/"
 
-	err = os.MkdirAll(dir, os.ModePerm)
-	if err != nil {
-		return err
-	}
+    err = os.MkdirAll(dir, os.ModePerm)
+    if err != nil {
+        return err
+    }
 
-	fileName := dir + "annotations.proto"
+    fileName := dir + "annotations.proto"
 
-	f, err := os.Create(fileName)
-	if err != nil {
-		return err
-	}
-	err = t.Execute(f, data)
-	if err != nil {
-		return err
-	}
-	f.Close()
+    f, err := os.Create(fileName)
+    if err != nil {
+        return err
+    }
+    err = t.Execute(f, data)
+    if err != nil {
+        return err
+    }
+    f.Close()
 
-	tpl = `// Copyright 2018 Google LLC
+    tpl = `// Copyright 2018 Google LLC
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -397,26 +397,26 @@ message CustomHttpPattern {
 }
 `
 
-	tpl = strings.Replace(tpl, "${backtick}", "`", -1)
+    tpl = strings.Replace(tpl, "${backtick}", "`", -1)
 
-	t, err = template.New("google.api.http.proto").Parse(tpl)
-	if err != nil {
-		return err
-	}
+    t, err = template.New("google.api.http.proto").Parse(tpl)
+    if err != nil {
+        return err
+    }
 
-	fileName = dir + "http.proto"
+    fileName = dir + "http.proto"
 
-	f, err = os.Create(fileName)
-	if err != nil {
-		return err
-	}
-	err = t.Execute(f, data)
-	if err != nil {
-		return err
-	}
-	f.Close()
+    f, err = os.Create(fileName)
+    if err != nil {
+        return err
+    }
+    err = t.Execute(f, data)
+    if err != nil {
+        return err
+    }
+    f.Close()
 
-	tpl = `// Copyright 2018 Google LLC.
+    tpl = `// Copyright 2018 Google LLC.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -496,31 +496,31 @@ message HttpBody {
 }
 `
 
-	t, err = template.New("google.api.httpbody.proto").Parse(tpl)
-	if err != nil {
-		return err
-	}
+    t, err = template.New("google.api.httpbody.proto").Parse(tpl)
+    if err != nil {
+        return err
+    }
 
-	dir = "./" + data.Domain + "/" + data.Project + "/" + data.Service + "/pkg/proto/google/api/"
+    dir = "./" + data.Domain + "/" + data.Project + "/" + data.Service + "/pkg/proto/google/api/"
 
-	err = os.MkdirAll(dir, os.ModePerm)
-	if err != nil {
-		return err
-	}
+    err = os.MkdirAll(dir, os.ModePerm)
+    if err != nil {
+        return err
+    }
 
-	fileName = dir + "httpbody.proto"
+    fileName = dir + "httpbody.proto"
 
-	f, err = os.Create(fileName)
-	if err != nil {
-		return err
-	}
-	err = t.Execute(f, data)
-	if err != nil {
-		return err
-	}
-	f.Close()
+    f, err = os.Create(fileName)
+    if err != nil {
+        return err
+    }
+    err = t.Execute(f, data)
+    if err != nil {
+        return err
+    }
+    f.Close()
 
-	tpl = `// Copyright 2017 Google Inc.
+    tpl = `// Copyright 2017 Google Inc.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -708,33 +708,33 @@ enum Code {
 }
 `
 
-	tpl = strings.Replace(tpl, "${backtick}", "`", -1)
+    tpl = strings.Replace(tpl, "${backtick}", "`", -1)
 
-	t, err = template.New("google.rpc.code.proto").Parse(tpl)
-	if err != nil {
-		return err
-	}
+    t, err = template.New("google.rpc.code.proto").Parse(tpl)
+    if err != nil {
+        return err
+    }
 
-	dir = "./" + data.Domain + "/" + data.Project + "/" + data.Service + "/pkg/proto/google/rpc/"
+    dir = "./" + data.Domain + "/" + data.Project + "/" + data.Service + "/pkg/proto/google/rpc/"
 
-	err = os.MkdirAll(dir, os.ModePerm)
-	if err != nil {
-		return err
-	}
+    err = os.MkdirAll(dir, os.ModePerm)
+    if err != nil {
+        return err
+    }
 
-	fileName = dir + "code.proto"
+    fileName = dir + "code.proto"
 
-	f, err = os.Create(fileName)
-	if err != nil {
-		return err
-	}
-	err = t.Execute(f, data)
-	if err != nil {
-		return err
-	}
-	f.Close()
+    f, err = os.Create(fileName)
+    if err != nil {
+        return err
+    }
+    err = t.Execute(f, data)
+    if err != nil {
+        return err
+    }
+    f.Close()
 
-	tpl = `// Copyright 2017 Google Inc.
+    tpl = `// Copyright 2017 Google Inc.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -936,26 +936,26 @@ message LocalizedMessage {
 }
 `
 
-	tpl = strings.Replace(tpl, "${backtick}", "`", -1)
+    tpl = strings.Replace(tpl, "${backtick}", "`", -1)
 
-	t, err = template.New("google.rpc.error.proto").Parse(tpl)
-	if err != nil {
-		return err
-	}
+    t, err = template.New("google.rpc.error.proto").Parse(tpl)
+    if err != nil {
+        return err
+    }
 
-	fileName = dir + "error_details.proto"
+    fileName = dir + "error_details.proto"
 
-	f, err = os.Create(fileName)
-	if err != nil {
-		return err
-	}
-	err = t.Execute(f, data)
-	if err != nil {
-		return err
-	}
-	f.Close()
+    f, err = os.Create(fileName)
+    if err != nil {
+        return err
+    }
+    err = t.Execute(f, data)
+    if err != nil {
+        return err
+    }
+    f.Close()
 
-	tpl = `// Copyright 2017 Google Inc.
+    tpl = `// Copyright 2017 Google Inc.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -1049,24 +1049,24 @@ message Status {
 }
 `
 
-	tpl = strings.Replace(tpl, "${backtick}", "`", -1)
+    tpl = strings.Replace(tpl, "${backtick}", "`", -1)
 
-	t, err = template.New("google.rpc.status.proto").Parse(tpl)
-	if err != nil {
-		return err
-	}
+    t, err = template.New("google.rpc.status.proto").Parse(tpl)
+    if err != nil {
+        return err
+    }
 
-	fileName = dir + "status.proto"
+    fileName = dir + "status.proto"
 
-	f, err = os.Create(fileName)
-	if err != nil {
-		return err
-	}
-	err = t.Execute(f, data)
-	if err != nil {
-		return err
-	}
-	f.Close()
+    f, err = os.Create(fileName)
+    if err != nil {
+        return err
+    }
+    err = t.Execute(f, data)
+    if err != nil {
+        return err
+    }
+    f.Close()
 
-	return nil
+    return nil
 }

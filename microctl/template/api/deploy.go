@@ -1,17 +1,17 @@
 /**
  *  MindLab
  *
- *  Create by songli on 2020/10/23
- *  Copyright © 2021 imind.tech All rights reserved.
+ *  Create by songli on 2023/02/03
+ *  Copyright © 2023 imind.tech All rights reserved.
  */
 
 package api
 
 import (
-	tpl "github.com/imind-lab/micro/microctl/template"
-	"github.com/imind-lab/micro/microctl/template/share"
+    tpl "github.com/imind-lab/micro/v2/microctl/template"
+    "github.com/imind-lab/micro/v2/microctl/template/share"
 )
 
 func CreateDeploy(data *tpl.Data) error {
-	return share.CreateDeploy(data)
+    return share.CreateDeploy(data)
 }

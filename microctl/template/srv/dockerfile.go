@@ -1,19 +1,19 @@
 /**
  *  MindLab
  *
- *  Create by songli on 2022/02/27
- *  Copyright © 2022 imind.tech All rights reserved.
+ *  Create by songli on 2023/02/03
+ *  Copyright © 2023 imind.tech All rights reserved.
  */
 
 package srv
 
 import (
-	"github.com/imind-lab/micro/microctl/template"
+    "github.com/imind-lab/micro/v2/microctl/template"
 )
 
 // 生成Dockerfile
 func CreateDockerfile(data *template.Data) error {
-	var tpl = `FROM alpine:latest
+    var tpl = `FROM alpine:latest
 RUN sed -i 's/dl-cdn.alpinelinux.org/mirrors.ustc.edu.cn/g' /etc/apk/repositories
 RUN apk add --no-cache tzdata \
     && ln -sf /usr/share/zoneinfo/Asia/Shanghai /etc/localtime \
@@ -26,8 +26,8 @@ COPY {{.Service}} grpc-health-probe /bin/
 ENTRYPOINT [ "/bin/{{.Service}}", "server" ]
 `
 
-	path := "./" + data.Domain + "/" + data.Project + "/" + data.Service + "/"
-	name := "Dockerfile"
+    path := "./" + data.Domain + "/" + data.Project + "/" + data.Service + "/"
+    name := "Dockerfile"
 
-	return template.CreateFile(data, tpl, path, name)
+    return template.CreateFile(data, tpl, path, name)
 }

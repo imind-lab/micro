@@ -1,19 +1,19 @@
 /**
  *  MindLab
  *
- *  Create by songli on 2022/02/27
- *  Copyright © 2022 imind.tech All rights reserved.
+ *  Create by songli on 2023/02/03
+ *  Copyright © 2023 imind.tech All rights reserved.
  */
 
 package api
 
 import (
-	"github.com/imind-lab/micro/microctl/template"
+    "github.com/imind-lab/micro/v2/microctl/template"
 )
 
 // 生成Makefile
 func CreateMakefile(data *template.Data) error {
-	var tpl = `GOARCH := $(shell go env GOARCH)
+    var tpl = `GOARCH := $(shell go env GOARCH)
 GOOS := $(shell go env GOOS)
 
 ifndef LOCAL
@@ -106,8 +106,8 @@ all:
 .PHONY: proto depend wire build test docker deploy run clean release all
 `
 
-	path := "./" + data.Domain + "/" + data.Project + "/" + data.Service + "-api/"
-	name := "Makefile"
+    path := "./" + data.Domain + "/" + data.Project + "/" + data.Service + "-api/"
+    name := "Makefile"
 
-	return template.CreateFile(data, tpl, path, name)
+    return template.CreateFile(data, tpl, path, name)
 }

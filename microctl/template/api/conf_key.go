@@ -1,19 +1,19 @@
 /**
  *  MindLab
  *
- *  Create by songli on 2022/02/27
- *  Copyright © 2022 imind.tech All rights reserved.
+ *  Create by songli on 2023/02/03
+ *  Copyright © 2023 imind.tech All rights reserved.
  */
 
 package api
 
 import (
-	"github.com/imind-lab/micro/microctl/template"
+    "github.com/imind-lab/micro/v2/microctl/template"
 )
 
 // 生成conf/conf.yaml
 func CreateConfKey(data *template.Data) error {
-	var tpl = `-----BEGIN PRIVATE KEY-----
+    var tpl = `-----BEGIN PRIVATE KEY-----
 MIIEvgIBADANBgkqhkiG9w0BAQEFAASCBKgwggSkAgEAAoIBAQChZGDvL7RcSSjz
 f5EZnVhvRGGaP6dajljQuuAJ0rt2PDsaFliFBT0BzL87yFKzQqNGh/i+Dd3wFLo3
 F82MlN1BGsR3d8UO+lY6raV5FL/5h10GrDDsZp6bpUNwnk7G1zNuIvKMAKRjeCkw
@@ -43,9 +43,9 @@ VRHj9cnoQrOf7n2ABB5uM89O
 -----END PRIVATE KEY-----
 `
 
-	path := "./" + data.Domain + "/" + data.Project + "/" + data.Service + "-api/conf/ssl/"
+    path := "./" + data.Domain + "/" + data.Project + "/" + data.Service + "-api/conf/ssl/"
 
-	name := "tls.key"
+    name := "tls.key"
 
-	return template.CreateFile(data, tpl, path, name)
+    return template.CreateFile(data, tpl, path, name)
 }

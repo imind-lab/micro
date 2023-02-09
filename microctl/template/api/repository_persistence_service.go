@@ -1,19 +1,19 @@
 /**
  *  MindLab
  *
- *  Create by songli on 2022/02/27
- *  Copyright © 2022 imind.tech All rights reserved.
+ *  Create by songli on 2023/02/03
+ *  Copyright © 2023 imind.tech All rights reserved.
  */
 
 package api
 
 import (
-	"github.com/imind-lab/micro/microctl/template"
+    "github.com/imind-lab/micro/v2/microctl/template"
 )
 
 // 生成repository/model.go
 func CreateRepositoryPersistenceService(data *template.Data) error {
-	var tpl = `/**
+    var tpl = `/**
  *  ImindLab
  *
  *  Create by songli on {{.Year}}/06/01
@@ -282,8 +282,8 @@ func (repo {{.Svc}}Repository) Get{{.Svc}}ListByIds(ctx context.Context, ids []i
 }
 `
 
-	path := "./" + data.Domain + "/" + data.Project + "/" + data.Service + "-api/repository/" + data.Service + "/persistence/"
-	name := data.Service + ".go"
+    path := "./" + data.Domain + "/" + data.Project + "/" + data.Service + "-api/repository/" + data.Service + "/persistence/"
+    name := data.Service + ".go"
 
-	return template.CreateFile(data, tpl, path, name)
+    return template.CreateFile(data, tpl, path, name)
 }

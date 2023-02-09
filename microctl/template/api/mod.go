@@ -1,19 +1,19 @@
 /**
  *  MindLab
  *
- *  Create by songli on 2022/02/27
- *  Copyright © 2022 imind.tech All rights reserved.
+ *  Create by songli on 2023/02/03
+ *  Copyright © 2023 imind.tech All rights reserved.
  */
 
 package api
 
 import (
-	"github.com/imind-lab/micro/microctl/template"
+    "github.com/imind-lab/micro/v2/microctl/template"
 )
 
 // 生成go.mod
 func CreateMod(data *template.Data) error {
-	var tpl = `module gitlab.imind.tech/{{.Project}}/{{.Service}}-api
+    var tpl = `module gitlab.imind.tech/{{.Project}}/{{.Service}}-api
 
 go 1.18
 
@@ -94,8 +94,8 @@ require (
 )
 `
 
-	path := "./" + data.Domain + "/" + data.Project + "/" + data.Service + "-api/"
-	name := "go.mod"
+    path := "./" + data.Domain + "/" + data.Project + "/" + data.Service + "-api/"
+    name := "go.mod"
 
-	return template.CreateFile(data, tpl, path, name)
+    return template.CreateFile(data, tpl, path, name)
 }

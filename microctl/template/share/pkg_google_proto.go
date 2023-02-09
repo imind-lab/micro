@@ -1,38 +1,38 @@
 /**
  *  MindLab
  *
- *  Create by songli on 2020/10/23
- *  Copyright © 2021 imind.tech All rights reserved.
+ *  Create by songli on 2023/02/03
+ *  Copyright © 2023 imind.tech All rights reserved.
  */
 
 package share
 
 import (
-	"strings"
+    "strings"
 
-	"github.com/imind-lab/micro/microctl/template"
+    "github.com/imind-lab/micro/v2/microctl/template"
 )
 
 const (
-	_BackTick = "${backtick}"
-	_ApiPath  = "/pkg/proto/google/api/"
-	_RpcPath  = "/pkg/proto/google/rpc/"
+    _BackTick = "${backtick}"
+    _ApiPath  = "/pkg/proto/google/api/"
+    _RpcPath  = "/pkg/proto/google/rpc/"
 )
 
 func CreatePkgGoogleProtos(data *template.Data, suffix string) error {
-	CreateGoogleAnnotations(data, suffix)
-	CreateGoogleHttp(data, suffix)
-	CreateGoogleHttpBody(data, suffix)
-	CreateGoogleHttpCode(data, suffix)
-	CreateGoogleHttpError(data, suffix)
-	CreateGoogleHttpStatus(data, suffix)
-	return nil
+    CreateGoogleAnnotations(data, suffix)
+    CreateGoogleHttp(data, suffix)
+    CreateGoogleHttpBody(data, suffix)
+    CreateGoogleHttpCode(data, suffix)
+    CreateGoogleHttpError(data, suffix)
+    CreateGoogleHttpStatus(data, suffix)
+    return nil
 }
 
 // 生成google.proto
 func CreateGoogleAnnotations(data *template.Data, suffix string) error {
 
-	tpl := `// Copyright (c) 2015, Google Inc.
+    tpl := `// Copyright (c) 2015, Google Inc.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -65,16 +65,16 @@ extend google.protobuf.MethodOptions {
 }
 `
 
-	tpl = strings.Replace(tpl, _BackTick, "`", -1)
+    tpl = strings.Replace(tpl, _BackTick, "`", -1)
 
-	path := "./" + data.Domain + "/" + data.Project + "/" + data.Service + suffix + _ApiPath
-	name := "annotations.proto"
+    path := "./" + data.Domain + "/" + data.Project + "/" + data.Service + suffix + _ApiPath
+    name := "annotations.proto"
 
-	return template.CreateFile(data, tpl, path, name)
+    return template.CreateFile(data, tpl, path, name)
 }
 
 func CreateGoogleHttp(data *template.Data, suffix string) error {
-	tpl := `// Copyright 2018 Google LLC
+    tpl := `// Copyright 2018 Google LLC
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -394,16 +394,16 @@ message CustomHttpPattern {
 }
 `
 
-	tpl = strings.Replace(tpl, _BackTick, "`", -1)
+    tpl = strings.Replace(tpl, _BackTick, "`", -1)
 
-	path := "./" + data.Domain + "/" + data.Project + "/" + data.Service + suffix + _ApiPath
-	name := "http.proto"
+    path := "./" + data.Domain + "/" + data.Project + "/" + data.Service + suffix + _ApiPath
+    name := "http.proto"
 
-	return template.CreateFile(data, tpl, path, name)
+    return template.CreateFile(data, tpl, path, name)
 }
 
 func CreateGoogleHttpBody(data *template.Data, suffix string) error {
-	tpl := `// Copyright 2018 Google LLC.
+    tpl := `// Copyright 2018 Google LLC.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -483,14 +483,14 @@ message HttpBody {
 }
 `
 
-	path := "./" + data.Domain + "/" + data.Project + "/" + data.Service + suffix + _ApiPath
-	name := "httpbody.proto"
+    path := "./" + data.Domain + "/" + data.Project + "/" + data.Service + suffix + _ApiPath
+    name := "httpbody.proto"
 
-	return template.CreateFile(data, tpl, path, name)
+    return template.CreateFile(data, tpl, path, name)
 }
 
 func CreateGoogleHttpCode(data *template.Data, suffix string) error {
-	tpl := `// Copyright 2017 Google Inc.
+    tpl := `// Copyright 2017 Google Inc.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -678,16 +678,16 @@ enum CreateGoogleHttpCode {
 }
 `
 
-	tpl = strings.Replace(tpl, _BackTick, "`", -1)
+    tpl = strings.Replace(tpl, _BackTick, "`", -1)
 
-	path := "./" + data.Domain + "/" + data.Project + "/" + data.Service + suffix + _RpcPath
-	name := "code.proto"
+    path := "./" + data.Domain + "/" + data.Project + "/" + data.Service + suffix + _RpcPath
+    name := "code.proto"
 
-	return template.CreateFile(data, tpl, path, name)
+    return template.CreateFile(data, tpl, path, name)
 }
 
 func CreateGoogleHttpError(data *template.Data, suffix string) error {
-	tpl := `// Copyright 2017 Google Inc.
+    tpl := `// Copyright 2017 Google Inc.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -889,16 +889,16 @@ message LocalizedMessage {
 }
 `
 
-	tpl = strings.Replace(tpl, _BackTick, "`", -1)
+    tpl = strings.Replace(tpl, _BackTick, "`", -1)
 
-	path := "./" + data.Domain + "/" + data.Project + "/" + data.Service + suffix + _RpcPath
-	name := "error_details.proto"
+    path := "./" + data.Domain + "/" + data.Project + "/" + data.Service + suffix + _RpcPath
+    name := "error_details.proto"
 
-	return template.CreateFile(data, tpl, path, name)
+    return template.CreateFile(data, tpl, path, name)
 }
 
 func CreateGoogleHttpStatus(data *template.Data, suffix string) error {
-	tpl := `// Copyright 2017 Google Inc.
+    tpl := `// Copyright 2017 Google Inc.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -992,10 +992,10 @@ message CreateGoogleHttpStatus {
 }
 `
 
-	tpl = strings.Replace(tpl, _BackTick, "`", -1)
+    tpl = strings.Replace(tpl, _BackTick, "`", -1)
 
-	path := "./" + data.Domain + "/" + data.Project + "/" + data.Service + suffix + _RpcPath
-	name := "status.proto"
+    path := "./" + data.Domain + "/" + data.Project + "/" + data.Service + suffix + _RpcPath
+    name := "status.proto"
 
-	return template.CreateFile(data, tpl, path, name)
+    return template.CreateFile(data, tpl, path, name)
 }

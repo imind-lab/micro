@@ -1,14 +1,14 @@
 /**
  *  MindLab
  *
- *  Create by songli on 2020/10/23
- *  Copyright © 2021 imind.tech All rights reserved.
+ *  Create by songli on 2023/02/03
+ *  Copyright © 2023 imind.tech All rights reserved.
  */
 
 package main
 
-import "github.com/imind-lab/micro/microctl/cmd"
+import "github.com/imind-lab/micro/v2/microctl/cmd"
 
 func main() {
-	cmd.Execute()
+    cmd.Execute()
 }

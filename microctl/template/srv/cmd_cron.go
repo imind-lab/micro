@@ -1,22 +1,22 @@
 /**
  *  MindLab
  *
- *  Create by songli on 2021/02/27
- *  Copyright © 2022 imind.tech All rights reserved.
+ *  Create by songli on 2023/02/03
+ *  Copyright © 2023 imind.tech All rights reserved.
  */
 
 package srv
 
 import (
-	"os"
-	"text/template"
+    "os"
+    "text/template"
 
-	tpl "github.com/imind-lab/micro/microctl/template"
+    tpl "github.com/imind-lab/micro/v2/microctl/template"
 )
 
 // 生成cmd/cron.go
 func CreateCmdCron(data *tpl.Data) error {
-	var tpl = `package cmd
+    var tpl = `package cmd
 
 import (
 	"log"
@@ -55,32 +55,32 @@ func init() {
 }
 `
 
-	t, err := template.New("cmd_cron").Parse(tpl)
-	if err != nil {
-		return err
-	}
+    t, err := template.New("cmd_cron").Parse(tpl)
+    if err != nil {
+        return err
+    }
 
-	t.Option()
-	dir := "./" + data.Domain + "/" + data.Project + "/" + data.Service + "/cmd/"
+    t.Option()
+    dir := "./" + data.Domain + "/" + data.Project + "/" + data.Service + "/cmd/"
 
-	err = os.MkdirAll(dir, os.ModePerm)
-	if err != nil {
-		return err
-	}
+    err = os.MkdirAll(dir, os.ModePerm)
+    if err != nil {
+        return err
+    }
 
-	fileName := dir + "cron.go"
+    fileName := dir + "cron.go"
 
-	f, err := os.Create(fileName)
-	if err != nil {
-		return err
-	}
-	err = t.Execute(f, data)
-	if err != nil {
-		return err
-	}
-	f.Close()
+    f, err := os.Create(fileName)
+    if err != nil {
+        return err
+    }
+    err = t.Execute(f, data)
+    if err != nil {
+        return err
+    }
+    f.Close()
 
-	tpl = `package cron
+    tpl = `package cron
 
 type Cron struct{}
 
@@ -89,32 +89,32 @@ func New() Cron {
 }
 `
 
-	t, err = template.New("cmd_cron_cron").Parse(tpl)
-	if err != nil {
-		return err
-	}
+    t, err = template.New("cmd_cron_cron").Parse(tpl)
+    if err != nil {
+        return err
+    }
 
-	t.Option()
-	dir = "./" + data.Domain + "/" + data.Project + "/" + data.Service + "/cmd/cron/"
+    t.Option()
+    dir = "./" + data.Domain + "/" + data.Project + "/" + data.Service + "/cmd/cron/"
 
-	err = os.MkdirAll(dir, os.ModePerm)
-	if err != nil {
-		return err
-	}
+    err = os.MkdirAll(dir, os.ModePerm)
+    if err != nil {
+        return err
+    }
 
-	fileName = dir + "cron.go"
+    fileName = dir + "cron.go"
 
-	f, err = os.Create(fileName)
-	if err != nil {
-		return err
-	}
-	err = t.Execute(f, data)
-	if err != nil {
-		return err
-	}
-	f.Close()
+    f, err = os.Create(fileName)
+    if err != nil {
+        return err
+    }
+    err = t.Execute(f, data)
+    if err != nil {
+        return err
+    }
+    f.Close()
 
-	tpl = `package cron
+    tpl = `package cron
 
 import (
 	"fmt"
@@ -126,24 +126,24 @@ func (c Cron) EchoTime() {
 }
 `
 
-	t, err = template.New("cmd_cron_sample").Parse(tpl)
-	if err != nil {
-		return err
-	}
+    t, err = template.New("cmd_cron_sample").Parse(tpl)
+    if err != nil {
+        return err
+    }
 
-	t.Option()
+    t.Option()
 
-	fileName = dir + "sample.go"
+    fileName = dir + "sample.go"
 
-	f, err = os.Create(fileName)
-	if err != nil {
-		return err
-	}
-	err = t.Execute(f, data)
-	if err != nil {
-		return err
-	}
-	f.Close()
+    f, err = os.Create(fileName)
+    if err != nil {
+        return err
+    }
+    err = t.Execute(f, data)
+    if err != nil {
+        return err
+    }
+    f.Close()
 
-	return nil
+    return nil
 }

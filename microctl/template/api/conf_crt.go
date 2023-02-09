@@ -1,19 +1,19 @@
 /**
  *  MindLab
  *
- *  Create by songli on 2022/02/27
- *  Copyright © 2022 imind.tech All rights reserved.
+ *  Create by songli on 2023/02/03
+ *  Copyright © 2023 imind.tech All rights reserved.
  */
 
 package api
 
 import (
-	"github.com/imind-lab/micro/microctl/template"
+    "github.com/imind-lab/micro/v2/microctl/template"
 )
 
 // 生成conf/conf.yaml
 func CreateConfCrt(data *template.Data) error {
-	var tpl = `-----BEGIN CERTIFICATE-----
+    var tpl = `-----BEGIN CERTIFICATE-----
 MIIDqjCCApKgAwIBAgIJAJEfwWYkH/bjMA0GCSqGSIb3DQEBCwUAMIGFMQswCQYD
 VQQGEwJDTjELMAkGA1UECBMCQkoxDDAKBgNVBAcTA1NKUzETMBEGA1UEChMKaW1p
 bmQudGVjaDENMAsGA1UECxMEdGVjaDEVMBMGA1UEAxQMKi5pbWluZC50ZWNoMSAw
@@ -37,8 +37,8 @@ SbjNQfx9MfJPBSWL8ZxVpOGP/swfwCUewheKaGXm
 -----END CERTIFICATE-----
 `
 
-	path := "./" + data.Domain + "/" + data.Project + "/" + data.Service + "-api/conf/ssl/"
-	name := "tls.crt"
+    path := "./" + data.Domain + "/" + data.Project + "/" + data.Service + "-api/conf/ssl/"
+    name := "tls.crt"
 
-	return template.CreateFile(data, tpl, path, name)
+    return template.CreateFile(data, tpl, path, name)
 }

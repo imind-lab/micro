@@ -1,19 +1,19 @@
 /**
  *  MindLab
  *
- *  Create by songli on 2022/02/27
- *  Copyright © 2022 imind.tech All rights reserved.
+ *  Create by songli on 2023/02/03
+ *  Copyright © 2023 imind.tech All rights reserved.
  */
 
 package srv
 
 import (
-	"github.com/imind-lab/micro/microctl/template"
+    "github.com/imind-lab/micro/v2/microctl/template"
 )
 
 // 生成conf/conf.yaml
 func CreateConf(data *template.Data) error {
-	var tpl = `global:
+    var tpl = `global:
   rate:
     high:
       limit: 10
@@ -78,8 +78,8 @@ tracing:
     host: '127.0.0.1'
     port: 6831`
 
-	path := "./" + data.Domain + "/" + data.Project + "/" + data.Service + "/conf/"
-	name := "conf.yaml"
+    path := "./" + data.Domain + "/" + data.Project + "/" + data.Service + "/conf/"
+    name := "conf.yaml"
 
-	return template.CreateFile(data, tpl, path, name)
+    return template.CreateFile(data, tpl, path, name)
 }

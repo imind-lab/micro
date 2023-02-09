@@ -1,40 +1,40 @@
 /**
  *  MindLab
  *
- *  Create by songli on 2020/10/23
- *  Copyright © 2021 imind.tech All rights reserved.
+ *  Create by songli on 2023/02/03
+ *  Copyright © 2023 imind.tech All rights reserved.
  */
 
 package share
 
 import (
-	"strings"
+    "strings"
 
-	"github.com/imind-lab/micro/microctl/template"
+    "github.com/imind-lab/micro/v2/microctl/template"
 )
 
 const (
-	_HelmPath     = "/deploy/helm/"
-	_TemplatePath = "/templates/"
+    _HelmPath     = "/deploy/helm/"
+    _TemplatePath = "/templates/"
 )
 
 func CreateDeploy(data *template.Data) error {
-	CreateDeployChart(data)
-	CreateDeployValues(data)
-	CreateDeployHelper(data)
-	CreateDeployDeployment(data)
-	CreateDeployHpa(data)
-	CreateDeployConfigMap(data)
-	CreateDeploySvc(data)
-	CreateDeploySa(data)
-	CreateDeployTraefik(data)
-	return nil
+    CreateDeployChart(data)
+    CreateDeployValues(data)
+    CreateDeployHelper(data)
+    CreateDeployDeployment(data)
+    CreateDeployHpa(data)
+    CreateDeployConfigMap(data)
+    CreateDeploySvc(data)
+    CreateDeploySa(data)
+    CreateDeployTraefik(data)
+    return nil
 }
 
 // 生成docker
 func CreateDeployChart(data *template.Data) error {
-	// 生成Makefile
-	var tpl = `apiVersion: v2
+    // 生成Makefile
+    var tpl = `apiVersion: v2
 name: {{.Service}}{{.Suffix}}
 description: A Helm chart for Kubernetes
 
@@ -62,14 +62,14 @@ appVersion: "1.0.0"
 icon: https://static.imind.tech/frontend/images/wechat/bj.png
 `
 
-	path := "./" + data.Domain + "/" + data.Project + "/" + data.Service + data.Suffix + _HelmPath + data.Service + data.Suffix + "/"
-	name := "Chart.yaml"
+    path := "./" + data.Domain + "/" + data.Project + "/" + data.Service + data.Suffix + _HelmPath + data.Service + data.Suffix + "/"
+    name := "Chart.yaml"
 
-	return template.CreateFile(data, tpl, path, name)
+    return template.CreateFile(data, tpl, path, name)
 }
 func CreateDeployValues(data *template.Data) error {
-	// 生成values.yaml
-	tpl := `# Default values for imind.
+    // 生成values.yaml
+    tpl := `# Default values for imind.
 # This is a YAML-formatted file.
 # Declare variables to be passed into your templates.
 
@@ -271,15 +271,15 @@ templates: {}
 #   environment.tmpl: |-
 `
 
-	path := "./" + data.Domain + "/" + data.Project + "/" + data.Service + data.Suffix + _HelmPath + data.Service + data.Suffix + "/"
-	name := "values.yaml"
+    path := "./" + data.Domain + "/" + data.Project + "/" + data.Service + data.Suffix + _HelmPath + data.Service + data.Suffix + "/"
+    name := "values.yaml"
 
-	return template.CreateFile(data, tpl, path, name)
+    return template.CreateFile(data, tpl, path, name)
 }
 
 func CreateDeployHelper(data *template.Data) error {
-	// 生成helpers.tpl
-	tpl := `{{/*
+    // 生成helpers.tpl
+    tpl := `{{/*
 Expand the name of the chart.
 */}}
 {{- define "imind.name" -}}
@@ -340,14 +340,14 @@ Create the name of the service account to use
 {{- end }}
 `
 
-	path := "./" + data.Domain + "/" + data.Project + "/" + data.Service + data.Suffix + _HelmPath + data.Service + data.Suffix + _TemplatePath
-	name := "_helpers.tpl"
-	return template.WriteFile(tpl, path, name)
+    path := "./" + data.Domain + "/" + data.Project + "/" + data.Service + data.Suffix + _HelmPath + data.Service + data.Suffix + _TemplatePath
+    name := "_helpers.tpl"
+    return template.WriteFile(tpl, path, name)
 }
 
 func CreateDeployDeployment(data *template.Data) error {
-	// 生成deployment.yaml
-	tpl := `apiVersion: apps/v1
+    // 生成deployment.yaml
+    tpl := `apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: {{ include "imind.fullname" . }}
@@ -426,15 +426,15 @@ spec:
         {{- toYaml . | nindent 8 }}
       {{- end }}
 `
-	path := "./" + data.Domain + "/" + data.Project + "/" + data.Service + data.Suffix + _HelmPath + data.Service + data.Suffix + _TemplatePath
-	name := "deployment.yaml"
+    path := "./" + data.Domain + "/" + data.Project + "/" + data.Service + data.Suffix + _HelmPath + data.Service + data.Suffix + _TemplatePath
+    name := "deployment.yaml"
 
-	return template.WriteFile(tpl, path, name)
+    return template.WriteFile(tpl, path, name)
 }
 
 func CreateDeployHpa(data *template.Data) error {
-	// 生成hpa.yaml
-	tpl := `{{- if .Values.autoscaling.enabled }}
+    // 生成hpa.yaml
+    tpl := `{{- if .Values.autoscaling.enabled }}
 apiVersion: autoscaling/v2
 kind: HorizontalPodAutoscaler
 metadata:
@@ -468,15 +468,15 @@ spec:
 {{- end }}
 `
 
-	path := "./" + data.Domain + "/" + data.Project + "/" + data.Service + data.Suffix + _HelmPath + data.Service + data.Suffix + _TemplatePath
-	name := "hpa.yaml"
+    path := "./" + data.Domain + "/" + data.Project + "/" + data.Service + data.Suffix + _HelmPath + data.Service + data.Suffix + _TemplatePath
+    name := "hpa.yaml"
 
-	return template.WriteFile(tpl, path, name)
+    return template.WriteFile(tpl, path, name)
 }
 
 func CreateDeployConfigMap(data *template.Data) error {
-	// 生成configmap.yaml
-	tpl := `{{- if .Values.config }}
+    // 生成configmap.yaml
+    tpl := `{{- if .Values.config }}
 apiVersion: v1
 kind: ConfigMap
 metadata:
@@ -493,15 +493,15 @@ data:
 {{- end }}
 `
 
-	path := "./" + data.Domain + "/" + data.Project + "/" + data.Service + data.Suffix + _HelmPath + data.Service + data.Suffix + _TemplatePath
-	name := "configmap.yaml"
+    path := "./" + data.Domain + "/" + data.Project + "/" + data.Service + data.Suffix + _HelmPath + data.Service + data.Suffix + _TemplatePath
+    name := "configmap.yaml"
 
-	return template.WriteFile(tpl, path, name)
+    return template.WriteFile(tpl, path, name)
 }
 
 func CreateDeploySvc(data *template.Data) error {
-	// 生成service.yaml
-	tpl := `apiVersion: v1
+    // 生成service.yaml
+    tpl := `apiVersion: v1
 kind: Service
 metadata:
   name: {{ include "imind.fullname" . }}
@@ -515,15 +515,15 @@ spec:
     {{- include "imind.selectorLabels" . | nindent 4 }}
 `
 
-	path := "./" + data.Domain + "/" + data.Project + "/" + data.Service + data.Suffix + _HelmPath + data.Service + data.Suffix + _TemplatePath
-	name := "service.yaml"
+    path := "./" + data.Domain + "/" + data.Project + "/" + data.Service + data.Suffix + _HelmPath + data.Service + data.Suffix + _TemplatePath
+    name := "service.yaml"
 
-	return template.WriteFile(tpl, path, name)
+    return template.WriteFile(tpl, path, name)
 }
 
 func CreateDeploySa(data *template.Data) error {
-	// 生成serviceaccount.yaml
-	tpl := `{{- if .Values.serviceAccount.create -}}
+    // 生成serviceaccount.yaml
+    tpl := `{{- if .Values.serviceAccount.create -}}
 apiVersion: v1
 kind: ServiceAccount
 metadata:
@@ -536,15 +536,15 @@ metadata:
   {{- end }}
 {{- end }}
 `
-	path := "./" + data.Domain + "/" + data.Project + "/" + data.Service + data.Suffix + _HelmPath + data.Service + data.Suffix + _TemplatePath
-	name := "serviceaccount.yaml"
+    path := "./" + data.Domain + "/" + data.Project + "/" + data.Service + data.Suffix + _HelmPath + data.Service + data.Suffix + _TemplatePath
+    name := "serviceaccount.yaml"
 
-	return template.WriteFile(tpl, path, name)
+    return template.WriteFile(tpl, path, name)
 }
 
 func CreateDeployTraefik(data *template.Data) error {
-	// 生成traefik.yaml
-	tpl := `{{- if .Values.traefik.enabled -}}
+    // 生成traefik.yaml
+    tpl := `{{- if .Values.traefik.enabled -}}
 {{- $fullName := include "imind.fullname" . -}}
 apiVersion: traefik.containo.us/v1alpha1
 kind: IngressRoute
@@ -584,10 +584,10 @@ spec:
     secretName: {{ .Values.traefik.grpc.tls }}
 {{- end }}
 `
-	tpl = strings.Replace(tpl, "^", "`", -1)
+    tpl = strings.Replace(tpl, "^", "`", -1)
 
-	path := "./" + data.Domain + "/" + data.Project + "/" + data.Service + data.Suffix + _HelmPath + data.Service + data.Suffix + _TemplatePath
-	name := "traefik.yaml"
+    path := "./" + data.Domain + "/" + data.Project + "/" + data.Service + data.Suffix + _HelmPath + data.Service + data.Suffix + _TemplatePath
+    name := "traefik.yaml"
 
-	return template.WriteFile(tpl, path, name)
+    return template.WriteFile(tpl, path, name)
 }

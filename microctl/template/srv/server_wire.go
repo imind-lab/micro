@@ -1,19 +1,19 @@
 /**
  *  MindLab
  *
- *  Create by songli on 2022/02/27
- *  Copyright © 2022 imind.tech All rights reserved.
+ *  Create by songli on 2023/02/03
+ *  Copyright © 2023 imind.tech All rights reserved.
  */
 
 package srv
 
 import (
-	"github.com/imind-lab/micro/microctl/template"
+    "github.com/imind-lab/micro/v2/microctl/template"
 )
 
 // 生成server/server.go
 func CreateServerWire(data *template.Data) error {
-	var tpl = `//go:build wireinject
+    var tpl = `//go:build wireinject
 // +build wireinject
 
 package server
@@ -33,8 +33,8 @@ func Create{{.Svc}}Service({{if .MQ}}bk broker.Broker{{end}}) *service.{{.Svc}}S
 }
 `
 
-	path := "./" + data.Domain + "/" + data.Project + "/" + data.Service + "/server/"
-	name := "wire.go"
+    path := "./" + data.Domain + "/" + data.Project + "/" + data.Service + "/server/"
+    name := "wire.go"
 
-	return template.CreateFile(data, tpl, path, name)
+    return template.CreateFile(data, tpl, path, name)
 }

@@ -1,19 +1,19 @@
 /**
  *  MindLab
  *
- *  Create by songli on 2022/02/27
- *  Copyright © 2022 imind.tech All rights reserved.
+ *  Create by songli on 2023/02/03
+ *  Copyright © 2023 imind.tech All rights reserved.
  */
 
 package srv
 
 import (
-	"github.com/imind-lab/micro/microctl/template"
+    "github.com/imind-lab/micro/v2/microctl/template"
 )
 
 // 生成client/service.go
 func CreateCmd(data *template.Data) error {
-	var tpl = `package cmd
+    var tpl = `package cmd
 
 import (
 	"fmt"
@@ -35,8 +35,8 @@ func Execute() {
 }
 `
 
-	path := "./" + data.Domain + "/" + data.Project + "/" + data.Service + "/cmd/"
-	name := "cmd.go"
+    path := "./" + data.Domain + "/" + data.Project + "/" + data.Service + "/cmd/"
+    name := "cmd.go"
 
-	return template.CreateFile(data, tpl, path, name)
+    return template.CreateFile(data, tpl, path, name)
 }

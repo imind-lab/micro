@@ -1,22 +1,22 @@
 /**
  *  MindLab
  *
- *  Create by songli on 2021/02/27
- *  Copyright © 2022 imind.tech All rights reserved.
+ *  Create by songli on 2023/02/03
+ *  Copyright © 2023 imind.tech All rights reserved.
  */
 
 package api
 
 import (
-	"os"
-	"text/template"
+    "os"
+    "text/template"
 
-	tpl "github.com/imind-lab/micro/microctl/template"
+    tpl "github.com/imind-lab/micro/v2/microctl/template"
 )
 
 // 生成client/service.go
 func CreateApplicationConvert(data *tpl.Data) error {
-	var tpl = `/**
+    var tpl = `/**
  *  {{.Project}}
  *
  *  Create by songli on {{.Year}}/03/03
@@ -87,30 +87,30 @@ func {{.Svc}}ListSrv2Api(dto *{{.Service}}.{{.Svc}}List) *{{.Service}}_api.{{.Sv
 }
 `
 
-	t, err := template.New("application_service").Parse(tpl)
-	if err != nil {
-		return err
-	}
+    t, err := template.New("application_service").Parse(tpl)
+    if err != nil {
+        return err
+    }
 
-	t.Option()
-	dir := "./" + data.Domain + "/" + data.Project + "/" + data.Service + "-api/application/" + data.Service + "/service/"
+    t.Option()
+    dir := "./" + data.Domain + "/" + data.Project + "/" + data.Service + "-api/application/" + data.Service + "/service/"
 
-	err = os.MkdirAll(dir, os.ModePerm)
-	if err != nil {
-		return err
-	}
+    err = os.MkdirAll(dir, os.ModePerm)
+    if err != nil {
+        return err
+    }
 
-	fileName := dir + "convert.go"
+    fileName := dir + "convert.go"
 
-	f, err := os.Create(fileName)
-	if err != nil {
-		return err
-	}
-	err = t.Execute(f, data)
-	if err != nil {
-		return err
-	}
-	f.Close()
+    f, err := os.Create(fileName)
+    if err != nil {
+        return err
+    }
+    err = t.Execute(f, data)
+    if err != nil {
+        return err
+    }
+    f.Close()
 
-	return nil
+    return nil
 }
