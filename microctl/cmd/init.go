@@ -44,7 +44,6 @@ var serverCmd = &cobra.Command{
 
         if kind == "api" {
             data.Suffix = "-api"
-            data.Package = data.Package + "_api"
 
             err := api.CreateApplicationProto(data)
             if err == nil {

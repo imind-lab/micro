@@ -8,34 +8,34 @@
 package api
 
 import (
-    "github.com/imind-lab/micro/v2/microctl/template"
+	"github.com/imind-lab/micro/v2/microctl/template"
 )
 
 // 生成repository/model.go
 func CreateRepositoryPersistence(data *template.Data) error {
-    var tpl = `package persistence
+	var tpl = `package persistence
 
 import (
-	"github.com/imind-lab/micro/dao"
+    "github.com/imind-lab/micro/v2/dao"
 
-	"gitlab.imind.tech/{{.Repo}}/{{.Service}}-api/repository/{{.Service}}"
+    "{{.Domain}}/{{.Repo}}{{.Suffix}}/repository/{{.Name}}"
 )
 
-type {{.Svc}}Repository struct {
-	dao.Dao
+type {{.Service}}Repository struct {
+    dao.Dao
 }
 
-// New{{.Svc}}Repository create a {{.Service}} repository instance
-func New{{.Svc}}Repository(dao dao.Dao) {{.Service}}.{{.Svc}}Repository {
-	repo := {{.Svc}}Repository{
-		Dao: dao,
-	}
-	return repo
+// New{{.Service}}Repository create a {{.Svc}} repository instance
+func New{{.Service}}Repository(dao dao.Dao) {{.Package}}.{{.Service}}Repository {
+    repo := {{.Service}}Repository{
+        Dao: dao,
+    }
+    return repo
 }
 `
 
-    path := "./" + data.Domain + "/" + data.Repo + "/" + data.Service + "-api/repository/" + data.Service + "/persistence/"
-    name := "persistence.go"
+	path := "./" + data.Name + "-api/repository/" + data.Name + "/persistence/"
+	name := "persistence.go"
 
-    return template.CreateFile(data, tpl, path, name)
+	return template.CreateFile(data, tpl, path, name)
 }

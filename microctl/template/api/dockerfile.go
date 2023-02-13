@@ -8,12 +8,12 @@
 package api
 
 import (
-    "github.com/imind-lab/micro/v2/microctl/template"
+	"github.com/imind-lab/micro/v2/microctl/template"
 )
 
 // 生成Dockerfile
 func CreateDockerfile(data *template.Data) error {
-    var tpl = `FROM alpine:latest
+	var tpl = `FROM alpine:latest
 RUN sed -i 's/dl-cdn.alpinelinux.org/mirrors.ustc.edu.cn/g' /etc/apk/repositories
 RUN apk add --no-cache tzdata \
     && ln -sf /usr/share/zoneinfo/Asia/Shanghai /etc/localtime \
@@ -22,12 +22,12 @@ RUN apk add --no-cache tzdata \
 
 WORKDIR .
 ADD conf /conf
-COPY {{.Service}}-api grpc-health-probe /bin/
-ENTRYPOINT [ "/bin/{{.Service}}-api", "server" ]
+COPY {{.Name}}{{.Suffix}} grpc-health-probe /bin/
+ENTRYPOINT [ "/bin/{{.Name}}{{.Suffix}}", "server" ]
 `
 
-    path := "./" + data.Domain + "/" + data.Repo + "/" + data.Service + "-api/"
-    name := "Dockerfile"
+	path := "./" + data.Name + "-api/"
+	name := "Dockerfile"
 
-    return template.CreateFile(data, tpl, path, name)
+	return template.CreateFile(data, tpl, path, name)
 }

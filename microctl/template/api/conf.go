@@ -8,12 +8,12 @@
 package api
 
 import (
-    "github.com/imind-lab/micro/v2/microctl/template"
+	"github.com/imind-lab/micro/v2/microctl/template"
 )
 
 // 生成conf/conf.yaml
 func CreateConf(data *template.Data) error {
-    var tpl = `global:
+	var tpl = `global:
   rate:
     high:
       limit: 10
@@ -25,8 +25,8 @@ func CreateConf(data *template.Data) error {
     rate: 1
 
 service:
-  namespace: {{.Repo}}
-  name: {{.Service}}-api
+  namespace: daniel
+  name: {{.Name}}{{.Suffix}}
   version: latest
   logLevel: -1
   logFormat: json
@@ -40,14 +40,14 @@ tracing:
     port: 6831
 
 rpc:
-  {{.Service}}:
+  {{.Package}}:
     service: 127.0.0.1
     port: 50051
 
 `
 
-    path := "./" + data.Domain + "/" + data.Repo + "/" + data.Service + "-api/conf/"
-    name := "conf.yaml"
+	path := "./" + data.Name + "-api/conf/"
+	name := "conf.yaml"
 
-    return template.CreateFile(data, tpl, path, name)
+	return template.CreateFile(data, tpl, path, name)
 }

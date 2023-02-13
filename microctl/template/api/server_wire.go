@@ -8,32 +8,32 @@
 package api
 
 import (
-    "github.com/imind-lab/micro/v2/microctl/template"
+	"github.com/imind-lab/micro/v2/microctl/template"
 )
 
 // 生成server/server.go
 func CreateServerWire(data *template.Data) error {
-    var tpl = `//go:build wireinject
+	var tpl = `//go:build wireinject
 // +build wireinject
 
 package server
 
 import (
-	"github.com/google/wire"
+    "github.com/google/wire"
 
-	"github.com/imind-lab/micro/dao"
-	"gitlab.imind.tech/{{.Repo}}/{{.Service}}-api/application/{{.Service}}/service"
-	domain "gitlab.imind.tech/{{.Repo}}/{{.Service}}-api/domain/{{.Service}}"
-	"gitlab.imind.tech/{{.Repo}}/{{.Service}}-api/repository/{{.Service}}/persistence"
+    "github.com/imind-lab/micro/v2/dao"
+    "{{.Domain}}/{{.Repo}}{{.Suffix}}/application/{{.Name}}/service"
+    domain "{{.Domain}}/{{.Repo}}{{.Suffix}}/domain/{{.Name}}"
+    "{{.Domain}}/{{.Repo}}{{.Suffix}}/repository/{{.Name}}/persistence"
 )
 
-func Create{{.Svc}}Service() *service.{{.Svc}}Service {
-	panic(wire.Build(dao.NewCache, dao.NewDatabase, dao.NewDao, persistence.New{{.Svc}}Repository, domain.New{{.Svc}}Domain, service.New{{.Svc}}Service))
+func Create{{.Service}}Service() *service.{{.Service}}Service {
+    panic(wire.Build(dao.NewCache, dao.NewDatabase, dao.NewDao, persistence.New{{.Service}}Repository, domain.New{{.Service}}Domain, service.New{{.Service}}Service))
 }
 `
 
-    path := "./" + data.Domain + "/" + data.Repo + "/" + data.Service + "-api/server/"
-    name := "wire.go"
+	path := "./" + data.Name + "-api/server/"
+	name := "wire.go"
 
-    return template.CreateFile(data, tpl, path, name)
+	return template.CreateFile(data, tpl, path, name)
 }

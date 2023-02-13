@@ -8,92 +8,92 @@
 package api
 
 import (
-    "github.com/imind-lab/micro/v2/microctl/template"
+	"github.com/imind-lab/micro/v2/microctl/template"
 )
 
 // 生成client/service.go
 func CreateApplicationProto(data *template.Data) error {
-    var tpl = `syntax = "proto3";
+	var tpl = `syntax = "proto3";
 
-package {{.Service}}_api;
+package {{.Package}}_api;
 
-option go_package = "gitlab.imind.tech/{{.Repo}}/{{.Service}}-api/application/{{.Service}}/proto;{{.Service}}_api";
+option go_package = "{{.Domain}}/{{.Repo}}{{.Suffix}}/application/sample/proto;{{.Package}}_api";
 
 import "google/api/annotations.proto";
 
-service {{.Svc}}Service {
-    rpc Create{{.Svc}} (Create{{.Svc}}Request) returns (Create{{.Svc}}Response) {
+service {{.Service}}Service {
+    rpc Create{{.Service}} (Create{{.Service}}Request) returns (Create{{.Service}}Response) {
         option (google.api.http) = {
-           post: "/v1/{{.Service}}/create"
+           post: "/v1/sample/create"
            body: "*"
         };
     }
 
-    rpc Get{{.Svc}}ById (Get{{.Svc}}ByIdRequest) returns (Get{{.Svc}}ByIdResponse) {
+    rpc Get{{.Service}}ById (Get{{.Service}}ByIdRequest) returns (Get{{.Service}}ByIdResponse) {
         option (google.api.http) = {
-           get: "/v1/{{.Service}}/one/{id}"
+           get: "/v1/sample/one/{id}"
         };
     }
 
-    rpc Get{{.Svc}}List0 (Get{{.Svc}}List0Request) returns (Get{{.Svc}}ListResponse) {
+    rpc Get{{.Service}}List0 (Get{{.Service}}List0Request) returns (Get{{.Service}}ListResponse) {
         option (google.api.http) = {
-            get: "/v1/{{.Service}}/list/0/{type}"
+            get: "/v1/sample/list/0/{type}"
         };
     }
 
-    rpc Get{{.Svc}}List1 (Get{{.Svc}}List1Request) returns (Get{{.Svc}}ListResponse) {
+    rpc Get{{.Service}}List1 (Get{{.Service}}List1Request) returns (Get{{.Service}}ListResponse) {
         option (google.api.http) = {
-            get: "/v1/{{.Service}}/list/1/{type}"
+            get: "/v1/sample/list/1/{type}"
         };
     }
 
-    rpc Update{{.Svc}}Type (Update{{.Svc}}TypeRequest) returns (Update{{.Svc}}TypeResponse) {
+    rpc Update{{.Service}}Type (Update{{.Service}}TypeRequest) returns (Update{{.Service}}TypeResponse) {
         option (google.api.http) = {
-           post: "/v1/{{.Service}}/type"
+           post: "/v1/sample/type"
            body: "*"
         };
     }
 
-    rpc Delete{{.Svc}}ById (Delete{{.Svc}}ByIdRequest) returns (Delete{{.Svc}}ByIdResponse) {
+    rpc Delete{{.Service}}ById (Delete{{.Service}}ByIdRequest) returns (Delete{{.Service}}ByIdResponse) {
         option (google.api.http) = {
-           post: "/v1/{{.Service}}/del"
+           post: "/v1/sample/del"
            body: "*"
         };
     }
 
-    rpc Get{{.Svc}}ListByIds (Get{{.Svc}}ListByIdsRequest) returns (Get{{.Svc}}ListByIdsResponse) {
+    rpc Get{{.Service}}ListByIds (Get{{.Service}}ListByIdsRequest) returns (Get{{.Service}}ListByIdsResponse) {
         option (google.api.http) = {
-           post: "/v1/{{.Service}}/ids"
+           post: "/v1/sample/ids"
            body: "*"
         };
     }
 }
 
-message Create{{.Svc}}Request {
+message Create{{.Service}}Request {
     // @inject_tag: validate:"required,email"
     string name = 1;
     // @inject_tag: validate:"gte=0,lte=3"
     int32 type = 2;
 }
 
-// @inject_response Create{{.Svc}}Response
-message Create{{.Svc}}Response {
+// @inject_response Create{{.Service}}Response
+message Create{{.Service}}Response {
     int32 code = 1;
     string msg = 2;
 }
 
-message Get{{.Svc}}ByIdRequest {
+message Get{{.Service}}ByIdRequest {
     int32 id = 1;
 }
 
-// @inject_response Get{{.Svc}}ByIdResponse *{{.Svc}} data
-message Get{{.Svc}}ByIdResponse {
+// @inject_response Get{{.Service}}ByIdResponse *{{.Service}} data
+message Get{{.Service}}ByIdResponse {
     int32 code = 1;
     string msg = 2;
-    {{.Svc}} data = 3;
+    {{.Service}} data = 3;
 }
 
-message Get{{.Svc}}List0Request {
+message Get{{.Service}}List0Request {
     // @inject_tag: validate:"gte=0,lte=3"
     int32 type = 1;
     // @inject_tag: validate:"gte=5,lte=20"
@@ -102,7 +102,7 @@ message Get{{.Svc}}List0Request {
     bool is_desc = 4;
 }
 
-message Get{{.Svc}}List1Request {
+message Get{{.Service}}List1Request {
     // @inject_tag: validate:"gte=0,lte=3"
     int32 type = 1;
     // @inject_tag: validate:"gte=5,lte=20"
@@ -111,35 +111,35 @@ message Get{{.Svc}}List1Request {
     bool is_desc = 4;
 }
 
-// @inject_response Get{{.Svc}}ListResponse *{{.Svc}}List data
-message Get{{.Svc}}ListResponse {
+// @inject_response Get{{.Service}}ListResponse *{{.Service}}List data
+message Get{{.Service}}ListResponse {
     int32 code = 1;
     string msg = 2;
-    {{.Svc}}List data = 3;
+    {{.Service}}List data = 3;
 }
 
-message Update{{.Svc}}TypeRequest {
+message Update{{.Service}}TypeRequest {
     int32 id = 1;
     int32 type = 2;
 }
 
-// @inject_response Update{{.Svc}}TypeResponse
-message Update{{.Svc}}TypeResponse {
+// @inject_response Update{{.Service}}TypeResponse
+message Update{{.Service}}TypeResponse {
     int32 code = 1;
     string msg = 2;
 }
 
-message Delete{{.Svc}}ByIdRequest {
+message Delete{{.Service}}ByIdRequest {
     int32 id = 1;
 }
 
-// @inject_response Delete{{.Svc}}ByIdResponse
-message Delete{{.Svc}}ByIdResponse {
+// @inject_response Delete{{.Service}}ByIdResponse
+message Delete{{.Service}}ByIdResponse {
     int32 code = 1;
     string msg = 2;
 }
 
-message {{.Svc}} {
+message {{.Service}} {
     int32 id = 1;
     // @inject_tag: validate:"required,email"
     string name = 2;
@@ -151,27 +151,27 @@ message {{.Svc}} {
     string update_datetime = 7;
 }
 
-message {{.Svc}}List {
+message {{.Service}}List {
     int32 total = 1;
     int32 total_page = 2;
     int32 cur_page = 3;
-    repeated {{.Svc}} datalist = 4;
+    repeated {{.Service}} datalist = 4;
 }
 
-message Get{{.Svc}}ListByIdsRequest {
+message Get{{.Service}}ListByIdsRequest {
     repeated int32 ids = 1;
 }
 
-// @inject_response Get{{.Svc}}ListByIdsResponse []*{{.Svc}} data
-message Get{{.Svc}}ListByIdsResponse {
+// @inject_response Get{{.Service}}ListByIdsResponse []*{{.Service}} data
+message Get{{.Service}}ListByIdsResponse {
     int32 code = 1;
     string msg = 2;
-    repeated {{.Svc}} data = 3;
+    repeated {{.Service}} data = 3;
 }
 `
 
-    path := "./" + data.Domain + "/" + data.Repo + "/" + data.Service + "-api/application/" + data.Service + "/proto/"
-    name := data.Service + "-api.proto"
+	path := "./" + data.Name + "-api/application/" + data.Name + "/proto/"
+	name := data.Package + "_api.proto"
 
-    return template.CreateFile(data, tpl, path, name)
+	return template.CreateFile(data, tpl, path, name)
 }

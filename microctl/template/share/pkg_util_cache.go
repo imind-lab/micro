@@ -8,12 +8,16 @@
 package share
 
 import (
-	"github.com/imind-lab/micro/v2/microctl/template"
+    "github.com/imind-lab/micro/v2/microctl/template"
+)
+
+const (
+    _PkgUtilPath = "/pkg/util/"
 )
 
 // 生成pkg/util/cache.go
 func CreatePkgUtilCache(data *template.Data) error {
-	var tpl = `package util
+    var tpl = `package util
 
 import (
     "github.com/imind-lab/micro/v2/util"
@@ -21,13 +25,17 @@ import (
     "{{.Domain}}/{{.Repo}}/pkg/constant"
 )
 
+const (
+    _PkgUtilPath = "/pkg/util/"
+)
+
 func CacheKey(keys ...string) string {
     return constant.CachePrefix + util.AppendString(keys...)
 }
 `
 
-	path := "./" + data.Name + "/pkg/util/"
-	name := "cache.go"
+    path := "./" + data.Name + data.Suffix + _PkgUtilPath
+    name := "cache.go"
 
-	return template.CreateFile(data, tpl, path, name)
+    return template.CreateFile(data, tpl, path, name)
 }

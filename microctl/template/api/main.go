@@ -8,12 +8,12 @@
 package api
 
 import (
-    "github.com/imind-lab/micro/v2/microctl/template"
+	"github.com/imind-lab/micro/v2/microctl/template"
 )
 
 // 生成main.go
 func CreateMain(data *template.Data) error {
-    var tpl = `/**
+	var tpl = `/**
  *  ImindLab
  *
  *  Create by songli on {{.Year}}/03/03
@@ -23,16 +23,16 @@ func CreateMain(data *template.Data) error {
 package main
 
 import (
-	"gitlab.imind.tech/{{.Repo}}/{{.Service}}-api/cmd"
+    "{{.Domain}}/{{.Repo}}{{.Suffix}}/cmd"
 )
 
 func main() {
-	cmd.Execute()
+    cmd.Execute()
 }
 `
 
-    path := "./" + data.Domain + "/" + data.Repo + "/" + data.Service + "-api/"
-    name := "main.go"
+	path := "./" + data.Name + "-api/"
+	name := "main.go"
 
-    return template.CreateFile(data, tpl, path, name)
+	return template.CreateFile(data, tpl, path, name)
 }
