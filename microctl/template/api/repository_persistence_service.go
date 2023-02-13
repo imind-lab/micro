@@ -35,8 +35,8 @@ import (
 	"github.com/imind-lab/micro/status"
 	"github.com/imind-lab/micro/tracing"
 
-	{{.Service}} "gitlab.imind.tech/{{.Project}}/{{.Service}}/application/{{.Service}}/proto"
-	{{.Service}}Client "gitlab.imind.tech/{{.Project}}/{{.Service}}/client"
+	{{.Service}} "gitlab.imind.tech/{{.Repo}}/{{.Service}}/application/{{.Service}}/proto"
+	{{.Service}}Client "gitlab.imind.tech/{{.Repo}}/{{.Service}}/client"
 )
 
 const _NewClientError = "{{.Service}}Client.New error"
@@ -282,7 +282,7 @@ func (repo {{.Svc}}Repository) Get{{.Svc}}ListByIds(ctx context.Context, ids []i
 }
 `
 
-    path := "./" + data.Domain + "/" + data.Project + "/" + data.Service + "-api/repository/" + data.Service + "/persistence/"
+    path := "./" + data.Domain + "/" + data.Repo + "/" + data.Service + "-api/repository/" + data.Service + "/persistence/"
     name := data.Service + ".go"
 
     return template.CreateFile(data, tpl, path, name)

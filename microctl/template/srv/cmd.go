@@ -8,12 +8,12 @@
 package srv
 
 import (
-    "github.com/imind-lab/micro/v2/microctl/template"
+	"github.com/imind-lab/micro/v2/microctl/template"
 )
 
 // 生成client/service.go
 func CreateCmd(data *template.Data) error {
-    var tpl = `package cmd
+	var tpl = `package cmd
 
 import (
 	"fmt"
@@ -24,7 +24,7 @@ import (
 
 var rootCmd = &cobra.Command{
 	Use:   "grpc",
-	Short: "Run the gRPC {{.Svc}} Server",
+	Short: "Run the gRPC {{.Service}} Server",
 }
 
 func Execute() {
@@ -35,8 +35,8 @@ func Execute() {
 }
 `
 
-    path := "./" + data.Domain + "/" + data.Project + "/" + data.Service + "/cmd/"
-    name := "cmd.go"
+	path := "./" + data.Name + "/cmd/"
+	name := "cmd.go"
 
-    return template.CreateFile(data, tpl, path, name)
+	return template.CreateFile(data, tpl, path, name)
 }

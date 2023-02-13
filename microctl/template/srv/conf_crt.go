@@ -8,12 +8,12 @@
 package srv
 
 import (
-    "github.com/imind-lab/micro/v2/microctl/template"
+	"github.com/imind-lab/micro/v2/microctl/template"
 )
 
 // 生成conf/conf.yaml
 func CreateConfCrt(data *template.Data) error {
-    var tpl = `-----BEGIN CERTIFICATE-----
+	var tpl = `-----BEGIN CERTIFICATE-----
 MIIDqjCCApKgAwIBAgIJAJEfwWYkH/bjMA0GCSqGSIb3DQEBCwUAMIGFMQswCQYD
 VQQGEwJDTjELMAkGA1UECBMCQkoxDDAKBgNVBAcTA1NKUzETMBEGA1UEChMKaW1p
 bmQudGVjaDENMAsGA1UECxMEdGVjaDEVMBMGA1UEAxQMKi5pbWluZC50ZWNoMSAw
@@ -37,8 +37,8 @@ SbjNQfx9MfJPBSWL8ZxVpOGP/swfwCUewheKaGXm
 -----END CERTIFICATE-----
 `
 
-    path := "./" + data.Domain + "/" + data.Project + "/" + data.Service + "/conf/ssl/"
-    name := "tls.crt"
+	path := "./" + data.Name + "/conf/ssl/"
+	name := "tls.crt"
 
-    return template.CreateFile(data, tpl, path, name)
+	return template.CreateFile(data, tpl, path, name)
 }

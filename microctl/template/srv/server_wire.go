@@ -8,33 +8,33 @@
 package srv
 
 import (
-    "github.com/imind-lab/micro/v2/microctl/template"
+	"github.com/imind-lab/micro/v2/microctl/template"
 )
 
 // 生成server/server.go
 func CreateServerWire(data *template.Data) error {
-    var tpl = `//go:build wireinject
+	var tpl = `//go:build wireinject
 // +build wireinject
 
 package server
 
 import (
-	"github.com/google/wire"
+    "github.com/google/wire"
 
-	"{{.Domain}}/{{.Project}}/{{.Service}}/application/{{.Service}}/service"
-	domain "{{.Domain}}/{{.Project}}/{{.Service}}/domain/{{.Service}}"
-	"{{.Domain}}/{{.Project}}/{{.Service}}/repository/{{.Service}}/persistence"{{if .MQ}}
-	"github.com/imind-lab/micro/broker"                            {{end}}
-	"github.com/imind-lab/micro/dao"
+   {{if .MQ}}"github.com/imind-lab/micro/v2/broker"{{end}}
+    "github.com/imind-lab/micro/v2/dao"
+    "{{.Domain}}/{{.Repo}}/application/{{.Name}}/service"
+    domain "{{.Domain}}/{{.Repo}}/domain/{{.Name}}"
+    "{{.Domain}}/{{.Repo}}/repository/{{.Name}}/persistence"
 )
 
-func Create{{.Svc}}Service({{if .MQ}}bk broker.Broker{{end}}) *service.{{.Svc}}Service {
-	panic(wire.Build(dao.NewCache, dao.NewDatabase, dao.NewDao, persistence.New{{.Svc}}Repository, domain.New{{.Svc}}Domain, service.New{{.Svc}}Service))
+func Create{{.Service}}Service({{if .MQ}}bk broker.Broker{{end}}) *service.{{.Service}}Service {
+    panic(wire.Build(dao.NewCache, dao.NewDatabase, dao.NewDao, persistence.New{{.Service}}Repository, domain.New{{.Service}}Domain, service.New{{.Service}}Service))
 }
 `
 
-    path := "./" + data.Domain + "/" + data.Project + "/" + data.Service + "/server/"
-    name := "wire.go"
+	path := "./" + data.Name + "/server/"
+	name := "wire.go"
 
-    return template.CreateFile(data, tpl, path, name)
+	return template.CreateFile(data, tpl, path, name)
 }

@@ -106,7 +106,7 @@ all:
 .PHONY: proto depend wire build test docker deploy run clean release all
 `
 
-    path := "./" + data.Domain + "/" + data.Project + "/" + data.Service + "-api/"
+    path := "./" + data.Domain + "/" + data.Repo + "/" + data.Service + "-api/"
     name := "Makefile"
 
     return template.CreateFile(data, tpl, path, name)

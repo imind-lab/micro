@@ -22,9 +22,9 @@ import (
 	"github.com/google/wire"
 
 	"github.com/imind-lab/micro/dao"
-	"gitlab.imind.tech/{{.Project}}/{{.Service}}-api/application/{{.Service}}/service"
-	domain "gitlab.imind.tech/{{.Project}}/{{.Service}}-api/domain/{{.Service}}"
-	"gitlab.imind.tech/{{.Project}}/{{.Service}}-api/repository/{{.Service}}/persistence"
+	"gitlab.imind.tech/{{.Repo}}/{{.Service}}-api/application/{{.Service}}/service"
+	domain "gitlab.imind.tech/{{.Repo}}/{{.Service}}-api/domain/{{.Service}}"
+	"gitlab.imind.tech/{{.Repo}}/{{.Service}}-api/repository/{{.Service}}/persistence"
 )
 
 func Create{{.Svc}}Service() *service.{{.Svc}}Service {
@@ -32,7 +32,7 @@ func Create{{.Svc}}Service() *service.{{.Svc}}Service {
 }
 `
 
-    path := "./" + data.Domain + "/" + data.Project + "/" + data.Service + "-api/server/"
+    path := "./" + data.Domain + "/" + data.Repo + "/" + data.Service + "-api/server/"
     name := "wire.go"
 
     return template.CreateFile(data, tpl, path, name)

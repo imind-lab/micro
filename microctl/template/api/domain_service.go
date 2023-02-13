@@ -30,7 +30,7 @@ import (
 	"github.com/imind-lab/micro/tracing"
 	"github.com/imind-lab/micro/util"
 
-	{{.Service}}_api "gitlab.imind.tech/{{.Project}}/{{.Service}}-api/application/{{.Service}}/proto"
+	{{.Service}}_api "gitlab.imind.tech/{{.Repo}}/{{.Service}}-api/application/{{.Service}}/proto"
 )
 
 func (dm {{.Service}}Domain) Create{{.Svc}}(ctx context.Context, name string, typ int32) error {
@@ -130,7 +130,7 @@ func (dm {{.Service}}Domain) Get{{.Svc}}ListByIds(ctx context.Context, ids []int
 }
 `
 
-    path := "./" + data.Domain + "/" + data.Project + "/" + data.Service + "-api/domain/" + data.Service + "/"
+    path := "./" + data.Domain + "/" + data.Repo + "/" + data.Service + "-api/domain/" + data.Service + "/"
     name := data.Service + ".go"
 
     return template.CreateFile(data, tpl, path, name)

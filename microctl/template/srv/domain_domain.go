@@ -8,58 +8,58 @@
 package srv
 
 import (
-    "github.com/imind-lab/micro/v2/microctl/template"
+	"github.com/imind-lab/micro/v2/microctl/template"
 )
 
 // 生成domain/domain.go
 func CreateDomainDomain(data *template.Data) error {
-    var tpl = `/**
- *  {{.Svc}}
+	var tpl = `/**
+ *  {{.Service}}
  *
  *  Create by songli on {{.Date}}
  *  Copyright © {{.Year}} imind.tech All rights reserved.
  */
 
-package {{.Service}}
+package {{.Package}}
 
 import (
-	"context"
-	"github.com/imind-lab/micro/dao"
+    "context"
+    "github.com/imind-lab/micro/v2/dao"
 
-	{{.Service}} "{{.Domain}}/{{.Project}}/{{.Service}}/application/{{.Service}}/proto"
-	repository "{{.Domain}}/{{.Project}}/{{.Service}}/repository/{{.Service}}"
-	"{{.Domain}}/{{.Project}}/{{.Service}}/repository/{{.Service}}/model"
+    {{.Package}} "{{.Domain}}/{{.Repo}}/application/{{.Name}}/proto"
+    repository "{{.Domain}}/{{.Repo}}/repository/{{.Name}}"
+    "{{.Domain}}/{{.Repo}}/repository/{{.Name}}/model"
 )
 
-type {{.Svc}}Domain interface {
-	Create{{.Svc}}(ctx context.Context, m model.{{.Svc}}) error
+type {{.Service}}Domain interface {
+    Create{{.Service}}(ctx context.Context, m model.{{.Service}}) error
 
-	Get{{.Svc}}ById(ctx context.Context, id int) (*{{.Service}}.{{.Svc}}, error)
-	Get{{.Svc}}List0(ctx context.Context, typ, pageSize, pageNum int, isDesc bool) (*{{.Service}}.{{.Svc}}List, error)
-	Get{{.Svc}}List1(ctx context.Context, typ, pageSize, lastId int, isDesc bool) (*{{.Service}}.{{.Svc}}List, error)
+    Get{{.Service}}ById(ctx context.Context, id int) (*{{.Package}}.{{.Service}}, error)
+    Get{{.Service}}List0(ctx context.Context, typ, pageSize, pageNum int, isDesc bool) (*{{.Package}}.{{.Service}}List, error)
+    Get{{.Service}}List1(ctx context.Context, typ, pageSize, lastId int, isDesc bool) (*{{.Package}}.{{.Service}}List, error)
 
-	Update{{.Svc}}Type(ctx context.Context, id, typ int) (int8, error)
-	Delete{{.Svc}}ById(ctx context.Context, id int) (int8, error)
+    Update{{.Service}}Type(ctx context.Context, id, typ int) (int8, error)
+    Delete{{.Service}}ById(ctx context.Context, id int) (int8, error)
 
-	// This commentary is for scaffolding. Do not modify or delete it
+    //+IMindScaffold! Do not modify or delete it
 }
 
-type {{.Service}}Domain struct {
-	dao.Cache
-	repo repository.{{.Svc}}Repository
+type sampleDomain struct {
+    dao.Cache
+    repo repository.{{.Service}}Repository
 }
 
-func New{{.Svc}}Domain(repo repository.{{.Svc}}Repository) {{.Svc}}Domain {
-	dm := {{.Service}}Domain{
-		Cache: dao.NewCache(),
-		repo:  repo,
-	}
-	return dm
+func New{{.Service}}Domain(repo repository.{{.Service}}Repository) {{.Service}}Domain {
+    dm := sampleDomain{
+        Cache: dao.NewCache(),
+        repo:  repo,
+    }
+    return dm
 }
 `
 
-    path := "./" + data.Domain + "/" + data.Project + "/" + data.Service + "/domain/" + data.Service + "/"
-    name := "domain.go"
+	path := "./" + data.Name + "/domain/" + data.Name + "/"
+	name := "domain.go"
 
-    return template.CreateFile(data, tpl, path, name)
+	return template.CreateFile(data, tpl, path, name)
 }

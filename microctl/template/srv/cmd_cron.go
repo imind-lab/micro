@@ -25,7 +25,7 @@ import (
 
 	"github.com/spf13/cobra"
 
-	"{{.Domain}}/{{.Project}}/{{.Service}}/cmd/cron"
+	"{{.Domain}}/{{.Repo}}/cmd/cron"
 )
 
 // 计划任务方法需要幂等
@@ -61,7 +61,7 @@ func init() {
     }
 
     t.Option()
-    dir := "./" + data.Domain + "/" + data.Project + "/" + data.Service + "/cmd/"
+    dir := "./" + data.Name + "/cmd/"
 
     err = os.MkdirAll(dir, os.ModePerm)
     if err != nil {
@@ -95,7 +95,7 @@ func New() Cron {
     }
 
     t.Option()
-    dir = "./" + data.Domain + "/" + data.Project + "/" + data.Service + "/cmd/cron/"
+    dir = "./" + data.Name + "/cmd/cron/"
 
     err = os.MkdirAll(dir, os.ModePerm)
     if err != nil {
@@ -133,7 +133,7 @@ func (c Cron) EchoTime() {
 
     t.Option()
 
-    fileName = dir + "sample.go"
+    fileName = dir + data.Package + ".go"
 
     f, err = os.Create(fileName)
     if err != nil {

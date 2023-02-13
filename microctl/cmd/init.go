@@ -14,12 +14,11 @@ import (
 )
 
 var (
-    domain  string
-    project string
-    service string
-    layer   string
-    kafka   bool
-    tracing bool
+    domain       string
+    repo         string
+    kind         string
+    messageQueue bool
+    tracing      bool
 )
 
 var serverCmd = &cobra.Command{
@@ -29,19 +28,21 @@ var serverCmd = &cobra.Command{
         date := time.Now().Format("2006/01/02")
         year := time.Now().Format("2006")
 
+        name := repo[strings.LastIndex(repo, "/")+1:]
+
         data := &tpl.Data{
             Domain:  domain,
-            Project: project,
-            Service: service,
-            Svc:     util.GetPascalCase(service),
+            Repo:    repo,
+            Name:    name,
+            Package: strings.ReplaceAll(name, "-", "_"),
+            Service: util.GetPascalCase(name),
+            Svc:     util.GetCamelCase(name),
             Date:    date,
             Year:    year,
-            Package: strings.ReplaceAll(service, "-", "_"),
-            Name:    util.GetCamelCase(service),
-            MQ:      kafka,
+            MQ:      messageQueue,
         }
 
-        if layer == "api" {
+        if kind == "api" {
             data.Suffix = "-api"
             data.Package = data.Package + "_api"
 
@@ -227,7 +228,7 @@ var serverCmd = &cobra.Command{
                 fmt.Println("生成ApplicationService出错", err)
             }
 
-            if kafka {
+            if messageQueue {
                 err = srv.CreateApplicationSubscriber(data)
                 if err == nil {
                     fmt.Println("生成ApplicationSubscriber成功")
@@ -415,11 +416,10 @@ var serverCmd = &cobra.Command{
 }
 
 func init() {
-    rootCmd.PersistentFlags().StringVarP(&domain, "domain", "d", "git.chope.it", "company domain")
-    rootCmd.PersistentFlags().StringVarP(&project, "project", "p", "backend", "project name")
-    rootCmd.PersistentFlags().StringVarP(&service, "service", "s", "greeter", "service name")
-    rootCmd.PersistentFlags().StringVarP(&layer, "layer", "l", "srv", "service type: src for backend service, api for api gateway")
-    rootCmd.PersistentFlags().BoolVarP(&kafka, "kafka", "", true, "whether to generate kafka-related code")
-    rootCmd.PersistentFlags().BoolVarP(&tracing, "tracing", "", true, "whether to generate tracing-related code")
+    rootCmd.PersistentFlags().StringVarP(&domain, "domain", "", "imind.tech", "project domain")
+    rootCmd.PersistentFlags().StringVarP(&repo, "repo", "", "daniel/greeter", "project repository name")
+    rootCmd.PersistentFlags().StringVarP(&kind, "kind", "", "srv", "project kind: srv for backend service, api for api gateway")
+    rootCmd.PersistentFlags().BoolVarP(&messageQueue, "message-queue", "", true, "whether to generate message queue related code")
+    rootCmd.PersistentFlags().BoolVarP(&tracing, "tracing", "", true, "whether to generate tracing related code")
     rootCmd.AddCommand(serverCmd)
 }

@@ -24,8 +24,8 @@ package {{.Service}}
 
 import (
 	"context"
-	{{.Service}}_api "gitlab.imind.tech/{{.Project}}/{{.Service}}-api/application/{{.Service}}/proto"
-	repository "gitlab.imind.tech/{{.Project}}/{{.Service}}-api/repository/{{.Service}}"
+	{{.Service}}_api "gitlab.imind.tech/{{.Repo}}/{{.Service}}-api/application/{{.Service}}/proto"
+	repository "gitlab.imind.tech/{{.Repo}}/{{.Service}}-api/repository/{{.Service}}"
 )
 
 type {{.Svc}}Domain interface {
@@ -52,7 +52,7 @@ func New{{.Svc}}Domain(repo repository.{{.Svc}}Repository) {{.Svc}}Domain {
 }
 `
 
-    path := "./" + data.Domain + "/" + data.Project + "/" + data.Service + "-api/domain/" + data.Service + "/"
+    path := "./" + data.Domain + "/" + data.Repo + "/" + data.Service + "-api/domain/" + data.Service + "/"
     name := "domain.go"
 
     return template.CreateFile(data, tpl, path, name)

@@ -25,7 +25,7 @@ func CreateConf(data *template.Data) error {
     rate: 1
 
 service:
-  namespace: {{.Project}}
+  namespace: {{.Repo}}
   name: {{.Service}}-api
   version: latest
   logLevel: -1
@@ -46,7 +46,7 @@ rpc:
 
 `
 
-    path := "./" + data.Domain + "/" + data.Project + "/" + data.Service + "-api/conf/"
+    path := "./" + data.Domain + "/" + data.Repo + "/" + data.Service + "-api/conf/"
     name := "conf.yaml"
 
     return template.CreateFile(data, tpl, path, name)

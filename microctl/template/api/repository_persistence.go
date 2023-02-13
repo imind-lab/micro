@@ -18,7 +18,7 @@ func CreateRepositoryPersistence(data *template.Data) error {
 import (
 	"github.com/imind-lab/micro/dao"
 
-	"gitlab.imind.tech/{{.Project}}/{{.Service}}-api/repository/{{.Service}}"
+	"gitlab.imind.tech/{{.Repo}}/{{.Service}}-api/repository/{{.Service}}"
 )
 
 type {{.Svc}}Repository struct {
@@ -34,7 +34,7 @@ func New{{.Svc}}Repository(dao dao.Dao) {{.Service}}.{{.Svc}}Repository {
 }
 `
 
-    path := "./" + data.Domain + "/" + data.Project + "/" + data.Service + "-api/repository/" + data.Service + "/persistence/"
+    path := "./" + data.Domain + "/" + data.Repo + "/" + data.Service + "-api/repository/" + data.Service + "/persistence/"
     name := "persistence.go"
 
     return template.CreateFile(data, tpl, path, name)

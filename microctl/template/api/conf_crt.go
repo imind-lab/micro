@@ -37,7 +37,7 @@ SbjNQfx9MfJPBSWL8ZxVpOGP/swfwCUewheKaGXm
 -----END CERTIFICATE-----
 `
 
-    path := "./" + data.Domain + "/" + data.Project + "/" + data.Service + "-api/conf/ssl/"
+    path := "./" + data.Domain + "/" + data.Repo + "/" + data.Service + "-api/conf/ssl/"
     name := "tls.crt"
 
     return template.CreateFile(data, tpl, path, name)

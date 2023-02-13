@@ -26,7 +26,7 @@ COPY {{.Service}}-api grpc-health-probe /bin/
 ENTRYPOINT [ "/bin/{{.Service}}-api", "server" ]
 `
 
-    path := "./" + data.Domain + "/" + data.Project + "/" + data.Service + "-api/"
+    path := "./" + data.Domain + "/" + data.Repo + "/" + data.Service + "-api/"
     name := "Dockerfile"
 
     return template.CreateFile(data, tpl, path, name)

@@ -17,7 +17,7 @@ func CreateApplicationProto(data *template.Data) error {
 
 package {{.Service}}_api;
 
-option go_package = "gitlab.imind.tech/{{.Project}}/{{.Service}}-api/application/{{.Service}}/proto;{{.Service}}_api";
+option go_package = "gitlab.imind.tech/{{.Repo}}/{{.Service}}-api/application/{{.Service}}/proto;{{.Service}}_api";
 
 import "google/api/annotations.proto";
 
@@ -170,7 +170,7 @@ message Get{{.Svc}}ListByIdsResponse {
 }
 `
 
-    path := "./" + data.Domain + "/" + data.Project + "/" + data.Service + "-api/application/" + data.Service + "/proto/"
+    path := "./" + data.Domain + "/" + data.Repo + "/" + data.Service + "-api/application/" + data.Service + "/proto/"
     name := data.Service + "-api.proto"
 
     return template.CreateFile(data, tpl, path, name)

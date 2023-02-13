@@ -58,7 +58,7 @@ extend google.protobuf.MethodOptions {
         return err
     }
 
-    dir := "./" + data.Domain + "/" + data.Project + "/" + data.Service + "-api/pkg/proto/google/api/"
+    dir := "./" + data.Domain + "/" + data.Repo + "/" + data.Service + "-api/pkg/proto/google/api/"
 
     err = os.MkdirAll(dir, os.ModePerm)
     if err != nil {
@@ -501,7 +501,7 @@ message HttpBody {
         return err
     }
 
-    dir = "./" + data.Domain + "/" + data.Project + "/" + data.Service + "-api/pkg/proto/google/api/"
+    dir = "./" + data.Domain + "/" + data.Repo + "/" + data.Service + "-api/pkg/proto/google/api/"
 
     err = os.MkdirAll(dir, os.ModePerm)
     if err != nil {
@@ -715,7 +715,7 @@ enum Code {
         return err
     }
 
-    dir = "./" + data.Domain + "/" + data.Project + "/" + data.Service + "-api/pkg/proto/google/rpc/"
+    dir = "./" + data.Domain + "/" + data.Repo + "/" + data.Service + "-api/pkg/proto/google/rpc/"
 
     err = os.MkdirAll(dir, os.ModePerm)
     if err != nil {

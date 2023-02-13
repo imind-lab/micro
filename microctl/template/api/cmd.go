@@ -35,7 +35,7 @@ func Execute() {
 }
 `
 
-    path := "./" + data.Domain + "/" + data.Project + "/" + data.Service + "-api/cmd/"
+    path := "./" + data.Domain + "/" + data.Repo + "/" + data.Service + "-api/cmd/"
     name := "cmd.go"
 
     return template.CreateFile(data, tpl, path, name)

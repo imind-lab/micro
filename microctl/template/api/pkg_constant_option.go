@@ -45,7 +45,7 @@ const GreetQueueLen = 32
     }
 
     t.Option()
-    dir := "./" + data.Domain + "/" + data.Project + "/" + data.Service + "-api/pkg/constant/"
+    dir := "./" + data.Domain + "/" + data.Repo + "/" + data.Service + "-api/pkg/constant/"
 
     err = os.MkdirAll(dir, os.ModePerm)
     if err != nil {

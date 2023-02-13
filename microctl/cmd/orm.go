@@ -2,12 +2,11 @@ package cmd
 
 import (
     "fmt"
+    "github.com/spf13/viper"
     "strings"
 
-    "github.com/spf13/cobra"
-    "github.com/spf13/viper"
-
     "github.com/imind-lab/micro/v2/microctl/orm"
+    "github.com/spf13/cobra"
 )
 
 var (
@@ -21,7 +20,7 @@ var ormCmd = &cobra.Command{
     Use:   "orm",
     Short: "create orm models",
     Run: func(cmd *cobra.Command, args []string) {
-        initConf()
+        //initConf()
 
         tables := strings.Split(table, ",")
         if len(tables) == 0 {
@@ -44,7 +43,7 @@ func init() {
     rootCmd.PersistentFlags().StringVarP(&db, "db", "b", "imind", "db name in conf file")
     rootCmd.PersistentFlags().StringVarP(&table, "table", "t", "", "tables name")
     rootCmd.AddCommand(ormCmd)
-    cobra.OnInitialize(initConf)
+    //cobra.OnInitialize(initConf)
 }
 
 func initConf() {

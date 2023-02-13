@@ -35,7 +35,7 @@ func CreateDeploy(data *template.Data) error {
 func CreateDeployChart(data *template.Data) error {
     // 生成Makefile
     var tpl = `apiVersion: v2
-name: {{.Service}}{{.Suffix}}
+name: {{.Name}}{{.Suffix}}
 description: A Helm chart for Kubernetes
 
 # A chart can be either an 'application' or a 'library' chart.
@@ -62,7 +62,7 @@ appVersion: "1.0.0"
 icon: https://static.imind.tech/frontend/images/wechat/bj.png
 `
 
-    path := "./" + data.Domain + "/" + data.Project + "/" + data.Service + data.Suffix + _HelmPath + data.Service + data.Suffix + "/"
+    path := "./" + data.Name + data.Suffix + _HelmPath + data.Name + data.Suffix + "/"
     name := "Chart.yaml"
 
     return template.CreateFile(data, tpl, path, name)
@@ -215,7 +215,7 @@ config:
       rate: 1
 
   service:
-    namespace: {{.Project}}
+    namespace: {{.Repo}}
     name: {{.Service}}
     version: latest
     logLevel: -1
@@ -271,7 +271,7 @@ templates: {}
 #   environment.tmpl: |-
 `
 
-    path := "./" + data.Domain + "/" + data.Project + "/" + data.Service + data.Suffix + _HelmPath + data.Service + data.Suffix + "/"
+    path := "./" + data.Name + data.Suffix + _HelmPath + data.Name + data.Suffix + "/"
     name := "values.yaml"
 
     return template.CreateFile(data, tpl, path, name)
@@ -340,7 +340,7 @@ Create the name of the service account to use
 {{- end }}
 `
 
-    path := "./" + data.Domain + "/" + data.Project + "/" + data.Service + data.Suffix + _HelmPath + data.Service + data.Suffix + _TemplatePath
+    path := "./" + data.Name + data.Suffix + _HelmPath + data.Name + data.Suffix + _TemplatePath
     name := "_helpers.tpl"
     return template.WriteFile(tpl, path, name)
 }
@@ -426,7 +426,7 @@ spec:
         {{- toYaml . | nindent 8 }}
       {{- end }}
 `
-    path := "./" + data.Domain + "/" + data.Project + "/" + data.Service + data.Suffix + _HelmPath + data.Service + data.Suffix + _TemplatePath
+    path := "./" + data.Name + data.Suffix + _HelmPath + data.Name + data.Suffix + _TemplatePath
     name := "deployment.yaml"
 
     return template.WriteFile(tpl, path, name)
@@ -468,7 +468,7 @@ spec:
 {{- end }}
 `
 
-    path := "./" + data.Domain + "/" + data.Project + "/" + data.Service + data.Suffix + _HelmPath + data.Service + data.Suffix + _TemplatePath
+    path := "./" + data.Name + data.Suffix + _HelmPath + data.Name + data.Suffix + _TemplatePath
     name := "hpa.yaml"
 
     return template.WriteFile(tpl, path, name)
@@ -493,7 +493,7 @@ data:
 {{- end }}
 `
 
-    path := "./" + data.Domain + "/" + data.Project + "/" + data.Service + data.Suffix + _HelmPath + data.Service + data.Suffix + _TemplatePath
+    path := "./" + data.Name + data.Suffix + _HelmPath + data.Name + data.Suffix + _TemplatePath
     name := "configmap.yaml"
 
     return template.WriteFile(tpl, path, name)
@@ -515,7 +515,7 @@ spec:
     {{- include "imind.selectorLabels" . | nindent 4 }}
 `
 
-    path := "./" + data.Domain + "/" + data.Project + "/" + data.Service + data.Suffix + _HelmPath + data.Service + data.Suffix + _TemplatePath
+    path := "./" + data.Name + data.Suffix + _HelmPath + data.Name + data.Suffix + _TemplatePath
     name := "service.yaml"
 
     return template.WriteFile(tpl, path, name)
@@ -536,7 +536,7 @@ metadata:
   {{- end }}
 {{- end }}
 `
-    path := "./" + data.Domain + "/" + data.Project + "/" + data.Service + data.Suffix + _HelmPath + data.Service + data.Suffix + _TemplatePath
+    path := "./" + data.Name + data.Suffix + _HelmPath + data.Name + data.Suffix + _TemplatePath
     name := "serviceaccount.yaml"
 
     return template.WriteFile(tpl, path, name)
@@ -586,7 +586,7 @@ spec:
 `
     tpl = strings.Replace(tpl, "^", "`", -1)
 
-    path := "./" + data.Domain + "/" + data.Project + "/" + data.Service + data.Suffix + _HelmPath + data.Service + data.Suffix + _TemplatePath
+    path := "./" + data.Name + data.Suffix + _HelmPath + data.Name + data.Suffix + _TemplatePath
     name := "traefik.yaml"
 
     return template.WriteFile(tpl, path, name)

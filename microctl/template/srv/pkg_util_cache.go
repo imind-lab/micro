@@ -19,9 +19,9 @@ func CreatePkgUtilCache(data *tpl.Data) error {
     var tpl = `package util
 
 import (
-	"github.com/imind-lab/micro/util"
+	"github.com/imind-lab/micro/v2/util"
 
-	"{{.Domain}}/{{.Project}}/{{.Service}}/pkg/constant"
+	"{{.Domain}}/{{.Repo}}/pkg/constant"
 )
 
 func CacheKey(keys ...string) string {
@@ -35,7 +35,7 @@ func CacheKey(keys ...string) string {
     }
 
     t.Option()
-    dir := "./" + data.Domain + "/" + data.Project + "/" + data.Service + "/pkg/util/"
+    dir := "./" + data.Name + "/pkg/util/"
 
     err = os.MkdirAll(dir, os.ModePerm)
     if err != nil {

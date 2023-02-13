@@ -8,86 +8,86 @@
 package srv
 
 import (
-    "github.com/imind-lab/micro/v2/microctl/template"
+	"github.com/imind-lab/micro/v2/microctl/template"
 )
 
 // 生成client/service.go
 func CreateApplicationProto(data *template.Data) error {
-    var tpl = `syntax = "proto3";
+	var tpl = `syntax = "proto3";
 
-package {{.Service}};
+package {{.Package}};
 
-option go_package = "{{.Domain}}/{{.Project}}/{{.Service}}/application/{{.Service}}/proto;{{.Service}}";
+option go_package = "{{.Domain}}/{{.Repo}}/application/{{.Name}}/proto;{{.Package}}";
 
 import "google/api/annotations.proto";
 
-service {{.Svc}}Service {
-    rpc Create{{.Svc}} (Create{{.Svc}}Request) returns (Create{{.Svc}}Response) {
+service {{.Service}}Service {
+    rpc Create{{.Service}} (Create{{.Service}}Request) returns (Create{{.Service}}Response) {
         option (google.api.http) = {
-           post: "/v1/{{.Service}}/create"
+           post: "/v1/{{.Name}}/create"
            body: "*"
         };
     }
 
-    rpc Get{{.Svc}}ById (Get{{.Svc}}ByIdRequest) returns (Get{{.Svc}}ByIdResponse) {
+    rpc Get{{.Service}}ById (Get{{.Service}}ByIdRequest) returns (Get{{.Service}}ByIdResponse) {
         option (google.api.http) = {
-           get: "/v1/{{.Service}}/one/{id}"
+           get: "/v1/{{.Name}}/one/{id}"
         };
     }
 
-    rpc Get{{.Svc}}List0 (Get{{.Svc}}List0Request) returns (Get{{.Svc}}ListResponse) {
+    rpc Get{{.Service}}List0 (Get{{.Service}}List0Request) returns (Get{{.Service}}ListResponse) {
         option (google.api.http) = {
-           get: "/v1/{{.Service}}/list/0/{type}"
+           get: "/v1/{{.Name}}/list/0/{type}"
         };
     }
 
-    rpc Get{{.Svc}}List1 (Get{{.Svc}}List1Request) returns (Get{{.Svc}}ListResponse) {
+    rpc Get{{.Service}}List1 (Get{{.Service}}List1Request) returns (Get{{.Service}}ListResponse) {
         option (google.api.http) = {
-            get: "/v1/{{.Service}}/list/1/{type}"
+            get: "/v1/{{.Name}}/list/1/{type}"
         };
     }
 
-    rpc Update{{.Svc}}Type (Update{{.Svc}}TypeRequest) returns (Update{{.Svc}}TypeResponse) {
+    rpc Update{{.Service}}Type (Update{{.Service}}TypeRequest) returns (Update{{.Service}}TypeResponse) {
         option (google.api.http) = {
-           post: "/v1/{{.Service}}/type"
+           post: "/v1/{{.Name}}/type"
            body: "*"
         };
     }
 
-    rpc Delete{{.Svc}}ById (Delete{{.Svc}}ByIdRequest) returns (Delete{{.Svc}}ByIdResponse) {
+    rpc Delete{{.Service}}ById (Delete{{.Service}}ByIdRequest) returns (Delete{{.Service}}ByIdResponse) {
         option (google.api.http) = {
-           post: "/v1/{{.Service}}/del"
+           post: "/v1/{{.Name}}/del"
            body: "*"
         };
     }
 
-    rpc Get{{.Svc}}ListByStream (stream Get{{.Svc}}ListByStreamRequest) returns (stream Get{{.Svc}}ListByStreamResponse);
+    rpc Get{{.Service}}ListByStream (stream Get{{.Service}}ListByStreamRequest) returns (stream Get{{.Service}}ListByStreamResponse);
 }
-message Create{{.Svc}}Request {
+message Create{{.Service}}Request {
     // @inject_tag: validate:"required,email"
     string name = 1;
     // @inject_tag: validate:"gte=0,lte=3"
     int32 type = 2;
 }
 
-// @inject_response Create{{.Svc}}Response
-message Create{{.Svc}}Response {
+// @inject_response Create{{.Service}}Response
+message Create{{.Service}}Response {
     int32 code = 1;
     string msg = 2;
 }
 
-message Get{{.Svc}}ByIdRequest {
+message Get{{.Service}}ByIdRequest {
     int32 id = 1;
 }
 
-// @inject_response Get{{.Svc}}ByIdResponse *{{.Svc}} data
-message Get{{.Svc}}ByIdResponse {
+// @inject_response Get{{.Service}}ByIdResponse *{{.Service}} data
+message Get{{.Service}}ByIdResponse {
     int32 code = 1;
     string msg = 2;
-    {{.Svc}} data = 3;
+    {{.Service}} data = 3;
 }
 
-message Get{{.Svc}}List0Request {
+message Get{{.Service}}List0Request {
     // @inject_tag: validate:"gte=0,lte=3"
     int32 type = 1;
     // @inject_tag: validate:"gte=5,lte=20"
@@ -96,7 +96,7 @@ message Get{{.Svc}}List0Request {
     bool is_desc = 4;
 }
 
-message Get{{.Svc}}List1Request {
+message Get{{.Service}}List1Request {
     // @inject_tag: validate:"gte=0,lte=3"
     int32 type = 1;
     // @inject_tag: validate:"gte=5,lte=20"
@@ -105,35 +105,35 @@ message Get{{.Svc}}List1Request {
     bool is_desc = 4;
 }
 
-// @inject_response Get{{.Svc}}ListResponse *{{.Svc}}List data
-message Get{{.Svc}}ListResponse {
+// @inject_response Get{{.Service}}ListResponse *{{.Service}}List data
+message Get{{.Service}}ListResponse {
     int32 code = 1;
     string msg = 2;
-    {{.Svc}}List data = 3;
+    {{.Service}}List data = 3;
 }
 
-message Update{{.Svc}}TypeRequest {
+message Update{{.Service}}TypeRequest {
     int32 id = 1;
     int32 type = 2;
 }
 
-// @inject_response Update{{.Svc}}TypeResponse
-message Update{{.Svc}}TypeResponse {
+// @inject_response Update{{.Service}}TypeResponse
+message Update{{.Service}}TypeResponse {
     int32 code = 1;
     string msg = 2;
 }
 
-message Delete{{.Svc}}ByIdRequest {
+message Delete{{.Service}}ByIdRequest {
     int32 id = 1;
 }
 
-// @inject_response Delete{{.Svc}}ByIdResponse
-message Delete{{.Svc}}ByIdResponse {
+// @inject_response Delete{{.Service}}ByIdResponse
+message Delete{{.Service}}ByIdResponse {
     int32 code = 1;
     string msg = 2;
 }
 
-message {{.Svc}} {
+message {{.Service}} {
     int32 id = 1;
     // @inject_tag: validate:"required,email"
     string name = 2;
@@ -145,26 +145,26 @@ message {{.Svc}} {
     string update_datetime = 7;
 }
 
-message {{.Svc}}List {
+message {{.Service}}List {
     int32 total = 1;
     int32 total_page = 2;
     int32 cur_page = 3;
-    repeated {{.Svc}} datalist = 4;
+    repeated {{.Service}} datalist = 4;
 }
 
-message Get{{.Svc}}ListByStreamRequest {
+message Get{{.Service}}ListByStreamRequest {
     int32 index = 1;
     int32 id = 2;
 }
 
-message Get{{.Svc}}ListByStreamResponse {
+message Get{{.Service}}ListByStreamResponse {
     int32 index = 1;
-    {{.Svc}} result = 2;
+    {{.Service}} result = 2;
 }
 `
 
-    path := "./" + data.Domain + "/" + data.Project + "/" + data.Service + "/application/" + data.Service + "/proto/"
-    name := data.Service + ".proto"
+	path := "./" + data.Name + "/application/" + data.Name + "/proto/"
+	name := data.Package + ".proto"
 
-    return template.CreateFile(data, tpl, path, name)
+	return template.CreateFile(data, tpl, path, name)
 }

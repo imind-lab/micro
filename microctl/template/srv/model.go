@@ -69,7 +69,7 @@ func (m {{.Svc}}) IsEmpty() bool {
         return err
     }
 
-    dir := "./" + data.Domain + "/" + data.Project + "/" + data.Service + "/domain/" + data.Service + "/repository/model/"
+    dir := "./" + data.Domain + "/" + data.Repo + "/" + data.Service + "/domain/" + data.Service + "/repository/model/"
 
     err = os.MkdirAll(dir, os.ModePerm)
     if err != nil {

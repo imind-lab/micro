@@ -13,11 +13,11 @@ import (
 
 // 生成go.mod
 func CreateMod(data *template.Data) error {
-    var tpl = `module gitlab.imind.tech/{{.Project}}/{{.Service}}-api
+    var tpl = `module gitlab.imind.tech/{{.Repo}}/{{.Service}}-api
 
 go 1.18
 
-replace gitlab.imind.tech/{{.Project}}/{{.Service}} => ../../../gitlab.imind.tech/{{.Project}}/{{.Service}}
+replace gitlab.imind.tech/{{.Repo}}/{{.Service}} => ../../../gitlab.imind.tech/{{.Repo}}/{{.Service}}
 
 replace github.com/imind-lab/micro => ../../../github.com/imind-lab/micro
 
@@ -31,7 +31,7 @@ require (
 	github.com/pkg/errors v0.9.1
 	github.com/spf13/cobra v1.4.0
 	github.com/spf13/viper v1.10.1
-	gitlab.imind.tech/{{.Project}}/{{.Service}} v0.0.0-00010101000000-000000000000
+	gitlab.imind.tech/{{.Repo}}/{{.Service}} v0.0.0-00010101000000-000000000000
 	go.uber.org/zap v1.21.0
 	google.golang.org/genproto v0.0.0-{{.Year}}0314164441-57ef72a4c106
 	google.golang.org/grpc v1.46.0
@@ -94,7 +94,7 @@ require (
 )
 `
 
-    path := "./" + data.Domain + "/" + data.Project + "/" + data.Service + "-api/"
+    path := "./" + data.Domain + "/" + data.Repo + "/" + data.Service + "-api/"
     name := "go.mod"
 
     return template.CreateFile(data, tpl, path, name)

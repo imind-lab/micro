@@ -17,7 +17,7 @@ import (
 // 生成client/service.go
 func CreateApplicationConvert(data *tpl.Data) error {
     var tpl = `/**
- *  {{.Project}}
+ *  {{.Repo}}
  *
  *  Create by songli on {{.Year}}/03/03
  *  Copyright © {{.Year}} imind.tech All rights reserved.
@@ -26,8 +26,8 @@ func CreateApplicationConvert(data *tpl.Data) error {
 package service
 
 import (
-	"{{.Domain}}/{{.Project}}/{{.Service}}-api/application/{{.Service}}/proto"
-	"{{.Domain}}/{{.Project}}/{{.Service}}/application/{{.Service}}/proto"
+	"{{.Domain}}/{{.Repo}}/{{.Service}}-api/application/{{.Service}}/proto"
+	"{{.Domain}}/{{.Repo}}/{{.Service}}/application/{{.Service}}/proto"
 )
 
 func {{.Svc}}Map(pos []*{{.Service}}.{{.Svc}}, fn func(*{{.Service}}.{{.Svc}}) *{{.Service}}_api.{{.Svc}}) []*{{.Service}}_api.{{.Svc}} {
@@ -93,7 +93,7 @@ func {{.Svc}}ListSrv2Api(dto *{{.Service}}.{{.Svc}}List) *{{.Service}}_api.{{.Sv
     }
 
     t.Option()
-    dir := "./" + data.Domain + "/" + data.Project + "/" + data.Service + "-api/application/" + data.Service + "/service/"
+    dir := "./" + data.Domain + "/" + data.Repo + "/" + data.Service + "-api/application/" + data.Service + "/service/"
 
     err = os.MkdirAll(dir, os.ModePerm)
     if err != nil {

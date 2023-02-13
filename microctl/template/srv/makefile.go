@@ -8,12 +8,12 @@
 package srv
 
 import (
-    "github.com/imind-lab/micro/v2/microctl/template"
+	"github.com/imind-lab/micro/v2/microctl/template"
 )
 
 // 生成Makefile
 func CreateMakefile(data *template.Data) error {
-    var tpl = `GOARCH := $(shell go env GOARCH)
+	var tpl = `GOARCH := $(shell go env GOARCH)
 GOOS := $(shell go env GOOS)
 
 ifndef LOCAL
@@ -25,7 +25,7 @@ IMAGE_TAG = 0.0.1.1
 endif
 
 ifndef IMAGE_URL
-IMAGE_URL = registry.cn-beijing.aliyuncs.com/imind/{{.Service}}
+IMAGE_URL = registry.cn-beijing.aliyuncs.com/imind/{{.Name}}
 endif
 
 ifndef NAMESPACE
@@ -33,11 +33,11 @@ NAMESPACE = default
 endif
 
 ifndef RPC_HOST
-RPC_HOST := {{.Service}}.imind.tech
+RPC_HOST := {{.Name}}.imind.tech
 endif
 
-{{.Service}}_names:={{.Service}}
-{{.Service}}_path:=./application/{{.Service}}/proto
+{{.Package}}_names:={{.Package}}
+{{.Package}}_path:=./application/{{.Name}}/proto
 
 define process
 	protoc -I. --proto_path $(1) --proto_path ./pkg/proto \
@@ -50,7 +50,7 @@ define process
 endef
 
 proto:
-	$(foreach name,$({{.Service}}_names),$(call process,$({{.Service}}_path),$(name)))
+	$(foreach name,$({{.Package}}_names),$(call process,$({{.Package}}_path),$(name)))
 
 wire:
 	cd server && wire
@@ -63,9 +63,9 @@ test:
 
 build:
 ifeq ($(LOCAL), false)
-	CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -a -installsuffix cgo -o {{.Service}} ./main.go
+	CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -a -installsuffix cgo -o {{.Name}} ./main.go
 else
-	CGO_ENABLED=0 GOOS=linux GOARCH=$(GOARCH) go build -a -installsuffix cgo -o {{.Service}} ./main.go
+	CGO_ENABLED=0 GOOS=linux GOARCH=$(GOARCH) go build -a -installsuffix cgo -o {{.Name}} ./main.go
 endif
 
 docker:
@@ -78,7 +78,7 @@ ifeq ($(LOCAL), false)
 endif
 
 deploy:
-	helm upgrade --install {{.Service}} ./deploy/helm/{{.Service}} --set image.repository=$(IMAGE_URL),image.tag=$(IMAGE_TAG),traefik.host=$(RPC_HOST) -n $(NAMESPACE)
+	helm upgrade --install {{.Name}} ./deploy/helm/{{.Name}} --set image.repository=$(IMAGE_URL),image.tag=$(IMAGE_TAG),traefik.host=$(RPC_HOST) -n $(NAMESPACE)
 
 run:
 	go run main.go server
@@ -106,8 +106,8 @@ all:
 .PHONY: proto depend wire build test docker deploy run clean release all
 `
 
-    path := "./" + data.Domain + "/" + data.Project + "/" + data.Service + "/"
-    name := "Makefile"
+	path := "./" + data.Name + "/"
+	name := "Makefile"
 
-    return template.CreateFile(data, tpl, path, name)
+	return template.CreateFile(data, tpl, path, name)
 }

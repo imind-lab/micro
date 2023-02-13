@@ -8,12 +8,12 @@
 package srv
 
 import (
-    "github.com/imind-lab/micro/v2/microctl/template"
+	"github.com/imind-lab/micro/v2/microctl/template"
 )
 
 // 生成conf/conf.yaml
 func CreateConf(data *template.Data) error {
-    var tpl = `global:
+	var tpl = `global:
   rate:
     high:
       limit: 10
@@ -25,15 +25,14 @@ func CreateConf(data *template.Data) error {
     rate: 1
 
 service:
-  namespace: {{.Project}}
-  name: {{.Service}}
+  namespace: daniel
+  name: sample
   version: latest
   logLevel: -1
   logFormat: json
   port: #监听端口
     http: 80
     grpc: 50051
-
 
 db:
   logLevel: 4
@@ -70,16 +69,16 @@ kafka:
     consumer:
       - 'kafka.infra:9092'
     topic:
-      {{.Service}}Create: {{.Service}}_create
-      {{.Service}}Update: {{.Service}}_update
+      sampleCreate: sample_create
+      sampleUpdate: sample_update
 
 tracing:
   agent:
     host: '127.0.0.1'
     port: 6831`
 
-    path := "./" + data.Domain + "/" + data.Project + "/" + data.Service + "/conf/"
-    name := "conf.yaml"
+	path := "./" + data.Name + "/conf/"
+	name := "conf.yaml"
 
-    return template.CreateFile(data, tpl, path, name)
+	return template.CreateFile(data, tpl, path, name)
 }

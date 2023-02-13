@@ -8,13 +8,13 @@
 package share
 
 import (
-    "github.com/imind-lab/micro/v2/microctl/template"
+	"github.com/imind-lab/micro/v2/microctl/template"
 )
 
 // 生成pkg/constant/option.go
 func CreatePkgConstantOption(data *template.Data) error {
-    var tpl = `/**
- *  {{.Svc}}
+	var tpl = `/**
+ *  {{.Service}}
  *
  *  Create by songli on {{.Date}}
  *  Copyright © {{.Year}} imind.tech All rights reserved.
@@ -23,7 +23,7 @@ func CreatePkgConstantOption(data *template.Data) error {
 package constant
 
 import (
-	"time"
+    "time"
 )
 
 // CRequestTimeout 并发请求超时时间
@@ -36,8 +36,8 @@ const MQName = "business"
 const GreetQueueLen = 32
 `
 
-    path := "./" + data.Domain + "/" + data.Project + "/" + data.Service + "/pkg/constant/"
-    name := "option.go"
+	path := "./" + data.Name + "/pkg/constant/"
+	name := "option.go"
 
-    return template.CreateFile(data, tpl, path, name)
+	return template.CreateFile(data, tpl, path, name)
 }

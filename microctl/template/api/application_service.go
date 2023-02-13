@@ -34,8 +34,8 @@ import (
 	"github.com/imind-lab/micro/tracing"
 	"go.uber.org/zap"
 
-	{{.Service}}_api "gitlab.imind.tech/{{.Project}}/{{.Service}}-api/application/{{.Service}}/proto"
-	domain "gitlab.imind.tech/{{.Project}}/{{.Service}}-api/domain/{{.Service}}"
+	{{.Service}}_api "gitlab.imind.tech/{{.Repo}}/{{.Service}}-api/application/{{.Service}}/proto"
+	domain "gitlab.imind.tech/{{.Repo}}/{{.Service}}-api/domain/{{.Service}}"
 )
 
 type {{.Svc}}Service struct {
@@ -221,7 +221,7 @@ func (svc *{{.Svc}}Service) Get{{.Svc}}ListByIds(ctx context.Context, req *{{.Se
 }
 `
 
-    path := "./" + data.Domain + "/" + data.Project + "/" + data.Service + "-api/application/" + data.Service + "/service/"
+    path := "./" + data.Domain + "/" + data.Repo + "/" + data.Service + "-api/application/" + data.Service + "/service/"
     name := data.Service + ".go"
 
     return template.CreateFile(data, tpl, path, name)

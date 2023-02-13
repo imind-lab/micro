@@ -29,7 +29,7 @@ import (
 	"context"
 
 	"github.com/imind-lab/rainbow"
-	{{.Service}} "{{.Domain}}/{{.Project}}/{{.Service}}/application/{{.Service}}/proto"
+	{{.Service}} "{{.Domain}}/{{.Repo}}/{{.Service}}/application/{{.Service}}/proto"
 	tracesdk "go.opentelemetry.io/otel/sdk/trace"
 )
 
@@ -62,7 +62,7 @@ func (cli *{{.Service}}Client) Close() error {
     }
 
     t.Option()
-    dir := "./" + data.Domain + "/" + data.Project + "/" + data.Service + "/client/"
+    dir := "./" + data.Domain + "/" + data.Repo + "/" + data.Service + "/client/"
 
     err = os.MkdirAll(dir, os.ModePerm)
     if err != nil {

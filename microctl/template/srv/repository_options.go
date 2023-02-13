@@ -52,7 +52,7 @@ func ObjectByIdRandExpire(expire time.Duration) ObjectByIdOption {
     }
 
     t.Option()
-    dir := "./" + data.Domain + "/" + data.Project + "/" + data.Service + "/repository/" + data.Service + "/"
+    dir := "./" + data.Domain + "/" + data.Repo + "/" + data.Service + "/repository/" + data.Service + "/"
 
     err = os.MkdirAll(dir, os.ModePerm)
     if err != nil {

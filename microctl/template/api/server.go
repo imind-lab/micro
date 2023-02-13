@@ -23,7 +23,7 @@ import (
 	"github.com/imind-lab/micro/log"
 	"github.com/imind-lab/micro/tracing"
 	"github.com/spf13/viper"
-	{{.Service}}_api "gitlab.imind.tech/{{.Project}}/{{.Service}}-api/application/{{.Service}}/proto"
+	{{.Service}}_api "gitlab.imind.tech/{{.Repo}}/{{.Service}}-api/application/{{.Service}}/proto"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
 	"google.golang.org/grpc"
@@ -92,7 +92,7 @@ func Serve() error {
 }
 `
 
-    path := "./" + data.Domain + "/" + data.Project + "/" + data.Service + "-api/server/"
+    path := "./" + data.Domain + "/" + data.Repo + "/" + data.Service + "-api/server/"
     name := "server.go"
 
     return template.CreateFile(data, tpl, path, name)

@@ -22,7 +22,7 @@ import (
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 
-	"gitlab.imind.tech/{{.Project}}/{{.Service}}-api/server"
+	"gitlab.imind.tech/{{.Repo}}/{{.Service}}-api/server"
 )
 
 var cfgFile string
@@ -59,7 +59,7 @@ func initConf() {
 }
 `
 
-    path := "./" + data.Domain + "/" + data.Project + "/" + data.Service + "-api/cmd/"
+    path := "./" + data.Domain + "/" + data.Repo + "/" + data.Service + "-api/cmd/"
     name := "server.go"
 
     return template.CreateFile(data, tpl, path, name)

@@ -23,7 +23,7 @@ func CreateMain(data *template.Data) error {
 package main
 
 import (
-	"gitlab.imind.tech/{{.Project}}/{{.Service}}-api/cmd"
+	"gitlab.imind.tech/{{.Repo}}/{{.Service}}-api/cmd"
 )
 
 func main() {
@@ -31,7 +31,7 @@ func main() {
 }
 `
 
-    path := "./" + data.Domain + "/" + data.Project + "/" + data.Service + "-api/"
+    path := "./" + data.Domain + "/" + data.Repo + "/" + data.Service + "-api/"
     name := "main.go"
 
     return template.CreateFile(data, tpl, path, name)

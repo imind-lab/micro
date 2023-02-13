@@ -67,7 +67,7 @@ extend google.protobuf.MethodOptions {
 
     tpl = strings.Replace(tpl, _BackTick, "`", -1)
 
-    path := "./" + data.Domain + "/" + data.Project + "/" + data.Service + suffix + _ApiPath
+    path := "./" + data.Name + suffix + _ApiPath
     name := "annotations.proto"
 
     return template.CreateFile(data, tpl, path, name)
@@ -396,7 +396,7 @@ message CustomHttpPattern {
 
     tpl = strings.Replace(tpl, _BackTick, "`", -1)
 
-    path := "./" + data.Domain + "/" + data.Project + "/" + data.Service + suffix + _ApiPath
+    path := "./" + data.Name + suffix + _ApiPath
     name := "http.proto"
 
     return template.CreateFile(data, tpl, path, name)
@@ -483,7 +483,7 @@ message HttpBody {
 }
 `
 
-    path := "./" + data.Domain + "/" + data.Project + "/" + data.Service + suffix + _ApiPath
+    path := "./" + data.Name + suffix + _ApiPath
     name := "httpbody.proto"
 
     return template.CreateFile(data, tpl, path, name)
@@ -680,7 +680,7 @@ enum CreateGoogleHttpCode {
 
     tpl = strings.Replace(tpl, _BackTick, "`", -1)
 
-    path := "./" + data.Domain + "/" + data.Project + "/" + data.Service + suffix + _RpcPath
+    path := "./" + data.Name + suffix + _RpcPath
     name := "code.proto"
 
     return template.CreateFile(data, tpl, path, name)
@@ -891,7 +891,7 @@ message LocalizedMessage {
 
     tpl = strings.Replace(tpl, _BackTick, "`", -1)
 
-    path := "./" + data.Domain + "/" + data.Project + "/" + data.Service + suffix + _RpcPath
+    path := "./" + data.Name + suffix + _RpcPath
     name := "error_details.proto"
 
     return template.CreateFile(data, tpl, path, name)
@@ -994,7 +994,7 @@ message CreateGoogleHttpStatus {
 
     tpl = strings.Replace(tpl, _BackTick, "`", -1)
 
-    path := "./" + data.Domain + "/" + data.Project + "/" + data.Service + suffix + _RpcPath
+    path := "./" + data.Name + suffix + _RpcPath
     name := "status.proto"
 
     return template.CreateFile(data, tpl, path, name)

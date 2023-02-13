@@ -24,7 +24,7 @@ package {{.Service}}
 
 import (
 	"context"
-	{{.Service}} "gitlab.imind.tech/{{.Project}}/{{.Service}}/application/{{.Service}}/proto"
+	{{.Service}} "gitlab.imind.tech/{{.Repo}}/{{.Service}}/application/{{.Service}}/proto"
 )
 
 type {{.Svc}}Repository interface {
@@ -40,7 +40,7 @@ type {{.Svc}}Repository interface {
 }
 `
 
-    path := "./" + data.Domain + "/" + data.Project + "/" + data.Service + "-api/repository/" + data.Service + "/"
+    path := "./" + data.Domain + "/" + data.Repo + "/" + data.Service + "-api/repository/" + data.Service + "/"
     name := "repository.go"
 
     return template.CreateFile(data, tpl, path, name)

@@ -23,8 +23,8 @@ func CreateDomainConvert(data *template.Data) error {
 package {{.Service}}
 
 import (
-	{{.Service}}_api "gitlab.imind.tech/{{.Project}}/{{.Service}}-api/application/{{.Service}}/proto"
-	{{.Service}} "gitlab.imind.tech/{{.Project}}/{{.Service}}/application/{{.Service}}/proto"
+	{{.Service}}_api "gitlab.imind.tech/{{.Repo}}/{{.Service}}-api/application/{{.Service}}/proto"
+	{{.Service}} "gitlab.imind.tech/{{.Repo}}/{{.Service}}/application/{{.Service}}/proto"
 )
 
 func {{.Svc}}Map(pos []*{{.Service}}.{{.Svc}}, fn func(*{{.Service}}.{{.Svc}}) *{{.Service}}_api.{{.Svc}}) []*{{.Service}}_api.{{.Svc}} {
@@ -84,7 +84,7 @@ func {{.Svc}}ListSrv2Api(dto *{{.Service}}.{{.Svc}}List) *{{.Service}}_api.{{.Sv
 }
 `
 
-    path := "./" + data.Domain + "/" + data.Project + "/" + data.Service + "-api/domain/" + data.Service + "/"
+    path := "./" + data.Domain + "/" + data.Repo + "/" + data.Service + "-api/domain/" + data.Service + "/"
     name := "convert.go"
 
     return template.CreateFile(data, tpl, path, name)

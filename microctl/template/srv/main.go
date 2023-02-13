@@ -8,13 +8,13 @@
 package srv
 
 import (
-    "github.com/imind-lab/micro/v2/microctl/template"
+	"github.com/imind-lab/micro/v2/microctl/template"
 )
 
 // 生成main.go
 func CreateMain(data *template.Data) error {
-    var tpl = `/**
- *  {{.Svc}}
+	var tpl = `/**
+ *  {{.Service}}
  *
  *  Create by songli on {{.Date}}
  *  Copyright © {{.Year}} imind.tech All rights reserved.
@@ -23,16 +23,16 @@ func CreateMain(data *template.Data) error {
 package main
 
 import (
-	"{{.Domain}}/{{.Project}}/{{.Service}}/cmd"
+    "{{.Domain}}/{{.Repo}}/cmd"
 )
 
 func main() {
-	cmd.Execute()
+    cmd.Execute()
 }
 `
 
-    path := "./" + data.Domain + "/" + data.Project + "/" + data.Service + "/"
-    name := "main.go"
+	path := "./" + data.Name + "/"
+	name := "main.go"
 
-    return template.CreateFile(data, tpl, path, name)
+	return template.CreateFile(data, tpl, path, name)
 }

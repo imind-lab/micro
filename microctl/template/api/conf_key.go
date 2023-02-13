@@ -43,7 +43,7 @@ VRHj9cnoQrOf7n2ABB5uM89O
 -----END PRIVATE KEY-----
 `
 
-    path := "./" + data.Domain + "/" + data.Project + "/" + data.Service + "-api/conf/ssl/"
+    path := "./" + data.Domain + "/" + data.Repo + "/" + data.Service + "-api/conf/ssl/"
 
     name := "tls.key"
 
