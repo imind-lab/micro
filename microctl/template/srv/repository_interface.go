@@ -23,22 +23,22 @@ func CreateRepositoryInterface(data *template.Data) error {
 package {{.Package}}
 
 import (
-    "context"
+	"context"
 
-    "{{.Domain}}/{{.Repo}}/repository/{{.Name}}/model"
+	"{{.Domain}}/{{.Repo}}/repository/{{.Name}}/model"
 )
 
 type {{.Service}}Repository interface {
-    Create{{.Service}}(ctx context.Context, m model.{{.Service}}) (model.{{.Service}}, error)
-    Get{{.Service}}ById(ctx context.Context, id int) (model.{{.Service}}, error)
-    Get{{.Service}}List0(ctx context.Context, typ, pageSize, pageNum int, isDesc bool) ([]model.{{.Service}}, int, error)
-    Get{{.Service}}List1(ctx context.Context, typ, pageSize, lastId int, isDesc bool) ([]model.{{.Service}}, int, error)
-    Get{{.Service}}List0Ids(ctx context.Context, typ, pageSize, pageNum int, isDesc bool) ([]int, int, error)
-    Get{{.Service}}List1Ids(ctx context.Context, typ, pageSize, lastId int, isDesc bool) ([]int, int, error)
-    Update{{.Service}}Type(ctx context.Context, id, typ int) (int8, error)
-    Delete{{.Service}}ById(ctx context.Context, id int) (int8, error)
+	Create{{.Service}}(ctx context.Context, m model.{{.Service}}) (model.{{.Service}}, error)
+	Get{{.Service}}ById(ctx context.Context, id int) (model.{{.Service}}, error)
+	Get{{.Service}}List0(ctx context.Context, typ, pageSize, pageNum int, isDesc bool) ([]model.{{.Service}}, int, error)
+	Get{{.Service}}List1(ctx context.Context, typ, pageSize, lastId int, isDesc bool) ([]model.{{.Service}}, int, error)
+	Get{{.Service}}List0Ids(ctx context.Context, typ, pageSize, pageNum int, isDesc bool) ([]int, int, error)
+	Get{{.Service}}List1Ids(ctx context.Context, typ, pageSize, lastId int, isDesc bool) ([]int, int, error)
+	Update{{.Service}}Type(ctx context.Context, id, typ int) (int8, error)
+	Delete{{.Service}}ById(ctx context.Context, id int) (int8, error)
 
-    //+IMindScaffold! Do not modify or delete it
+	//+IMind:scaffold
 }
 `
 

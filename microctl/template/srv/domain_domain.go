@@ -23,38 +23,38 @@ func CreateDomainDomain(data *template.Data) error {
 package {{.Package}}
 
 import (
-    "context"
-    "github.com/imind-lab/micro/v2/dao"
+	"context"
+	"github.com/imind-lab/micro/v2/dao"
 
-    {{.Package}} "{{.Domain}}/{{.Repo}}/application/{{.Name}}/proto"
-    repository "{{.Domain}}/{{.Repo}}/repository/{{.Name}}"
-    "{{.Domain}}/{{.Repo}}/repository/{{.Name}}/model"
+	{{.Package}} "{{.Domain}}/{{.Repo}}/application/{{.Name}}/proto"
+	repository "{{.Domain}}/{{.Repo}}/repository/{{.Name}}"
+	"{{.Domain}}/{{.Repo}}/repository/{{.Name}}/model"
 )
 
 type {{.Service}}Domain interface {
-    Create{{.Service}}(ctx context.Context, m model.{{.Service}}) error
+	Create{{.Service}}(ctx context.Context, m model.{{.Service}}) error
 
-    Get{{.Service}}ById(ctx context.Context, id int) (*{{.Package}}.{{.Service}}, error)
-    Get{{.Service}}List0(ctx context.Context, typ, pageSize, pageNum int, isDesc bool) (*{{.Package}}.{{.Service}}List, error)
-    Get{{.Service}}List1(ctx context.Context, typ, pageSize, lastId int, isDesc bool) (*{{.Package}}.{{.Service}}List, error)
+	Get{{.Service}}ById(ctx context.Context, id int) (*{{.Package}}.{{.Service}}, error)
+	Get{{.Service}}List0(ctx context.Context, typ, pageSize, pageNum int, isDesc bool) (*{{.Package}}.{{.Service}}List, error)
+	Get{{.Service}}List1(ctx context.Context, typ, pageSize, lastId int, isDesc bool) (*{{.Package}}.{{.Service}}List, error)
 
-    Update{{.Service}}Type(ctx context.Context, id, typ int) (int8, error)
-    Delete{{.Service}}ById(ctx context.Context, id int) (int8, error)
+	Update{{.Service}}Type(ctx context.Context, id, typ int) (int8, error)
+	Delete{{.Service}}ById(ctx context.Context, id int) (int8, error)
 
-    //+IMindScaffold! Do not modify or delete it
+	//+IMind:scaffold
 }
 
 type sampleDomain struct {
-    dao.Cache
-    repo repository.{{.Service}}Repository
+	dao.Cache
+	repo repository.{{.Service}}Repository
 }
 
 func New{{.Service}}Domain(repo repository.{{.Service}}Repository) {{.Service}}Domain {
-    dm := sampleDomain{
-        Cache: dao.NewCache(),
-        repo:  repo,
-    }
-    return dm
+	dm := sampleDomain{
+		Cache: dao.NewCache(),
+		repo:  repo,
+	}
+	return dm
 }
 `
 

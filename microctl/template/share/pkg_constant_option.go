@@ -8,12 +8,12 @@
 package share
 
 import (
-    "github.com/imind-lab/micro/v2/microctl/template"
+	"github.com/imind-lab/micro/v2/microctl/template"
 )
 
 // 生成pkg/constant/option.go
 func CreatePkgConstantOption(data *template.Data) error {
-    var tpl = `/**
+	var tpl = `/**
  *  {{.Service}}
  *
  *  Create by songli on {{.Date}}
@@ -36,8 +36,8 @@ const MQName = "business"
 const GreetQueueLen = 32
 `
 
-    path := "./" + data.Name + data.Suffix + _PkgConstantPath
-    name := "option.go"
+	path := "./" + data.Name + "/pkg/constant/"
+	name := "option.go"
 
-    return template.CreateFile(data, tpl, path, name)
+	return template.CreateFile(data, tpl, path, name)
 }

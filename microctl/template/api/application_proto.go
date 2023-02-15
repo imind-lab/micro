@@ -70,13 +70,13 @@ service {{.Service}}Service {
 }
 
 message Create{{.Service}}Request {
-    // @inject_tag: validate:"required,email"
+    //+IMind:tag validate:"required,email"
     string name = 1;
-    // @inject_tag: validate:"gte=0,lte=3"
+    //+IMind:tag validate:"gte=0,lte=3"
     int32 type = 2;
 }
 
-// @inject_response Create{{.Service}}Response
+//+IMind:response Create{{.Service}}Response
 message Create{{.Service}}Response {
     int32 code = 1;
     string msg = 2;
@@ -86,7 +86,7 @@ message Get{{.Service}}ByIdRequest {
     int32 id = 1;
 }
 
-// @inject_response Get{{.Service}}ByIdResponse *{{.Service}} data
+//+IMind:response Get{{.Service}}ByIdResponse *{{.Service}} data
 message Get{{.Service}}ByIdResponse {
     int32 code = 1;
     string msg = 2;
@@ -94,24 +94,24 @@ message Get{{.Service}}ByIdResponse {
 }
 
 message Get{{.Service}}List0Request {
-    // @inject_tag: validate:"gte=0,lte=3"
+    //+IMind:tag validate:"gte=0,lte=3"
     int32 type = 1;
-    // @inject_tag: validate:"gte=5,lte=20"
+    //+IMind:tag validate:"gte=5,lte=20"
     int32 page_size = 2;
     int32 page_num = 3;
     bool is_desc = 4;
 }
 
 message Get{{.Service}}List1Request {
-    // @inject_tag: validate:"gte=0,lte=3"
+    //+IMind:tag validate:"gte=0,lte=3"
     int32 type = 1;
-    // @inject_tag: validate:"gte=5,lte=20"
+    //+IMind:tag validate:"gte=5,lte=20"
     int32 page_size = 2;
     int32 last_id = 3;
     bool is_desc = 4;
 }
 
-// @inject_response Get{{.Service}}ListResponse *{{.Service}}List data
+//+IMind:response Get{{.Service}}ListResponse *{{.Service}}List data
 message Get{{.Service}}ListResponse {
     int32 code = 1;
     string msg = 2;
@@ -123,7 +123,7 @@ message Update{{.Service}}TypeRequest {
     int32 type = 2;
 }
 
-// @inject_response Update{{.Service}}TypeResponse
+//+IMind:response Update{{.Service}}TypeResponse
 message Update{{.Service}}TypeResponse {
     int32 code = 1;
     string msg = 2;
@@ -133,7 +133,7 @@ message Delete{{.Service}}ByIdRequest {
     int32 id = 1;
 }
 
-// @inject_response Delete{{.Service}}ByIdResponse
+//+IMind:response Delete{{.Service}}ByIdResponse
 message Delete{{.Service}}ByIdResponse {
     int32 code = 1;
     string msg = 2;
@@ -141,10 +141,10 @@ message Delete{{.Service}}ByIdResponse {
 
 message {{.Service}} {
     int32 id = 1;
-    // @inject_tag: validate:"required,email"
+    //+IMind:tag validate:"required,email"
     string name = 2;
     int32 view_num = 3;
-    // @inject_tag: validate:"gte=0,lte=3"
+    //+IMind:tag validate:"gte=0,lte=3"
     int32 type = 4;
     uint32 create_time = 5;
     string create_datetime = 6;
@@ -162,7 +162,7 @@ message Get{{.Service}}ListByIdsRequest {
     repeated int32 ids = 1;
 }
 
-// @inject_response Get{{.Service}}ListByIdsResponse []*{{.Service}} data
+//+IMind:response Get{{.Service}}ListByIdsResponse []*{{.Service}} data
 message Get{{.Service}}ListByIdsResponse {
     int32 code = 1;
     string msg = 2;
