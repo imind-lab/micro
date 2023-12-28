@@ -1,3 +1,10 @@
+/**
+ * ImindLab
+ *
+ * Create by SongLi on 2023/12/28
+ * Copyright © 2023 imind.tech All rights reserved.
+ */
+
 package util
 
 import "testing"
