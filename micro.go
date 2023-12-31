@@ -3,28 +3,29 @@ package micro
 import (
 	"context"
 	"fmt"
+	"net"
+	"net/http"
+	"runtime/debug"
+	"sync"
+	"syscall"
+	"time"
+
+	grpcprom "github.com/grpc-ecosystem/go-grpc-middleware/providers/prometheus"
 	"github.com/grpc-ecosystem/go-grpc-middleware/v2/interceptors"
 	"github.com/grpc-ecosystem/go-grpc-middleware/v2/interceptors/auth"
 	"github.com/grpc-ecosystem/go-grpc-middleware/v2/interceptors/logging"
 	"github.com/grpc-ecosystem/go-grpc-middleware/v2/interceptors/recovery"
+	"github.com/grpc-ecosystem/go-grpc-middleware/v2/interceptors/retry"
 	"github.com/grpc-ecosystem/go-grpc-middleware/v2/interceptors/selector"
 	"github.com/grpc-ecosystem/go-grpc-middleware/v2/interceptors/timeout"
+	"github.com/grpc-ecosystem/grpc-gateway/v2/runtime"
+	"github.com/oklog/run"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promauto"
 	"github.com/rs/zerolog"
-	"go.opentelemetry.io/otel/trace"
-	"net"
-	"net/http"
-	"sync"
-	"time"
-
-	grpc_middleware "github.com/grpc-ecosystem/go-grpc-middleware"
-	grpcprom "github.com/grpc-ecosystem/go-grpc-middleware/providers/prometheus"
-	"github.com/grpc-ecosystem/go-grpc-middleware/v2/interceptors/retry"
-	"github.com/grpc-ecosystem/grpc-gateway/v2/runtime"
 	"github.com/spf13/viper"
 	"go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc"
-	"go.uber.org/zap"
+	"go.opentelemetry.io/otel/trace"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/credentials/insecure"
@@ -32,7 +33,6 @@ import (
 	healthpb "google.golang.org/grpc/health/grpc_health_v1"
 	"google.golang.org/grpc/reflection"
 	"google.golang.org/grpc/status"
-	"gopkg.in/tomb.v2"
 
 	grpcx "github.com/imind-lab/micro/v2/grpc"
 )
@@ -49,7 +49,7 @@ type Service interface {
 	// GrpcServer returns the grpc server
 	GrpcServer() *grpc.Server
 	// Run the service
-	Run() error
+	Run(context.Context) error
 	// Stop the service
 	Stop(context.Context, context.CancelFunc) error
 	// String The service implementation
@@ -75,7 +75,7 @@ type service struct {
 	once sync.Once
 }
 
-func (s service) Name() string {
+func (s *service) Name() string {
 	return s.opts.Name
 }
 
@@ -92,19 +92,19 @@ func (s *service) Init(ctx context.Context, opts ...Option) {
 	})
 }
 
-func (s service) Options() Options {
+func (s *service) Options() Options {
 	return s.opts
 }
 
-func (s service) ServeMux() *runtime.ServeMux {
+func (s *service) ServeMux() *runtime.ServeMux {
 	return s.serveMux
 }
 
-func (s service) GrpcServer() *grpc.Server {
+func (s *service) GrpcServer() *grpc.Server {
 	return s.grpcServer
 }
 
-func (s service) Run() error {
+func (s *service) Run(ctx context.Context) error {
 	for _, fn := range s.opts.BeforeRun {
 		fn()
 	}
@@ -113,52 +113,53 @@ func (s service) Run() error {
 	httpEndPoint := fmt.Sprintf(":%d", viper.GetInt("service.port.http"))
 	grpcListener, err := net.Listen("tcp", gRPCEndPoint)
 	if err != nil {
-		s.opts.Logger.Error("TCP Listen err", zap.Error(err))
+		s.opts.Logger.Error().Err(err).Msg("TCP Listen error")
 		return err
 	}
 
 	httpListener, err := net.Listen("tcp", httpEndPoint)
 	if err != nil {
-		s.opts.Logger.Error("TCP Listen err", zap.Error(err))
+		s.opts.Logger.Error().Err(err).Msg("TCP Listen error")
 	}
 
-	var tb1 tomb.Tomb
-	tb1.Go(func() error {
-		// start gRPC server
-		return s.startGrpcServer(grpcListener)
-	})
-
-	var tb2 tomb.Tomb
-	tb2.Go(func() error {
-		// start http server
-		return s.startHttpServer(httpListener)
-	})
-
-	for _, fn := range s.opts.AfterRun {
-		fn()
-	}
-
-	for {
-		select {
-		case <-tb1.Dead():
-			s.opts.Logger.Warn("tb1 Dead")
-			tb1 = tomb.Tomb{}
-			tb1.Go(func() error {
-				return s.startGrpcServer(grpcListener)
-			})
-		case <-tb2.Dead():
-			s.opts.Logger.Warn("tb2 Dead")
-			tb2 = tomb.Tomb{}
-			tb2.Go(func() error {
-				return s.startHttpServer(httpListener)
-			})
+	rg := &run.Group{}
+	rg.Add(func() error {
+		s.opts.Logger.Info().Msg("GrpcServer is running" + grpcListener.Addr().String())
+		err := s.grpcServer.Serve(grpcListener)
+		if err != nil {
+			s.opts.Logger.Error().Err(err).Msg("GrpcServer running error")
 		}
-	}
+		return err
+	}, func(err error) {
+		s.grpcServer.GracefulStop()
+		s.grpcServer.Stop()
+	})
 
+	rg.Add(func() error {
+		s.opts.Logger.Info().Msg("HttpServer is running" + httpListener.Addr().String())
+		err := s.httpServer.Serve(httpListener)
+		if err != nil {
+			s.opts.Logger.Error().Err(err).Msg("HttpServer running error")
+		}
+		return err
+	}, func(err error) {
+		s.httpServer.Shutdown(ctx)
+		s.httpServer.Close()
+	})
+
+	rg.Add(run.SignalHandler(ctx, syscall.SIGINT, syscall.SIGTERM))
+
+	if err := rg.Run(); err != nil {
+		s.opts.Logger.Error().Err(err).Msg("run group run error")
+		for _, fn := range s.opts.AfterRun {
+			fn()
+		}
+		return err
+	}
 	return nil
 }
 
-func (s service) Stop(ctx context.Context, cancel context.CancelFunc) error {
+func (s *service) Stop(ctx context.Context, cancel context.CancelFunc) error {
 	for _, fn := range s.opts.BeforeStop {
 		fn()
 	}
@@ -178,11 +179,11 @@ func (s service) Stop(ctx context.Context, cancel context.CancelFunc) error {
 	return nil
 }
 
-func (s service) String() string {
+func (s *service) String() string {
 	return fmt.Sprintf("%s service instance", s.opts.Name)
 }
 
-func (s service) newGrpcServer(ctx context.Context) *grpc.Server {
+func (s *service) newGrpcServer(ctx context.Context) *grpc.Server {
 
 	srvMetrics := grpcprom.NewServerMetrics(
 		grpcprom.WithServerHandlingTimeHistogram(
@@ -215,7 +216,7 @@ func (s service) newGrpcServer(ctx context.Context) *grpc.Server {
 
 	panicRecoveryHandler := func(p any) (err error) {
 		panicsTotal.Inc()
-		//logger.Error("recovered from panic", zap.Any("panic", p), zap.Any("stack", debug.Stack()))
+		s.opts.Logger.Error().Any("panic", p).Any("stack", debug.Stack()).Msg("recovered from panic")
 		return status.Errorf(codes.Internal, "%s", p)
 	}
 	var unaryInterceptors []grpc.UnaryServerInterceptor
@@ -236,12 +237,14 @@ func (s service) newGrpcServer(ctx context.Context) *grpc.Server {
 		recovery.StreamServerInterceptor(recovery.WithRecoveryHandler(panicRecoveryHandler)),
 	)
 
-	var serverOpt []grpc.ServerOption
+	var serverOpt = []grpc.ServerOption{
+		grpc.StatsHandler(otelgrpc.NewServerHandler()),
+	}
 	if s.opts.ServerCred != nil {
 		serverOpt = append(serverOpt, grpc.Creds(s.opts.ServerCred))
 	}
-	serverOpt = append(serverOpt, grpc.UnaryInterceptor(grpc_middleware.ChainUnaryServer(unaryInterceptors...)),
-		grpc.StreamInterceptor(grpc_middleware.ChainStreamServer(streamInterceptors...)))
+	serverOpt = append(serverOpt, grpc.ChainUnaryInterceptor(unaryInterceptors...),
+		grpc.ChainStreamInterceptor(streamInterceptors...))
 
 	grpcServer := grpc.NewServer(serverOpt...)
 
@@ -255,10 +258,10 @@ func (s service) newGrpcServer(ctx context.Context) *grpc.Server {
 	return grpcServer
 }
 
-func (s service) newHttpServer(handlers ...Handler) (*http.Server, *runtime.ServeMux) {
+func (s *service) newHttpServer(handlers ...Handler) (*http.Server, *runtime.ServeMux) {
 	mux := runtime.NewServeMux(grpcx.EnableGatewayJsonTag())
 
-	handler := grpcx.GrpcHandlerFunc(s.grpcServer, mux)
+	handler := grpcx.HandlerFunc(s.grpcServer, mux)
 	for _, handle := range handlers {
 		handler = handle(handler)
 	}
@@ -268,25 +271,6 @@ func (s service) newHttpServer(handlers ...Handler) (*http.Server, *runtime.Serv
 	}
 
 	return httpServer, mux
-}
-
-func (s service) startGrpcServer(listener net.Listener) error {
-	s.opts.Logger.Info("GrpcServer is running" + listener.Addr().String())
-
-	if err := s.grpcServer.Serve(listener); err != nil {
-		s.opts.Logger.Error("HttpServer running error", zap.Error(err))
-		return err
-	}
-	return nil
-}
-
-func (s service) startHttpServer(listener net.Listener) error {
-	s.opts.Logger.Info("HttpServer is running" + listener.Addr().String())
-	if err := s.httpServer.Serve(listener); err != nil {
-		s.opts.Logger.Error("HttpServer running error", zap.Error(err))
-		return err
-	}
-	return nil
 }
 
 func ClientConn(ctx context.Context, name string, tls bool) (*grpc.ClientConn, error) {
@@ -331,8 +315,8 @@ func ClientConn(ctx context.Context, name string, tls bool) (*grpc.ClientConn, e
 		dialOpt = append(dialOpt, grpc.WithTransportCredentials(insecure.NewCredentials()))
 	}
 
-	dialOpt = append(dialOpt, grpc.WithUnaryInterceptor(grpc_middleware.ChainUnaryClient(unaryInterceptors...)),
-		grpc.WithStreamInterceptor(grpc_middleware.ChainStreamClient(streamInterceptors...)))
+	dialOpt = append(dialOpt, grpc.WithChainUnaryInterceptor(unaryInterceptors...),
+		grpc.WithChainStreamInterceptor(streamInterceptors...))
 
 	conn, err := grpc.Dial(addr, dialOpt...)
 

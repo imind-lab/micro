@@ -1,10 +1,9 @@
 package micro
 
 import (
-	"context"
 	"net/http"
 
-	"go.uber.org/zap"
+	"github.com/rs/zerolog"
 	"google.golang.org/grpc/credentials"
 )
 
@@ -13,9 +12,7 @@ type Handler func(next http.Handler) http.Handler
 type Options struct {
 	Name string
 
-	Context context.Context
-
-	Logger *zap.Logger
+	Logger *zerolog.Logger
 
 	ClientCred credentials.TransportCredentials
 	ServerCred credentials.TransportCredentials
@@ -26,15 +23,10 @@ type Options struct {
 	AfterStop  []func() error
 
 	Handlers []Handler
-
-	Signal bool
 }
 
 func newOptions(opts ...Option) Options {
-	opt := Options{
-		Context: context.Background(),
-		Signal:  true,
-	}
+	opt := Options{}
 
 	for _, o := range opts {
 		o(&opt)
@@ -50,15 +42,8 @@ func Name(name string) Option {
 	}
 }
 
-// Context to be used for service
-func Context(c context.Context) Option {
-	return func(o *Options) {
-		o.Context = c
-	}
-}
-
 // Logger to be used for service
-func Logger(logger *zap.Logger) Option {
+func Logger(logger *zerolog.Logger) Option {
 	return func(o *Options) {
 		o.Logger = logger
 	}

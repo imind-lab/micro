@@ -7,47 +7,49 @@
 
 package grpc
 
-import "context"
+import (
+	"github.com/rs/zerolog"
+)
 
 type Options struct {
-    Domain     string
-    ServerCert string
-    ServerKey  string
-    Context    context.Context
+	Domain     string
+	ServerCert string
+	ServerKey  string
+	Logger     *zerolog.Logger
 }
 
 func Domain(domain string) Option {
-    return func(o *Options) {
-        o.Domain = domain
-    }
+	return func(o *Options) {
+		o.Domain = domain
+	}
 }
 
 func ServerCert(cert string) Option {
-    return func(o *Options) {
-        o.ServerCert = cert
-    }
+	return func(o *Options) {
+		o.ServerCert = cert
+	}
 }
 
 func ServerKey(key string) Option {
-    return func(o *Options) {
-        o.ServerKey = key
-    }
+	return func(o *Options) {
+		o.ServerKey = key
+	}
 }
 
-func Context(ctx context.Context) Option {
-    return func(o *Options) {
-        o.Context = ctx
-    }
+func Logger(logger *zerolog.Logger) Option {
+	return func(o *Options) {
+		o.Logger = logger
+	}
 }
 
 type Option func(*Options)
 
 func NewOptions() Options {
-    opts := Options{
-        Domain:     "*.imind.tech",
-        ServerCert: "./conf/ssl/tls.crt",
-        ServerKey:  "./conf/ssl/tls.key",
-        Context:    context.Background(),
-    }
-    return opts
+	opts := Options{
+		Domain:     "*.imind.tech",
+		ServerCert: "./conf/ssl/tls.crt",
+		ServerKey:  "./conf/ssl/tls.key",
+		Logger:     zerolog.DefaultContextLogger,
+	}
+	return opts
 }

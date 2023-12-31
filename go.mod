@@ -5,7 +5,6 @@ go 1.20
 require (
 	github.com/Shopify/sarama v1.38.1
 	github.com/alibaba/sentinel-golang v1.0.4
-	github.com/grpc-ecosystem/go-grpc-middleware v1.3.0
 	github.com/grpc-ecosystem/go-grpc-middleware/providers/prometheus v1.0.0
 	github.com/grpc-ecosystem/go-grpc-middleware/v2 v2.0.1
 	github.com/grpc-ecosystem/grpc-gateway/v2 v2.16.0
@@ -16,7 +15,6 @@ require (
 	github.com/spf13/viper v1.15.0
 	go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc v0.46.1
 	go.opentelemetry.io/otel v1.21.0
-	go.opentelemetry.io/otel/exporters/jaeger v1.13.0
 	go.opentelemetry.io/otel/sdk v1.21.0
 	go.opentelemetry.io/otel/trace v1.21.0
 	go.uber.org/zap v1.24.0
@@ -25,9 +23,8 @@ require (
 	golang.org/x/time v0.3.0
 	google.golang.org/grpc v1.59.0
 	google.golang.org/protobuf v1.31.0
-	gopkg.in/tomb.v2 v2.0.0-20161208151619-d5d1b5820637
 	gorm.io/driver/mysql v1.4.6
-	gorm.io/gorm v1.24.5
+	gorm.io/gorm v1.25.5
 	gorm.io/plugin/dbresolver v1.4.1
 )
 
